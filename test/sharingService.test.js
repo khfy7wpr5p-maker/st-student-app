@@ -6,7 +6,10 @@ import { PRACTICE_PACKAGE_SCOPES } from "../src/contracts/practicePackage.js";
 import { createInMemoryPackageRepository } from "../src/sharing/inMemoryPackageRepository.js";
 import { createInMemoryPublicationRepository } from "../src/sharing/inMemoryPublicationRepository.js";
 import { createPublication } from "../src/sharing/publication.js";
-import { createSharingService } from "../src/sharing/sharingService.js";
+import {
+  createSharingManagementService,
+  createSharingService,
+} from "../src/sharing/sharingService.js";
 
 function makePackage({
   packageId = "pkg-public",
@@ -47,11 +50,16 @@ function makeEmptyService() {
     packageRepository,
     publicationRepository,
   });
+  const managementService = createSharingManagementService({
+    packageRepository,
+    publicationRepository,
+  });
   const studentA = createStudentSession({ studentId: "student-a" });
   const studentB = createStudentSession({ studentId: "student-b" });
 
   return {
     service,
+    managementService,
     packageRepository,
     publicationRepository,
     studentA,
@@ -69,7 +77,7 @@ function makeServiceWithPublicItem() {
     publishedAt: "2026-09-21T16:00:00Z",
   });
 
-  state.service.publish({ package: pkg, publication });
+  state.managementService.publish({ package: pkg, publication });
   return state;
 }
 
@@ -102,8 +110,8 @@ function makeServiceWithPrivateItems() {
     publishedAt: "2026-09-21T16:00:00Z",
   });
 
-  state.service.publish({ package: packageA, publication: publicationA });
-  state.service.publish({ package: packageB, publication: publicationB });
+  state.managementService.publish({ package: packageA, publication: publicationA });
+  state.managementService.publish({ package: packageB, publication: publicationB });
 
   return {
     ...state,
@@ -155,7 +163,7 @@ test("Student A cannot open Student B private publication", () => {
 });
 
 test("publish rejects invalid or non-approved package", () => {
-  const { service } = makeEmptyService();
+  const { managementService } = makeEmptyService();
   const pkg = makePackage();
   pkg.approvedRevision.state = "teacher_corrected";
 
@@ -167,13 +175,13 @@ test("publish rejects invalid or non-approved package", () => {
   });
 
   assert.throws(
-    () => service.publish({ package: pkg, publication }),
+    () => managementService.publish({ package: pkg, publication }),
     /teacher_approved/,
   );
 });
 
 test("publish rejects publication scope that contradicts package metadata", () => {
-  const { service } = makeEmptyService();
+  const { managementService } = makeEmptyService();
   const pkg = makePackage({
     packageId: "pkg-private",
     scope: PRACTICE_PACKAGE_SCOPES.STUDENT_PRIVATE,
@@ -187,7 +195,7 @@ test("publish rejects publication scope that contradicts package metadata", () =
   });
 
   assert.throws(
-    () => service.publish({ package: pkg, publication }),
+    () => managementService.publish({ package: pkg, publication }),
     /publication does not match package publication metadata/,
   );
 });
@@ -208,7 +216,7 @@ test("publish rejects a different private recipient than package metadata", () =
   });
 
   assert.throws(
-    () => service.publish({ package: pkg, publication }),
+    () => managementService.publish({ package: pkg, publication }),
     /publication does not match package publication metadata/,
   );
 });
@@ -258,12 +266,12 @@ test("read service re-checks stored package eligibility", () => {
 
 
 test("revoked publication disappears from new online reads", () => {
-  const { service, studentA } = makeServiceWithPublicItem();
+  const { service, managementService, studentA } = makeServiceWithPublicItem();
 
   const before = service.listPublicPool({ session: studentA });
   assert.equal(before.length, 1);
 
-  service.revoke({
+  managementService.revoke({
     publicationId: before[0].publication.publicationId,
     revokedAt: "2026-09-21T18:00:00Z",
   });
@@ -272,7 +280,7 @@ test("revoked publication disappears from new online reads", () => {
 });
 
 test("new approved revision is published as a distinct package version", () => {
-  const { service, studentA } = makeEmptyService();
+  const { service, managementService, studentA } = makeEmptyService();
 
   const packageR1 = makePackage({
     packageId: "pkg-r1",
@@ -283,7 +291,7 @@ test("new approved revision is published as a distinct package version", () => {
     revisionId: "R2",
   });
 
-  service.publish({
+  managementService.publish({
     package: packageR1,
     publication: createPublication({
       publicationId: "pub-r1",
@@ -292,7 +300,7 @@ test("new approved revision is published as a distinct package version", () => {
       publishedAt: "2026-09-21T16:00:00Z",
     }),
   });
-  service.publish({
+  managementService.publish({
     package: packageR2,
     publication: createPublication({
       publicationId: "pub-r2",
@@ -307,5 +315,53 @@ test("new approved revision is published as a distinct package version", () => {
   assert.deepEqual(
     items.map((item) => item.package.approvedRevision.revisionId),
     ["R1", "R2"],
+  );
+});
+
+
+test("student sharing service exposes no publish or revoke operations", () => {
+  const { service } = makeEmptyService();
+
+  assert.equal("publish" in service, false);
+  assert.equal("revoke" in service, false);
+});
+
+test("Public Pool rejects private publication returned by a faulty adapter", () => {
+  const session = createStudentSession({ studentId: "student-a" });
+  const privatePackage = makePackage({
+    packageId: "pkg-private-leak",
+    scope: PRACTICE_PACKAGE_SCOPES.STUDENT_PRIVATE,
+    recipientStudentId: "student-b",
+  });
+  const privatePublication = createPublication({
+    publicationId: "pub-private-leak",
+    packageId: privatePackage.packageId,
+    scope: PRACTICE_PACKAGE_SCOPES.STUDENT_PRIVATE,
+    recipientStudentId: "student-b",
+    publishedAt: "2026-09-21T19:00:00Z",
+  });
+
+  const service = createSharingService({
+    packageRepository: {
+      getByPackageId() {
+        return privatePackage;
+      },
+    },
+    publicationRepository: {
+      listActivePublic() {
+        return [privatePublication];
+      },
+      listActivePrivateForStudent() {
+        return [];
+      },
+      getById() {
+        return privatePublication;
+      },
+    },
+  });
+
+  assert.throws(
+    () => service.listPublicPool({ session }),
+    /forbidden/,
   );
 });
