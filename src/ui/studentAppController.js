@@ -16,10 +16,13 @@ const emptyState = () => ({
 });
 
 function requireSession(session) {
-  if (getAuthenticatedStudentId(session) === null) {
+  const studentId = getAuthenticatedStudentId(session);
+
+  if (studentId === null) {
     throw new Error("authenticated student session required");
   }
-  return session;
+
+  return Object.freeze({ studentId });
 }
 
 function toWorkSummary(item) {
