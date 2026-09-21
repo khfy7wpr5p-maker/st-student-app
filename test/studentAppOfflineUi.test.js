@@ -261,3 +261,106 @@ test("mount synchronizes on online transition and unsubscribes on destroy", asyn
   await mounted.destroy();
   assert.equal(connectivity.subscribed(), false);
 });
+
+
+function makeVoiceOverFocusHarness() {
+  let markup = "";
+  let activeElement = null;
+  let renderedControl = null;
+  let focusRestored = false;
+
+  const ownerDocument = {
+    get activeElement() {
+      return activeElement;
+    },
+  };
+
+  function createControl() {
+    return {
+      dataset: { action: "show-public-pool" },
+      isConnected: true,
+      focus() {
+        focusRestored = true;
+        activeElement = this;
+      },
+    };
+  }
+
+  const root = {
+    ownerDocument,
+    get innerHTML() {
+      return markup;
+    },
+    set innerHTML(value) {
+      markup = value;
+
+      if (activeElement !== null) {
+        activeElement.isConnected = false;
+      }
+
+      renderedControl = createControl();
+    },
+    addEventListener() {},
+    removeEventListener() {},
+    contains(element) {
+      return element === activeElement || element === renderedControl;
+    },
+    querySelector() {
+      return null;
+    },
+    querySelectorAll(selector) {
+      return selector === "[data-action]" && renderedControl !== null
+        ? [renderedControl]
+        : [];
+    },
+  };
+
+  return {
+    root,
+    focusCurrentControl() {
+      activeElement = renderedControl;
+      focusRestored = false;
+    },
+    wasFocusRestored() {
+      return focusRestored;
+    },
+  };
+}
+
+test("same-screen connectivity repaint restores the focused VoiceOver control", async () => {
+  const connectivity = makeConnectivityHarness();
+  const focus = makeVoiceOverFocusHarness();
+
+  const controller = {
+    getState() {
+      return {
+        screen: STUDENT_APP_SCREENS.HOME,
+        session: { studentId: "student-a" },
+        items: [],
+        practice: null,
+        syncState: SYNC_STATES.IDLE,
+      };
+    },
+    getPracticeRenderSource() {
+      return null;
+    },
+    async synchronizeOffline() {},
+  };
+
+  const mounted = mountStudentApp({
+    root: focus.root,
+    controller,
+    connectivityPort: connectivity.port,
+  });
+
+  await mounted.render();
+  focus.focusCurrentControl();
+
+  connectivity.emit(CONNECTIVITY_STATES.ONLINE);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  await mounted.render();
+
+  assert.equal(focus.wasFocusRestored(), true);
+
+  await mounted.destroy();
+});
