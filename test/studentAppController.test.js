@@ -449,3 +449,96 @@ test("controller exposes immutable UI state", () => {
     TypeError,
   );
 });
+
+
+test("playback runtime failure changes playback to ERROR without changing notation", async () => {
+  const { port } = makePlaybackPort();
+  port.playPackage = async () => {
+    throw new Error("audio backend secret failure");
+  };
+
+  const controller = createStudentAppController({
+    sharingService: makeSharingService(),
+    initialSession: student,
+    notationAdapter: { isAvailable: () => true },
+    playbackPort: port,
+  });
+
+  controller.openPractice("pub-public");
+
+  await assert.rejects(
+    () => controller.playPractice(),
+    /audio backend secret failure/,
+  );
+
+  assert.equal(
+    controller.getState().practice.capabilities.playback,
+    PRACTICE_CAPABILITY_STATES.ERROR,
+  );
+  assert.equal(
+    controller.getState().practice.capabilities.notation,
+    PRACTICE_CAPABILITY_STATES.AVAILABLE,
+  );
+  assert.equal(
+    JSON.stringify(controller.getState()).includes("audio backend secret"),
+    false,
+  );
+});
+
+test("tempo runtime failure changes only tempo capability to ERROR", () => {
+  const { port } = makePlaybackPort();
+  port.setTempoForPackage = () => {
+    throw new Error("tempo backend failure");
+  };
+
+  const controller = createStudentAppController({
+    sharingService: makeSharingService(),
+    initialSession: student,
+    playbackPort: port,
+  });
+
+  controller.openPractice("pub-public");
+
+  assert.throws(
+    () => controller.setPracticeTempo(72),
+    /tempo backend failure/,
+  );
+
+  assert.equal(
+    controller.getState().practice.capabilities.tempoChange,
+    PRACTICE_CAPABILITY_STATES.ERROR,
+  );
+  assert.equal(
+    controller.getState().practice.capabilities.playback,
+    PRACTICE_CAPABILITY_STATES.AVAILABLE,
+  );
+});
+
+test("measure repeat runtime failure changes only repeat capability to ERROR", () => {
+  const { port } = makePlaybackPort();
+  port.setMeasureRepeatEnabledForPackage = () => {
+    throw new Error("repeat backend failure");
+  };
+
+  const controller = createStudentAppController({
+    sharingService: makeSharingService(),
+    initialSession: student,
+    playbackPort: port,
+  });
+
+  controller.openPractice("pub-public");
+
+  assert.throws(
+    () => controller.setMeasureRepeatEnabled(true),
+    /repeat backend failure/,
+  );
+
+  assert.equal(
+    controller.getState().practice.capabilities.measureRepeat,
+    PRACTICE_CAPABILITY_STATES.ERROR,
+  );
+  assert.equal(
+    controller.getState().practice.capabilities.playback,
+    PRACTICE_CAPABILITY_STATES.AVAILABLE,
+  );
+});
