@@ -365,3 +365,39 @@ test("Public Pool rejects private publication returned by a faulty adapter", () 
     /forbidden/,
   );
 });
+
+
+test("My Work rejects public publication returned by a faulty adapter", () => {
+  const session = createStudentSession({ studentId: "student-a" });
+  const publicPackage = makePackage({ packageId: "pkg-public-misrouted" });
+  const publicPublication = createPublication({
+    publicationId: "pub-public-misrouted",
+    packageId: publicPackage.packageId,
+    scope: PRACTICE_PACKAGE_SCOPES.PUBLIC_POOL,
+    publishedAt: "2026-09-21T19:30:00Z",
+  });
+
+  const service = createSharingService({
+    packageRepository: {
+      getByPackageId() {
+        return publicPackage;
+      },
+    },
+    publicationRepository: {
+      listActivePublic() {
+        return [];
+      },
+      listActivePrivateForStudent() {
+        return [publicPublication];
+      },
+      getById() {
+        return publicPublication;
+      },
+    },
+  });
+
+  assert.throws(
+    () => service.listMyWork({ session }),
+    /forbidden/,
+  );
+});
