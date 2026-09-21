@@ -201,7 +201,7 @@ test("publish rejects publication scope that contradicts package metadata", () =
 });
 
 test("publish rejects a different private recipient than package metadata", () => {
-  const { service } = makeEmptyService();
+  const { managementService } = makeEmptyService();
   const pkg = makePackage({
     packageId: "pkg-private",
     scope: PRACTICE_PACKAGE_SCOPES.STUDENT_PRIVATE,
