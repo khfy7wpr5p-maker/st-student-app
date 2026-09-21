@@ -8,12 +8,24 @@ export const STUDENT_APP_SCREENS = Object.freeze({
   PRACTICE: "practice",
 });
 
-const emptyState = () => ({
-  screen: STUDENT_APP_SCREENS.SIGN_IN,
-  session: null,
-  items: [],
-  practice: null,
-});
+function freezeState({
+  screen,
+  session = null,
+  items = [],
+  practice = null,
+}) {
+  return Object.freeze({
+    screen,
+    session,
+    items: Object.freeze([...items]),
+    practice,
+  });
+}
+
+const emptyState = () =>
+  freezeState({
+    screen: STUDENT_APP_SCREENS.SIGN_IN,
+  });
 
 function requireSession(session) {
   const studentId = getAuthenticatedStudentId(session);
@@ -48,13 +60,10 @@ export function createStudentAppController({
   let state = emptyState();
 
   if (initialSession !== null) {
-    const session = requireSession(initialSession);
-    state = {
+    state = freezeState({
       screen: STUDENT_APP_SCREENS.HOME,
-      session,
-      items: [],
-      practice: null,
-    };
+      session: requireSession(initialSession),
+    });
   }
 
   function requireCurrentSession() {
@@ -67,23 +76,20 @@ export function createStudentAppController({
     },
 
     attachSession(session) {
-      state = {
+      state = freezeState({
         screen: STUDENT_APP_SCREENS.HOME,
         session: requireSession(session),
-        items: [],
-        practice: null,
-      };
+      });
       return state;
     },
 
     showHome() {
-      requireCurrentSession();
-      state = {
-        ...state,
+      const session = requireCurrentSession();
+
+      state = freezeState({
         screen: STUDENT_APP_SCREENS.HOME,
-        items: [],
-        practice: null,
-      };
+        session,
+      });
       return state;
     },
 
@@ -93,12 +99,11 @@ export function createStudentAppController({
         .listPublicPool({ session })
         .map(toWorkSummary);
 
-      state = {
-        ...state,
+      state = freezeState({
         screen: STUDENT_APP_SCREENS.PUBLIC_POOL,
+        session,
         items,
-        practice: null,
-      };
+      });
       return state;
     },
 
@@ -108,12 +113,11 @@ export function createStudentAppController({
         .listMyWork({ session })
         .map(toWorkSummary);
 
-      state = {
-        ...state,
+      state = freezeState({
         screen: STUDENT_APP_SCREENS.MY_WORK,
+        session,
         items,
-        practice: null,
-      };
+      });
       return state;
     },
 
@@ -124,12 +128,11 @@ export function createStudentAppController({
         publicationId,
       });
 
-      state = {
-        ...state,
+      state = freezeState({
         screen: STUDENT_APP_SCREENS.PRACTICE,
-        items: [],
+        session,
         practice: toPracticeSummary(item),
-      };
+      });
       return state;
     },
 
