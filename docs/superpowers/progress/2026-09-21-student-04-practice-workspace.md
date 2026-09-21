@@ -43,3 +43,24 @@ Task 3: Ruling: clear private Practice package/render-source on every successful
 Task 3: GREEN run `35632979447` at `d87a7935b8554b35e530f81c8e5373aebdf406e6`: 91/91 tests PASS, 0 fail.
 
 Task 3: complete (commits `ad404fc..d87a793`, tests: full GitHub CI → 91/91 pass).
+
+
+Task 4 renderer: RED run `35633139821` at `9fa0113d5ebd19d0d347b10df51e82edf140c061`: expected missing `renderPracticeWorkspace.js`.
+
+Task 4 renderer delegation: RED run `35633344952` at `cd5d97d903a6696ce8b3f701813a8a8c85d11378`: Practice screen still used STUDENT-03 title-only renderer.
+
+Task 4 renderer delegation: GREEN run `35633414923` at `7932945eb085574460b1ed81d18ff761b457637f`.
+
+Task 4 practice actions: RED run `35633484781` at `0d8a295ab4f38be65eeb0618c9a572c1bf37ef37`: 100/101 pass; only approved practice actions were not yet whitelisted.
+
+Task 4 practice actions: GREEN run `35633553788` at `7759d2c614e4d94dcbda05b349baf7ea1962ec24`.
+
+Task 4 notation lifecycle: RED run `35633787011` at `bcb3fa99a9752387acfd69c62b43cf678247a044`: notation adapter was not invoked/disposed and tempo/repeat DOM values were not forwarded.
+
+Task 4: Ruling: mount owns one serialized notation lifecycle Promise and avoids replacing identical Practice markup, because resetting `#st-score-root` after a successful render would erase renderer-owned SVG and invite duplicate rendering — cost if wrong: a future renderer needing forced same-package rerender requires an explicit refresh key/API.
+
+Task 4: Ruling: Practice presentation identity includes packageId plus DOM generation; package switches force `dispose -> repaint -> render`, while same-package same-markup renders are idempotent — cost if wrong: an in-place source change under the same immutable packageId would not rerender, which is forbidden by the package immutability contract anyway.
+
+Task 4: GREEN run `35633947702` at `dd23e95c20eaaf5e42cd0509276cbb75d0c930b0`: 107/107 tests PASS, 0 fail.
+
+Task 4: complete (commits `3db8a38..dd23e95`, tests: full GitHub CI → 107/107 pass).
