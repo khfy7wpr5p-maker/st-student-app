@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
+import { CONNECTIVITY_STATES } from "../src/offline/connectivityPort.js";
 import { STUDENT_APP_SCREENS } from "../src/ui/studentAppController.js";
 import { renderStudentApp } from "../src/ui/renderStudentApp.js";
 
@@ -29,7 +30,7 @@ test("VoiceOver receives a bounded live connectivity status", () => {
       items: [],
       practice: null,
     },
-    { connectivityState: "OFFLINE" },
+    { connectivityState: CONNECTIVITY_STATES.OFFLINE },
   );
 
   assert.match(
