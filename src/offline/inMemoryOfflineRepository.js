@@ -171,12 +171,26 @@ export function createInMemoryOfflineRepository() {
     async markVerifiedActive({
       studentId,
       publicationId,
+      packageId = null,
       lastVerifiedAt,
     }) {
       requireStudentId(studentId);
       requirePublicationId(publicationId);
 
-      const current = matchingRecords(studentId, publicationId)[0] ?? null;
+      if (packageId !== null && !hasText(packageId)) {
+        throw new TypeError("packageId must be null or a non-empty string");
+      }
+
+      const matching = matchingRecords(studentId, publicationId);
+      const current =
+        packageId === null
+          ? newestRecord(
+              matching.filter(
+                (record) =>
+                  record.accessState === OFFLINE_ACCESS_STATES.ACTIVE,
+              ),
+            )
+          : matching.find((record) => record.packageId === packageId) ?? null;
 
       if (current === null) {
         return null;
@@ -199,19 +213,25 @@ export function createInMemoryOfflineRepository() {
       requireStudentId(studentId);
       requirePublicationId(publicationId);
 
-      const current = matchingRecords(studentId, publicationId)[0] ?? null;
+      const matching = matchingRecords(studentId, publicationId);
 
-      if (current === null) {
+      if (matching.length === 0) {
         return null;
       }
 
-      const replacement = replaceRecord(
-        current,
-        OFFLINE_ACCESS_STATES.REVOKED,
-        lastVerifiedAt,
+      const replacements = matching.map((current) =>
+        replaceRecord(
+          current,
+          OFFLINE_ACCESS_STATES.REVOKED,
+          lastVerifiedAt,
+        ),
       );
-      records.set(cacheKey(replacement), replacement);
-      return replacement;
+
+      for (const replacement of replacements) {
+        records.set(cacheKey(replacement), replacement);
+      }
+
+      return newestRecord(replacements);
     },
   });
 }

@@ -321,10 +321,15 @@ export function createIndexedDbOfflineRepository({
     async markVerifiedActive({
       studentId,
       publicationId,
+      packageId = null,
       lastVerifiedAt,
     }) {
       requireText(studentId, "studentId");
       requireText(publicationId, "publicationId");
+
+      if (packageId !== null) {
+        requireText(packageId, "packageId");
+      }
 
       return withStore("readwrite", async (store) => {
         const stored = await recordsForPublication(
@@ -332,14 +337,27 @@ export function createIndexedDbOfflineRepository({
           studentId,
           publicationId,
         );
-        const current = stored[0];
+        const matching = stored.map(fromStorageRecord);
+        const current =
+          packageId === null
+            ? newestRecord(
+                matching.filter(
+                  (record) =>
+                    record !== null &&
+                    record.accessState === OFFLINE_ACCESS_STATES.ACTIVE,
+                ),
+              )
+            : matching.find(
+                (record) =>
+                  record !== null && record.packageId === packageId,
+              ) ?? null;
 
-        if (current === undefined) {
+        if (current === null) {
           return null;
         }
 
         if (current.accessState === OFFLINE_ACCESS_STATES.REVOKED) {
-          return fromStorageRecord(current);
+          return current;
         }
 
         const replacement = createOfflineRecord({
@@ -367,24 +385,32 @@ export function createIndexedDbOfflineRepository({
           studentId,
           publicationId,
         );
-        const current = stored[0];
+        const matching = stored.map(fromStorageRecord).filter(
+          (record) => record !== null,
+        );
 
-        if (current === undefined) {
+        if (matching.length === 0) {
           return null;
         }
 
-        const replacement = createOfflineRecord({
-          studentId: current.studentId,
-          deliveryItem: {
-            publication: current.publication,
-            package: current.package,
-          },
-          cachedAt: current.cachedAt,
-          lastVerifiedAt,
-          accessState: OFFLINE_ACCESS_STATES.REVOKED,
-        });
-        await requestResult(store.put(toStorageRecord(replacement)));
-        return replacement;
+        const replacements = matching.map((current) =>
+          createOfflineRecord({
+            studentId: current.studentId,
+            deliveryItem: {
+              publication: current.publication,
+              package: current.package,
+            },
+            cachedAt: current.cachedAt,
+            lastVerifiedAt,
+            accessState: OFFLINE_ACCESS_STATES.REVOKED,
+          }),
+        );
+
+        for (const replacement of replacements) {
+          await requestResult(store.put(toStorageRecord(replacement)));
+        }
+
+        return newestRecord(replacements);
       });
     },
   });

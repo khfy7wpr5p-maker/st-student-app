@@ -18,15 +18,43 @@ function requireStudentId(session) {
   return studentId;
 }
 
-function validActiveStatus(status, record) {
+function hasActivePackageStatus(status) {
   return (
     status !== null &&
     typeof status === "object" &&
     status.state === "ACTIVE" &&
     typeof status.packageId === "string" &&
-    status.packageId.trim().length > 0 &&
-    status.packageId === record.packageId
+    status.packageId.trim().length > 0
   );
+}
+
+function activePublicationGroups(records) {
+  const groups = new Map();
+
+  for (const record of records) {
+    if (record.accessState === OFFLINE_ACCESS_STATES.REVOKED) {
+      continue;
+    }
+
+    const current = groups.get(record.publicationId);
+
+    if (current === undefined) {
+      groups.set(record.publicationId, {
+        publicationId: record.publicationId,
+        scope: record.scope,
+        records: [record],
+      });
+      continue;
+    }
+
+    if (current.scope !== record.scope) {
+      throw new Error("cached publication scope mismatch");
+    }
+
+    current.records.push(record);
+  }
+
+  return [...groups.values()];
 }
 
 export function createForegroundSyncCoordinator({
@@ -54,24 +82,21 @@ export function createForegroundSyncCoordinator({
       const records = await offlineRepository.listAllForStudent({
         studentId,
       });
+      const groups = activePublicationGroups(records);
 
       let checked = 0;
       let revoked = 0;
       let failed = 0;
 
-      for (const record of records) {
-        if (record.accessState === OFFLINE_ACCESS_STATES.REVOKED) {
-          continue;
-        }
-
+      for (const group of groups) {
         checked += 1;
 
         try {
           const status =
             await publicationStatusService.getPublicationStatus({
               session,
-              publicationId: record.publicationId,
-              scope: record.scope,
+              publicationId: group.publicationId,
+              scope: group.scope,
             });
 
           const verifiedAt = clock();
@@ -79,19 +104,27 @@ export function createForegroundSyncCoordinator({
           if (status?.state === "REVOKED") {
             await offlineRepository.markRevoked({
               studentId,
-              publicationId: record.publicationId,
+              publicationId: group.publicationId,
               lastVerifiedAt: verifiedAt,
             });
             revoked += 1;
             continue;
           }
 
-          if (validActiveStatus(status, record)) {
-            await offlineRepository.markVerifiedActive({
-              studentId,
-              publicationId: record.publicationId,
-              lastVerifiedAt: verifiedAt,
-            });
+          if (hasActivePackageStatus(status)) {
+            const cachedMatch = group.records.find(
+              (record) => record.packageId === status.packageId,
+            );
+
+            if (cachedMatch !== undefined) {
+              await offlineRepository.markVerifiedActive({
+                studentId,
+                publicationId: group.publicationId,
+                packageId: cachedMatch.packageId,
+                lastVerifiedAt: verifiedAt,
+              });
+            }
+
             continue;
           }
 
