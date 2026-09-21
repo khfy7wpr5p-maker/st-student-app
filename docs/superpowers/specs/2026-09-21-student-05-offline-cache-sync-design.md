@@ -319,16 +319,24 @@ Firestore queries or security rules do not replace core validation. Provider and
 
 Cloud Firestore has a 1 MiB maximum document size. STUDENT-05 therefore must not assume that one serialized Practice Package fits in one Firestore document.
 
-The initial provider representation uses a package manifest plus bounded chunk documents:
+The initial provider representation uses publication-scoped manifests plus bounded chunk documents. It deliberately avoids a globally readable package path.
 
 ```text
-packages/{packageId}                 -> manifest
-packages/{packageId}/chunks/{index}  -> serialized package byte chunk
+publicPublications/{publicationId}                  -> public manifest/publication
+publicPublications/{publicationId}/chunks/{index}   -> public package chunk
+
+students/{studentId}/publications/{publicationId}                -> private manifest/publication
+students/{studentId}/publications/{publicationId}/chunks/{index} -> private package chunk
 ```
 
-The manifest records at least:
+For the initial Firebase adapter, the normalized Student App `studentId` is the authenticated Firebase user's stable `uid`. This keeps the core session model unchanged while making private Firestore paths directly enforceable by Security Rules.
 
+Each manifest records at least:
+
+- `publicationId`
 - `packageId`
+- publication scope
+- revocation state/timestamp needed by online reads
 - representation version
 - UTF-8 JSON encoding identifier
 - `chunkCount`
@@ -338,17 +346,21 @@ Each chunk carries a deterministic zero-based index and no more than 256 KiB of 
 
 The Firestore adapter:
 
-1. reads the manifest;
-2. validates the manifest and chunk indices;
-3. reads exactly the declared chunks;
-4. concatenates bytes in index order;
-5. decodes UTF-8 JSON;
-6. parses the Practice Package;
-7. passes the reconstructed package through the existing core Practice Package validation before delivery.
+1. selects the path from the authenticated student and publication scope;
+2. reads the publication/manifest;
+3. applies the existing scope/recipient/revocation authorization rules;
+4. validates manifest identity and chunk metadata;
+5. reads exactly the declared chunks;
+6. concatenates bytes in index order;
+7. decodes UTF-8 JSON;
+8. parses the Practice Package;
+9. passes the reconstructed package through the existing core Practice Package validation before delivery.
 
-Missing, duplicate, out-of-range, or malformed chunks fail that package closed.
+Missing, duplicate, out-of-range, malformed, wrong-student, wrong-scope, or revoked data fails that package closed.
 
 This provider representation is not exposed to Student UI or core Practice Workspace code. Core code still receives one validated Practice Package object.
+
+Public and private package payloads may therefore duplicate bytes when that is the simplest way to preserve rule-level isolation. At the initial approximately 40-student scale, STUDENT-05 prefers simple authorization boundaries over a deduplicated global blob store.
 
 STUDENT-05 does not introduce Firebase Cloud Storage merely to bypass the document limit.
 
@@ -358,11 +370,14 @@ Production Firebase Security Rules are required before real student data is depl
 
 At minimum they must enforce:
 
-- authenticated reads only where appropriate;
-- `student_private` reads only for the matching authenticated student;
-- no client-side Student App write authority for teacher approval, publication, or revocation;
-- no direct client mutation of immutable approved Practice Packages;
-- public-pool visibility only according to the intended authenticated-student policy.
+- Public Pool reads require an authenticated Firebase user.
+- `students/{studentId}/...` private reads require `request.auth.uid == studentId`.
+- Revoked publication manifests/chunks are not newly delivered by online reads.
+- Student App clients have no write authority for teacher approval, publication, revocation, manifests, or package chunks.
+- Approved Practice Package payloads are immutable from Student App clients.
+- Child chunk reads must be covered by the same publication-scope authorization as their parent manifest.
+
+The design intentionally uses rule-friendly publication-scoped paths so these checks do not depend on Cloud Functions or a globally readable package collection.
 
 The exact Firebase project configuration, credentials, domains, billing account, and deployment secrets are outside the repository design spec and must not be committed.
 
