@@ -34,3 +34,12 @@ Task 2: RED run `35632588814` at `5f1349b50ab2846599bf0eb6309f767b458a273f`: exp
 Task 2: GREEN run `35632660664` at `8bbb0ecbeb63a1dec8c010e533fbe5b1e6b00982`: 84/84 tests PASS, 0 fail.
 
 Task 2: complete (commits `b72ed81..8bbb0ec`, tests: full GitHub CI → 84/84 pass).
+
+
+Task 3: RED run `35632866806` at `9512ab84f8b65e14bb791c4da999d0804fbc7548`: 83 pass / 8 expected failures covering missing workspace state, private render-source API, notation updates, and practice control delegates.
+
+Task 3: Ruling: clear private Practice package/render-source on every successful navigation away from Practice and on session replacement, not only Home/Sign Out — prevents stale private package retention across screens/users — cost if wrong: a future navigation flow that expected to retain hidden Practice state will need explicit re-open.
+
+Task 3: GREEN run `35632979447` at `d87a7935b8554b35e530f81c8e5373aebdf406e6`: 91/91 tests PASS, 0 fail.
+
+Task 3: complete (commits `ad404fc..d87a793`, tests: full GitHub CI → 91/91 pass).
