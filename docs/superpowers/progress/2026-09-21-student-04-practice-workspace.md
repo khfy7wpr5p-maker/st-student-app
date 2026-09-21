@@ -75,3 +75,5 @@ Task 5: Ruling: default bootstrap injects the Student App-owned global ST notati
 Task 5 docs/final pre-review exact-head run `35634437885` at `58a0764ad80fd43ce4895f75f3feabee691a6158`: 109/109 tests PASS, 0 fail.
 
 Task 5: implementation and production-reality docs complete; whole-branch review remains before PR.
+
+Task 1: complete (RED CI 35632222300: expected missing modules; GREEN CI 35632476341: 77/77 pass, fail 0; head 0bd03ef9712617e7ecb70a06e92b9a27f2874db0).
