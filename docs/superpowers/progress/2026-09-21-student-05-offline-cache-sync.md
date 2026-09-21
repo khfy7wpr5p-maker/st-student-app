@@ -33,3 +33,6 @@ Task 5: complete (commits 051e2e3..c1c01f6, tests: GitHub CI 35646709627 -> 146/
 
 Task 6: RED 9a9fb4b, CI 35646838516 -> 146 pass / 1 fail (expected missing Service Worker registration module).
 Task 6: complete (commits 9a9fb4b..bc47e17, tests: GitHub CI 35646939843 -> 150/150 pass, 0 fail).
+
+Task 7: RED a695c6e, CI 35647170582 -> 150 pass / 4 fail (expected missing Firebase adapters/rules).
+Task 7: complete (commits a695c6e..155468f, tests: GitHub CI 35647354464 -> 166/166 pass, 0 fail).
