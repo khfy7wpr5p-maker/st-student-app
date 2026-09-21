@@ -19,6 +19,7 @@ const SHELL_ASSETS = Object.freeze([
   "./src/sharing/packageEligibility.js",
   "./src/sharing/publication.js",
   "./src/offline/connectivityPort.js",
+  "./src/offline/defaultOfflineInfrastructure.js",
   "./src/offline/syncCoordinator.js",
   "./src/offline/offlineRecord.js",
   "./src/offline/indexedDbOfflineRepository.js",
