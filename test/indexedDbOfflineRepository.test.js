@@ -114,3 +114,75 @@ test("IndexedDB preserves package versions and opens the newest cached version",
     ["pkg-b"],
   );
 });
+
+
+test("IndexedDB revocation blocks every cached version of a publication", async () => {
+  const repo = createIndexedDbOfflineRepository({
+    indexedDB,
+    dbName: dbName("revoke-versions"),
+  });
+  await repo.putAuthorized(
+    makePutArgs("student-a", makeDelivery("pub-a", "pkg-old"), {
+      cachedAt: "2026-09-21T12:00:00Z",
+      lastVerifiedAt: "2026-09-21T12:00:00Z",
+    }),
+  );
+  await repo.putAuthorized(
+    makePutArgs("student-a", makeDelivery("pub-a", "pkg-new"), {
+      cachedAt: "2026-09-21T13:00:00Z",
+      lastVerifiedAt: "2026-09-21T13:00:00Z",
+    }),
+  );
+
+  await repo.markRevoked({
+    studentId: "student-a",
+    publicationId: "pub-a",
+    lastVerifiedAt: "2026-09-21T14:00:00Z",
+  });
+
+  const stored = await repo.listAllForStudent({ studentId: "student-a" });
+  assert.equal(
+    stored.every((record) => record.accessState === "REVOKED"),
+    true,
+  );
+  assert.equal(
+    await repo.getActiveByPublicationId({
+      studentId: "student-a",
+      publicationId: "pub-a",
+    }),
+    null,
+  );
+});
+
+test("IndexedDB exact package verification refreshes only the matching immutable version", async () => {
+  const repo = createIndexedDbOfflineRepository({
+    indexedDB,
+    dbName: dbName("verify-exact-version"),
+  });
+  await repo.putAuthorized(
+    makePutArgs("student-a", makeDelivery("pub-a", "pkg-old"), {
+      cachedAt: "2026-09-21T12:00:00Z",
+      lastVerifiedAt: "2026-09-21T12:00:00Z",
+    }),
+  );
+  await repo.putAuthorized(
+    makePutArgs("student-a", makeDelivery("pub-a", "pkg-new"), {
+      cachedAt: "2026-09-21T13:00:00Z",
+      lastVerifiedAt: "2026-09-21T13:00:00Z",
+    }),
+  );
+
+  await repo.markVerifiedActive({
+    studentId: "student-a",
+    publicationId: "pub-a",
+    packageId: "pkg-new",
+    lastVerifiedAt: "2026-09-21T15:00:00Z",
+  });
+
+  const stored = await repo.listAllForStudent({ studentId: "student-a" });
+  const oldRecord = stored.find((record) => record.packageId === "pkg-old");
+  const newRecord = stored.find((record) => record.packageId === "pkg-new");
+
+  assert.equal(oldRecord.lastVerifiedAt, "2026-09-21T12:00:00Z");
+  assert.equal(newRecord.lastVerifiedAt, "2026-09-21T15:00:00Z");
+});
