@@ -24,3 +24,19 @@ Physical acceptance status:
 - NOT YET RUN.
 - Requires physical iPhone + Safari + VoiceOver.
 - End-to-end auth/Firestore/offline acceptance additionally requires Firebase production-like provisioning/configuration, which STUDENT-05 intentionally did not commit.
+
+
+Automated acceptance coverage:
+- iPhone viewport keeps browser zoom enabled.
+- Primary touch controls retain a 3rem minimum height and visible focus styling.
+- Connectivity status is a bounded polite live region.
+- Practice exposes semantic headings, labeled notation region, labeled tempo control and native repeat checkbox.
+- Primary navigation uses native labeled controls.
+- exact head before closure: 6634815597ce71188195d4873f2c85bd7789955e
+- GitHub CI 35655186621 -> 179/179 pass, 0 fail.
+
+Review:
+- compared against feat/student-05-offline-cache-sync: 5 commits ahead, 0 behind.
+- production change is limited to same-presentation focus restoration in mountStudentApp.js.
+- no Firebase/auth/offline authorization contract changes.
+- physical iPhone/Safari/VoiceOver acceptance remains intentionally unverified until run on a device with deployable Firebase configuration.
