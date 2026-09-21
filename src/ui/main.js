@@ -1,3 +1,4 @@
+import { registerStudentAppServiceWorker } from "../offline/serviceWorkerRegistration.js";
 import { createStNotationAdapter } from "../practice/notationAdapter.js";
 import { createStudentAppController } from "./studentAppController.js";
 import { mountStudentApp } from "./mountStudentApp.js";
@@ -29,3 +30,5 @@ mountStudentApp({
   controller,
   notationAdapter,
 });
+
+registerStudentAppServiceWorker().catch(() => {});
