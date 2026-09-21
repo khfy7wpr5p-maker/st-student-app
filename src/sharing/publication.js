@@ -20,6 +20,9 @@ export function createPublication({
   if (!hasText(publishedAt)) {
     throw new TypeError("publishedAt must be a non-empty string");
   }
+  if (revokedAt !== null && !hasText(revokedAt)) {
+    throw new TypeError("revokedAt must be null or a non-empty string");
+  }
 
   if (scope === PRACTICE_PACKAGE_SCOPES.PUBLIC_POOL) {
     if (recipientStudentId !== undefined) {
