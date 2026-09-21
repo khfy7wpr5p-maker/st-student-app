@@ -76,20 +76,41 @@ test("IndexedDB revocation survives repository reopen", async () => {
   );
 });
 
-test("IndexedDB rejects conflicting package for same student publication", async () => {
+test("IndexedDB preserves package versions and opens the newest cached version", async () => {
   const repo = createIndexedDbOfflineRepository({
     indexedDB,
-    dbName: dbName("conflict"),
+    dbName: dbName("versions"),
   });
   await repo.putAuthorized(
-    makePutArgs("student-a", makeDelivery("pub-a", "pkg-a")),
+    makePutArgs("student-a", makeDelivery("pub-a", "pkg-a"), {
+      cachedAt: "2026-09-21T12:00:00Z",
+      lastVerifiedAt: "2026-09-21T12:00:00Z",
+    }),
+  );
+  await repo.putAuthorized(
+    makePutArgs("student-a", makeDelivery("pub-a", "pkg-b"), {
+      cachedAt: "2026-09-21T13:00:00Z",
+      lastVerifiedAt: "2026-09-21T13:00:00Z",
+    }),
   );
 
-  await assert.rejects(
-    () =>
-      repo.putAuthorized(
-        makePutArgs("student-a", makeDelivery("pub-a", "pkg-b")),
-      ),
-    /different package/i,
+  const stored = await repo.listAllForStudent({ studentId: "student-a" });
+  assert.deepEqual(
+    stored.map((record) => record.packageId).sort(),
+    ["pkg-a", "pkg-b"],
+  );
+
+  const active = await repo.getActiveByPublicationId({
+    studentId: "student-a",
+    publicationId: "pub-a",
+  });
+  assert.equal(active.packageId, "pkg-b");
+
+  const visible = await repo.listActiveForStudent({
+    studentId: "student-a",
+  });
+  assert.deepEqual(
+    visible.map((record) => record.packageId),
+    ["pkg-b"],
   );
 });

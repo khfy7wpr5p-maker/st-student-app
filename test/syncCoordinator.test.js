@@ -164,3 +164,88 @@ test("invalid provider status is a failure, never an implicit revocation", async
     null,
   );
 });
+
+
+test("sync accepts an active newer cached package without treating the preserved older snapshot as an error", async () => {
+  const repo = createInMemoryOfflineRepository();
+  await repo.putAuthorized(
+    makePutArgs("student-a", makeDelivery("pub-a", "pkg-old"), {
+      cachedAt: "2026-09-21T12:00:00Z",
+      lastVerifiedAt: "2026-09-21T12:00:00Z",
+    }),
+  );
+  await repo.putAuthorized(
+    makePutArgs("student-a", makeDelivery("pub-a", "pkg-new"), {
+      cachedAt: "2026-09-21T13:00:00Z",
+      lastVerifiedAt: "2026-09-21T13:00:00Z",
+    }),
+  );
+
+  const coordinator = createForegroundSyncCoordinator({
+    offlineRepository: repo,
+    publicationStatusService: {
+      async getPublicationStatus() {
+        return { state: "ACTIVE", packageId: "pkg-new" };
+      },
+    },
+    clock: () => "2026-09-21T16:00:00Z",
+  });
+
+  const result = await coordinator.sync({ session: studentA });
+  const records = await repo.listAllForStudent({ studentId: "student-a" });
+  const oldRecord = records.find((record) => record.packageId === "pkg-old");
+  const newRecord = records.find((record) => record.packageId === "pkg-new");
+
+  assert.deepEqual(result, {
+    state: SYNC_STATES.SYNCED,
+    checked: 1,
+    revoked: 0,
+    failed: 0,
+  });
+  assert.equal(oldRecord.lastVerifiedAt, "2026-09-21T12:00:00Z");
+  assert.equal(newRecord.lastVerifiedAt, "2026-09-21T16:00:00Z");
+});
+
+test("revocation blocks every cached package version of one publication", async () => {
+  const repo = createInMemoryOfflineRepository();
+  await repo.putAuthorized(
+    makePutArgs("student-a", makeDelivery("pub-a", "pkg-old"), {
+      cachedAt: "2026-09-21T12:00:00Z",
+      lastVerifiedAt: "2026-09-21T12:00:00Z",
+    }),
+  );
+  await repo.putAuthorized(
+    makePutArgs("student-a", makeDelivery("pub-a", "pkg-new"), {
+      cachedAt: "2026-09-21T13:00:00Z",
+      lastVerifiedAt: "2026-09-21T13:00:00Z",
+    }),
+  );
+
+  const coordinator = createForegroundSyncCoordinator({
+    offlineRepository: repo,
+    publicationStatusService: {
+      async getPublicationStatus() {
+        return { state: "REVOKED" };
+      },
+    },
+    clock: () => "2026-09-21T17:00:00Z",
+  });
+
+  const result = await coordinator.sync({ session: studentA });
+  const records = await repo.listAllForStudent({ studentId: "student-a" });
+
+  assert.equal(result.state, SYNC_STATES.SYNCED);
+  assert.equal(result.checked, 1);
+  assert.equal(result.revoked, 1);
+  assert.equal(
+    records.every((record) => record.accessState === "REVOKED"),
+    true,
+  );
+  assert.equal(
+    await repo.getActiveByPublicationId({
+      studentId: "student-a",
+      publicationId: "pub-a",
+    }),
+    null,
+  );
+});

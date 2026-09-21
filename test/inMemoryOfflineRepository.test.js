@@ -62,21 +62,41 @@ test("new package ids remain distinct immutable cache records", async () => {
   );
 });
 
-test("conflicting package id for same student publication is rejected", async () => {
+test("same publication keeps immutable package versions and opens the newest cached version", async () => {
   const repo = createInMemoryOfflineRepository();
   await repo.putAuthorized(
-    makePutArgs("student-a", makeDelivery("pub-1", "pkg-1")),
+    makePutArgs("student-a", makeDelivery("pub-1", "pkg-1"), {
+      cachedAt: "2026-09-21T12:00:00Z",
+      lastVerifiedAt: "2026-09-21T12:00:00Z",
+    }),
+  );
+  await repo.putAuthorized(
+    makePutArgs("student-a", makeDelivery("pub-1", "pkg-2"), {
+      cachedAt: "2026-09-21T13:00:00Z",
+      lastVerifiedAt: "2026-09-21T13:00:00Z",
+    }),
   );
 
-  await assert.rejects(
-    () =>
-      repo.putAuthorized(
-        makePutArgs("student-a", makeDelivery("pub-1", "pkg-2")),
-      ),
-    /different package/i,
+  const stored = await repo.listAllForStudent({ studentId: "student-a" });
+  assert.deepEqual(
+    stored.map((record) => record.packageId).sort(),
+    ["pkg-1", "pkg-2"],
+  );
+
+  const active = await repo.getActiveByPublicationId({
+    studentId: "student-a",
+    publicationId: "pub-1",
+  });
+  assert.equal(active.packageId, "pkg-2");
+
+  const visible = await repo.listActiveForStudent({
+    studentId: "student-a",
+  });
+  assert.deepEqual(
+    visible.map((record) => record.packageId),
+    ["pkg-2"],
   );
 });
-
 test("revoked records disappear from active reads but remain stored", async () => {
   const repo = createInMemoryOfflineRepository();
   await repo.putAuthorized(
