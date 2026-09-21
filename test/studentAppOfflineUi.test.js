@@ -471,3 +471,72 @@ test("My Work manifest failures surface a bounded data diagnosis", async () => {
 
   await mounted.destroy();
 });
+
+
+async function renderMyWorkFailure(message) {
+  let clickListener = null;
+  const root = {
+    innerHTML: "",
+    ownerDocument: { activeElement: null },
+    addEventListener(type, listener) {
+      if (type === "click") clickListener = listener;
+    },
+    removeEventListener() {},
+    contains() {
+      return true;
+    },
+    querySelector() {
+      return null;
+    },
+    querySelectorAll() {
+      return [];
+    },
+  };
+  const controller = {
+    getState() {
+      return {
+        screen: "home",
+        session: { studentId: "student-a" },
+        items: [],
+        practice: null,
+      };
+    },
+    showMyWork() {
+      throw new Error(message);
+    },
+    getPracticeRenderSource() {
+      return null;
+    },
+  };
+
+  const mounted = mountStudentApp({ root, controller });
+  await clickListener({
+    target: {
+      closest() {
+        return { dataset: { action: "show-my-work" } };
+      },
+    },
+  });
+  await mounted.destroy();
+  return root.innerHTML;
+}
+
+test("My Work malformed manifest diagnosis identifies the failing field without backend detail", async () => {
+  const cases = [
+    ["Firestore packageId is invalid", "packageId"],
+    ["Firestore publication title is invalid", "title"],
+    ["Firestore publication scope mismatch", "scope"],
+    ["publishedAt must be a non-empty string", "publishedAt"],
+    ["Firestore publication id mismatch", "publicationId"],
+    ["private publication recipient mismatch", "recipientStudentId"],
+  ];
+
+  for (const [providerMessage, fieldName] of cases) {
+    const html = await renderMyWorkFailure(providerMessage);
+    assert.match(html, new RegExp(`Kişisel çalışma: ${fieldName} alanı eksik veya hatalı`));
+    assert.doesNotMatch(
+      html,
+      /Firestore|recipient mismatch|scope mismatch|non-empty string/i,
+    );
+  }
+});
