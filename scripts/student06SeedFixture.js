@@ -236,3 +236,80 @@ export function buildStudent06SeedPlan({
     writes: Object.freeze([...publicWrites, ...privateWrites]),
   });
 }
+
+
+function requireSeedPlan(plan) {
+  if (
+    plan === null ||
+    typeof plan !== "object" ||
+    !PROJECT_ID_PATTERN.test(plan.projectId ?? "") ||
+    !Array.isArray(plan.writes) ||
+    plan.writes.length === 0
+  ) {
+    throw new TypeError("seed plan is invalid");
+  }
+
+  return plan;
+}
+
+export async function commitStudent06SeedPlan({
+  plan,
+  accessToken,
+  fetchImpl = globalThis.fetch,
+}) {
+  const safePlan = requireSeedPlan(plan);
+
+  if (
+    typeof accessToken !== "string" ||
+    accessToken.trim().length === 0
+  ) {
+    throw new TypeError("access token is required");
+  }
+
+  if (typeof fetchImpl !== "function") {
+    throw new TypeError("fetch implementation is required");
+  }
+
+  const url =
+    `https://firestore.googleapis.com/v1/projects/${safePlan.projectId}/databases/(default)/documents:commit`;
+
+  let response;
+
+  try {
+    response = await fetchImpl(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken.trim()}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ writes: safePlan.writes }),
+    });
+  } catch {
+    throw new Error("Firestore seed commit request failed");
+  }
+
+  if (response?.ok !== true) {
+    const status =
+      Number.isInteger(response?.status) ? response.status : "unknown";
+    throw new Error(`Firestore seed commit failed (${status})`);
+  }
+
+  let payload = null;
+
+  try {
+    payload = await response.json();
+  } catch {
+    payload = null;
+  }
+
+  if (
+    Array.isArray(payload?.writeResults) &&
+    payload.writeResults.length !== safePlan.writes.length
+  ) {
+    throw new Error("Firestore seed commit result count mismatch");
+  }
+
+  return Object.freeze({
+    committedWrites: safePlan.writes.length,
+  });
+}
