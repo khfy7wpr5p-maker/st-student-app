@@ -57,3 +57,19 @@ test("Student App package adds no direct OSMD dependency", async () => {
   assert.equal("opensheetmusicdisplay" in dependencies, false);
   assert.equal("osmd" in dependencies, false);
 });
+
+
+test("default bootstrap wires provider-neutral offline infrastructure without Firebase secrets", async () => {
+  const source = await readFile(
+    new URL("../src/ui/main.js", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /createDefaultOfflineInfrastructure/);
+  assert.match(source, /connectivityPort/);
+  assert.doesNotMatch(
+    source,
+    /apiKey|projectId|authDomain|accessToken|refreshToken|getStorage|firebase[/]storage|uploadBytes/i,
+  );
+  assert.doesNotMatch(source, /createStudentSession|studentId\s*:/);
+});
