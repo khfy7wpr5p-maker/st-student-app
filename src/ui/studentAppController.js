@@ -102,6 +102,7 @@ export function createStudentAppController({
   let state = emptyState();
   let activePracticeRenderSource = null;
   let activePracticePackage = null;
+  let sessionGeneration = 0;
 
   function clearActivePractice() {
     activePracticeRenderSource = null;
@@ -129,6 +130,13 @@ export function createStudentAppController({
 
   function requireCurrentSession() {
     return requireSession(state.session);
+  }
+
+  function sessionRequestIsCurrent(session, generation) {
+    return (
+      generation === sessionGeneration &&
+      state.session?.studentId === session.studentId
+    );
   }
 
   function requirePracticeCapability(name) {
@@ -207,6 +215,7 @@ export function createStudentAppController({
 
     attachSession(session) {
       const nextSession = requireSession(session);
+      sessionGeneration += 1;
       clearActivePractice();
 
       if (syncCoordinator !== null) {
@@ -235,9 +244,14 @@ export function createStudentAppController({
 
     showPublicPool() {
       const session = requireCurrentSession();
+      const requestGeneration = sessionGeneration;
       const result = sharingService.listPublicPool({ session });
 
       return resolveMaybe(result, (items) => {
+        if (!sessionRequestIsCurrent(session, requestGeneration)) {
+          return state;
+        }
+
         clearActivePractice();
         state = freezeState({
           screen: STUDENT_APP_SCREENS.PUBLIC_POOL,
@@ -251,9 +265,14 @@ export function createStudentAppController({
 
     showMyWork() {
       const session = requireCurrentSession();
+      const requestGeneration = sessionGeneration;
       const result = sharingService.listMyWork({ session });
 
       return resolveMaybe(result, (items) => {
+        if (!sessionRequestIsCurrent(session, requestGeneration)) {
+          return state;
+        }
+
         clearActivePractice();
         state = freezeState({
           screen: STUDENT_APP_SCREENS.MY_WORK,
@@ -267,12 +286,17 @@ export function createStudentAppController({
 
     openPractice(publicationId) {
       const session = requireCurrentSession();
+      const requestGeneration = sessionGeneration;
       const result = sharingService.getPracticeItem({
         session,
         publicationId,
       });
 
       return resolveMaybe(result, (item) => {
+        if (!sessionRequestIsCurrent(session, requestGeneration)) {
+          return state;
+        }
+
         const workspace = createPracticeWorkspace({
           deliveryItem: item,
           notationRuntimeAvailable:
@@ -408,6 +432,7 @@ export function createStudentAppController({
     },
 
     signOut() {
+      sessionGeneration += 1;
       clearActivePractice();
 
       if (syncCoordinator !== null) {
