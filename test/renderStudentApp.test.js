@@ -131,3 +131,24 @@ test("renderer does not expose private or internal fields even if extra state ap
     /"student-a"|>student-a<|score-partwise|recipientStudentId|omr|debug|secret/,
   );
 });
+
+
+test("configured sign-in renders bounded email and password fields", () => {
+  const html = renderStudentApp(
+    {
+      screen: STUDENT_APP_SCREENS.SIGN_IN,
+      session: null,
+      items: [],
+      practice: null,
+    },
+    { signInAvailable: true },
+  );
+
+  assert.match(html, /type="email"/);
+  assert.match(html, /data-sign-in-email/);
+  assert.match(html, /autocomplete="email"/);
+  assert.match(html, /type="password"/);
+  assert.match(html, /data-sign-in-password/);
+  assert.match(html, /autocomplete="current-password"/);
+  assert.doesNotMatch(html, /value="[^"]+"/);
+});

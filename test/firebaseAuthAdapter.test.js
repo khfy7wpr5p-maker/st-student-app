@@ -100,3 +100,64 @@ test("auth subscription emits normalized sessions only", async () => {
   unsubscribe();
   assert.equal(removed, true);
 });
+
+
+test("email/password sign-in returns only a normalized Student App session", async () => {
+  const calls = [];
+  const adapter = createFirebaseAuthAdapter({
+    auth: { name: "auth" },
+    sdk: {
+      browserLocalPersistence: {},
+      async setPersistence() {},
+      onAuthStateChanged() {
+        return () => {};
+      },
+      async signInWithEmailAndPassword(auth, email, password) {
+        calls.push(["signIn", auth.name, email, password]);
+        return {
+          user: {
+            uid: "uid-email",
+            email,
+            accessToken: "DO_NOT_LEAK",
+          },
+        };
+      },
+    },
+  });
+
+  const session = await adapter.signIn({
+    email: "student@example.test",
+    password: "secret-password",
+  });
+
+  assert.equal(session.studentId, "uid-email");
+  assert.equal(session.email, "student@example.test");
+  assert.equal(JSON.stringify(session).includes("secret-password"), false);
+  assert.equal(JSON.stringify(session).includes("DO_NOT_LEAK"), false);
+  assert.deepEqual(calls, [
+    ["signIn", "auth", "student@example.test", "secret-password"],
+  ]);
+});
+
+test("sign-out delegates to Firebase Auth without returning provider data", async () => {
+  const calls = [];
+  const adapter = createFirebaseAuthAdapter({
+    auth: { name: "auth" },
+    sdk: {
+      browserLocalPersistence: {},
+      async setPersistence() {},
+      onAuthStateChanged() {
+        return () => {};
+      },
+      async signOut(auth) {
+        calls.push(["signOut", auth.name]);
+        return { token: "DO_NOT_RETURN" };
+      },
+    },
+  });
+
+  const result = await adapter.signOut();
+
+  assert.equal(result, undefined);
+  assert.deepEqual(calls, [["signOut", "auth"]]);
+});

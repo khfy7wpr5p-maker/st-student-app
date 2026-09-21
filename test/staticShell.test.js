@@ -73,3 +73,17 @@ test("default bootstrap wires provider-neutral offline infrastructure without Fi
   );
   assert.doesNotMatch(source, /createStudentSession|studentId\s*:/);
 });
+
+
+test("browser bootstrap uses the Firebase provider runtime without Analytics or Storage", async () => {
+  const source = await readFile(
+    new URL("../src/ui/main.js", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /createFirebaseBrowserRuntime/);
+  assert.match(source, /restoreSession/);
+  assert.match(source, /requestSignIn/);
+  assert.match(source, /requestSignOut/);
+  assert.doesNotMatch(source, /getAnalytics|getStorage|uploadBytes/);
+});
