@@ -296,6 +296,10 @@ export function createFirestoreSharingAdapter({ db, sdk }) {
         chunks,
       });
 
+      if (pkg.packageId !== publication.packageId) {
+        throw new Error("Firestore package id mismatch");
+      }
+
       return createDeliveryItem(publication, pkg);
     },
 
