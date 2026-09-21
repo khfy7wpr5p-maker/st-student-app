@@ -26,6 +26,7 @@ jobs:
       - name: Checkout preview branch
         uses: actions/checkout@v5
 
+      # Pages is enabled manually in repository Settings -> Pages.
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
