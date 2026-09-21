@@ -1,5 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { access } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
 import { decodeFirestorePackage } from "../src/providers/firebase/firestorePackageTransport.js";
 
@@ -157,5 +160,121 @@ test("STUDENT-06 seed plan rejects unsafe identifiers and is bounded to known te
       "students/uid-student-a/publications/pub-test-private",
       "students/uid-student-a/publications/pub-test-private/chunks/0",
     ],
+  );
+});
+
+
+test("STUDENT-06 seed commit uses one bounded Firestore commit and requires an explicit access token", async () => {
+  const {
+    buildStudent06SeedPlan,
+    commitStudent06SeedPlan,
+  } = await loadSeedModule();
+
+  assert.equal(typeof commitStudent06SeedPlan, "function");
+
+  const plan = buildStudent06SeedPlan({
+    projectId: "st-student-app-test",
+    studentId: "uid-student-a",
+    publishedAt: "2026-09-22T00:00:00Z",
+  });
+
+  await assert.rejects(
+    () =>
+      commitStudent06SeedPlan({
+        plan,
+        accessToken: "",
+        fetchImpl: async () => {
+          throw new Error("must not fetch");
+        },
+      }),
+    /access token/i,
+  );
+
+  const calls = [];
+  const result = await commitStudent06SeedPlan({
+    plan,
+    accessToken: "token-test-only",
+    fetchImpl: async (url, options) => {
+      calls.push({ url, options });
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return { writeResults: [{}, {}, {}, {}] };
+        },
+      };
+    },
+  });
+
+  assert.deepEqual(result, { committedWrites: 4 });
+  assert.equal(calls.length, 1);
+  assert.equal(
+    calls[0].url,
+    "https://firestore.googleapis.com/v1/projects/st-student-app-test/databases/(default)/documents:commit",
+  );
+  assert.equal(calls[0].options.method, "POST");
+  assert.equal(
+    calls[0].options.headers.Authorization,
+    "Bearer token-test-only",
+  );
+  assert.equal(
+    calls[0].options.headers["Content-Type"],
+    "application/json",
+  );
+  assert.equal(JSON.parse(calls[0].options.body).writes.length, 4);
+  assert.equal(JSON.stringify(result).includes("token-test-only"), false);
+});
+
+test("STUDENT-06 seed CLI is dry-run by default and refuses apply without a token", async () => {
+  const cliUrl = new URL(
+    "../scripts/seed-student06-firestore.mjs",
+    import.meta.url,
+  );
+
+  let exists = true;
+  try {
+    await access(cliUrl);
+  } catch {
+    exists = false;
+  }
+  assert.equal(exists, true);
+
+  const cliPath = fileURLToPath(cliUrl);
+  const commonArgs = [
+    cliPath,
+    "--project",
+    "st-student-app-test",
+    "--student",
+    "uid-student-a",
+    "--published-at",
+    "2026-09-22T00:00:00Z",
+  ];
+
+  const dryRun = spawnSync(process.execPath, commonArgs, {
+    encoding: "utf8",
+    env: { ...process.env, FIRESTORE_ACCESS_TOKEN: "" },
+  });
+
+  assert.equal(dryRun.status, 0);
+  assert.match(dryRun.stdout, /DRY RUN/i);
+  assert.match(
+    dryRun.stdout,
+    /students\/uid-student-a\/publications\/pub-test-private/,
+  );
+  assert.doesNotMatch(dryRun.stdout, /token-test-only|Bearer/i);
+
+  const applyWithoutToken = spawnSync(
+    process.execPath,
+    [...commonArgs, "--apply"],
+    {
+      encoding: "utf8",
+      env: { ...process.env, FIRESTORE_ACCESS_TOKEN: "" },
+    },
+  );
+
+  assert.notEqual(applyWithoutToken.status, 0);
+  assert.match(
+    applyWithoutToken.stderr,
+    /FIRESTORE_ACCESS_TOKEN.*required/i,
   );
 });
