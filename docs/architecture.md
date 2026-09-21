@@ -306,6 +306,8 @@ gerektirir.
 
 Bu port package timing'inin gerçek otoritesidir; Student App canonicalEvents yapısını tahmin etmez.
 
+Trusted playback/practice port çağrısı runtime sırasında hata verirse yalnız ilgili capability `ERROR` durumuna geçirilir: playback hatası notation'ı değiştirmez; tempo hatası playback'i değiştirmez; measure-repeat hatası playback'i değiştirmez. Raw backend exception state/HTML içine yazılmaz ve shell yalnız bounded öğrenci mesajı gösterir.
+
 ### TAB ve keman
 
 `content.guitarTab` ve `content.violin` nesnelerinin item contract'ları tanımlı olmadığı için non-null olmaları capability'yi AVAILABLE yapmaz.
