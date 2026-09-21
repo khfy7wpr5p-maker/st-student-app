@@ -34,3 +34,16 @@ npm test
 ```
 
 STUDENT-02, provider-neutral öğrenci session ve Sharing Layer sözleşmelerini tanımlar. Gerçek auth/bulut sağlayıcısı ve UI framework'ü hâlâ bilinçli olarak seçilmemiştir.
+
+
+## STUDENT-03 durumu
+
+Minimal öğrenci uygulaması shell'i eklenmiştir:
+
+- Giriş
+- Ana Sayfa
+- Havuz
+- Benim Çalışmalarım
+- Çalışmayı Aç
+
+UI, STUDENT-02 salt-okunur Sharing Service'ine bağlanan provider-neutral controller kullanır. Gerçek auth/bulut sağlayıcısı henüz bağlanmamıştır; varsayılan static giriş sayfası sahte öğrenci hesabı üretmez.
