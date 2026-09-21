@@ -101,7 +101,11 @@ export function createSharingService({
       return publicationRepository
         .listActivePrivateForStudent(studentId)
         .map((publication) => {
-          if (!canReadPublication({ session, publication })) {
+          if (
+            publication.scope !== PRACTICE_PACKAGE_SCOPES.STUDENT_PRIVATE ||
+            publication.recipientStudentId !== studentId ||
+            !canReadPublication({ session, publication })
+          ) {
             throw new Error("forbidden");
           }
 
