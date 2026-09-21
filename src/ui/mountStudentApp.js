@@ -19,6 +19,57 @@ function isNotationCapability(value) {
   return Object.values(PRACTICE_CAPABILITY_STATES).includes(value);
 }
 
+function focusedActionIdentity(root) {
+  const activeElement = root.ownerDocument?.activeElement;
+
+  if (
+    activeElement === null ||
+    activeElement === undefined ||
+    root.contains?.(activeElement) !== true
+  ) {
+    return null;
+  }
+
+  const action = activeElement.dataset?.action;
+
+  if (typeof action !== "string" || action.length === 0) {
+    return null;
+  }
+
+  return Object.freeze({
+    action,
+    publicationId: activeElement.dataset?.publicationId ?? null,
+  });
+}
+
+function restoreFocusedAction(root, identity) {
+  if (identity === null) {
+    return;
+  }
+
+  const controls = root.querySelectorAll?.("[data-action]");
+
+  if (controls === null || controls === undefined) {
+    return;
+  }
+
+  const match = [...controls].find(
+    (control) =>
+      control.dataset?.action === identity.action &&
+      (control.dataset?.publicationId ?? null) === identity.publicationId,
+  );
+
+  if (typeof match?.focus !== "function") {
+    return;
+  }
+
+  try {
+    match.focus({ preventScroll: true });
+  } catch {
+    match.focus();
+  }
+}
+
 export function mountStudentApp({
   root,
   controller,
@@ -62,7 +113,13 @@ export function mountStudentApp({
       markup !== lastMarkup ||
       presentationKey !== lastPresentationKey
     ) {
+      const focusIdentity =
+        presentationKey === lastPresentationKey
+          ? focusedActionIdentity(root)
+          : null;
+
       root.innerHTML = markup;
+      restoreFocusedAction(root, focusIdentity);
       lastMarkup = markup;
       lastPresentationKey = presentationKey;
       domGeneration += 1;
