@@ -55,7 +55,11 @@ Yeni onaylı revizyon geldiğinde Student App bunu ayrı sürüm olarak algılar
 
 ## 7. Kimlik ve sunucu
 
-Auth ve depolama sağlayıcısı bu pakette seçilmez. Yaklaşık 40 öğrenci için yönetilen bir servis yeterli olabilir; ancak Firebase, Supabase veya başka sağlayıcı seçimi ayrı ve ölçülü bir karar paketidir.
+STUDENT-05 ile production provider kararı **Firebase Authentication + Cloud Firestore (Spark)** olarak alınmıştır. Firebase seçimi adapter sınırının arkasındadır; Student App core vendor SDK tiplerine bağlı değildir.
+
+Firebase Authentication kullanıcı `uid` değeri ilk production adapter için kararlı `studentId` olarak kullanılır. E-posta, display name veya nickname yetkilendirme kimliği yerine geçmez.
+
+Firebase project provisioning, production config ve credential değerleri repository'ye commit edilmemiştir. Default bootstrap sahte kullanıcı veya gömülü Firebase credential üretmez.
 
 Sunucu/servis katmanının minimum sorumlulukları:
 
@@ -324,3 +328,68 @@ MusicXML içinde renderer'ın desteklediği tablature varsa bu notation renderin
 - Unavailable kontroller sahte aktif button olarak gösterilmez.
 - Gerçek iPhone/Safari/VoiceOver acceptance STUDENT-06 kapsamındadır.
 - Offline cache/sync STUDENT-05 kapsamındadır.
+
+
+## 13. STUDENT-05 — Offline Cache and Sync
+
+### Veri sahipliği
+
+STUDENT-05 üç farklı storage sorumluluğunu ayırır:
+
+- **Cloud Firestore:** online publication manifest metadata'sı ve bounded Practice Package chunk teslimi.
+- **IndexedDB:** öğrenci cihazındaki canonical private Practice Package offline cache'i.
+- **Service Worker + Cache Storage:** yalnız static application shell.
+
+Service Worker private Practice Package deposu değildir ve IndexedDB'nin yerini alamaz.
+
+### Online ve offline Practice açılışı
+
+Çevrimiçi Practice açılışında önce Sharing Layer authorization başarılı olmak zorundadır. Yetkili delivery item döndükten sonra IndexedDB cache yazımı best-effort yapılır. IndexedDB quota/availability gibi cache hataları yetkili online Practice'i engellemez ve raw provider hata metni Student UI'a çıkmaz.
+
+Offline Practice açılışı için:
+
+1. güvenilir bir authenticated `studentId` restore edilmiş olmalıdır;
+2. cache kaydı aynı öğrenciye ait olmalıdır;
+3. kayıt `ACTIVE` olmalıdır;
+4. `student_private` paketlerde recipient aynı `studentId` ile eşleşmelidir.
+
+Cross-student cache okumaları fail-closed davranır.
+
+### Sürüm ve revocation davranışı
+
+Offline cache kimliği `studentId + publicationId + packageId` bileşimidir.
+
+- Yeni approved `packageId`, eski immutable snapshot'ı overwrite etmez.
+- Aynı publication'ın birden fazla immutable package sürümü cihazda korunabilir.
+- Offline list/open yüzeyi yalnız en yeni ACTIVE cached sürümü sunar.
+- Foreground sync her publication'ı bir kez doğrular.
+- Provider açıkça `REVOKED` döndürürse aynı publication'ın cihazdaki bütün package sürümleri REVOKED olur.
+- Provider `ACTIVE` ve cache'deki belirli bir `packageId` döndürürse yalnız o exact immutable sürümün verification zamanı yenilenir.
+- Provider daha yeni fakat henüz cache'lenmemiş bir ACTIVE `packageId` bildirirse eski cache otomatik silinmez veya revoke edilmez.
+- Network/provider/sync exception veya geçersiz provider sonucu revocation kanıtı sayılmaz.
+
+### Firestore taşıma sözleşmesi
+
+Firestore Practice Package transport:
+
+- publication manifest + bounded chunk documents kullanır;
+- Public Pool / My Work listelerinde package chunk'larını çekmez;
+- chunk'ları yalnız Practice açıkça açılırken alır;
+- chunk payload sınırını `256 * 1024` byte olarak uygular;
+- chunk count, index, toplam byte, UTF-8 ve JSON bütünlüğünü yeniden doğrular;
+- reconstructed package'ı tekrar publishability doğrulamasından geçirir.
+
+Client Security Rules read-only'dir. Public kayıtlar authenticated öğrencilere okunabilir; private kayıtlar yalnız `request.auth.uid == studentId` olduğunda okunabilir. Client publish/revoke/write yetkisi taşımaz.
+
+### Bilinçli olarak bulunmayan bileşenler
+
+STUDENT-05 aşağıdakileri eklemez:
+
+- Firebase Cloud Storage
+- Background Sync API
+- push notification
+- billing / paid-plan automation
+- production credential provisioning
+- Teacher App contract değişikliği
+
+Fiziksel iPhone / Safari / VoiceOver acceptance ve gerçek cihaz offline akış testi STUDENT-06'ya bırakılmıştır.

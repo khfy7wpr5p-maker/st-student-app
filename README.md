@@ -33,7 +33,7 @@ Node.js kurulu bir ortamda:
 npm test
 ```
 
-STUDENT-02, provider-neutral öğrenci session ve Sharing Layer sözleşmelerini tanımlar. Gerçek auth/bulut sağlayıcısı ve UI framework'ü hâlâ bilinçli olarak seçilmemiştir.
+STUDENT-02, provider-neutral öğrenci session ve Sharing Layer sözleşmelerini tanımlar. Bu aşamada gerçek auth/bulut sağlayıcısı seçilmemişti. STUDENT-05 ile production provider kararı Firebase Authentication + Cloud Firestore olarak alınmıştır; Firebase proje provisioning/configuration bilgileri henüz repository'ye bağlanmamıştır.
 
 
 ## STUDENT-03 durumu
@@ -46,7 +46,7 @@ Minimal öğrenci uygulaması shell'i eklenmiştir:
 - Benim Çalışmalarım
 - Çalışmayı Aç
 
-UI, STUDENT-02 salt-okunur Sharing Service'ine bağlanan provider-neutral controller kullanır. Gerçek auth/bulut sağlayıcısı henüz bağlanmamıştır; varsayılan static giriş sayfası sahte öğrenci hesabı üretmez.
+UI, STUDENT-02 salt-okunur Sharing Service'ine bağlanan provider-neutral controller kullanır. STUDENT-05 Firebase adapter'larını eklemiştir; buna rağmen varsayılan static giriş noktası production Firebase config/credential üretmez ve sahte öğrenci hesabı oluşturmaz.
 
 
 ## STUDENT-04 durumu
@@ -66,3 +66,24 @@ Mevcut package sözleşmesi canonical event zamanlamasını tanımlamadığı i�
 `content.guitarTab` ve `content.violin` nesnelerinin iç sözleşmesi henüz tanımlı değildir; yalnız nesnenin varlığı bu capability'leri açmaz. MusicXML'in kendi içinde bulunan tablature, ST renderer tarafından notation sunumunun parçası olarak gösterilebilir.
 
 Not: Default bootstrap ST notation adapter'ını bağlar ancak doğrulanmış renderer runtime asset graph'ını deploy etmez. `globalThis.__ST_SCORE_RENDER_HOST__` bulunmadığında notation `UNAVAILABLE` olur.
+
+
+## STUDENT-05 durumu
+
+Offline cache ve foreground sync katmanı production provider kararıyla tanımlanmıştır:
+
+- Production cloud provider: **Firebase Authentication + Cloud Firestore (Spark)**.
+- Authenticated Firebase `uid`, Student App içindeki kararlı `studentId` değeridir.
+- Firebase adapter'ları core sözleşmelerin arkasındadır; Student App core provider-neutral kalır.
+- Practice Package'ın cihaz içi canonical offline deposu **IndexedDB**'dir.
+- Service Worker yalnız explicit same-origin static app shell dosyalarını Cache Storage'da tutar; private Practice Package saklamaz.
+- Çevrimiçi ve yetkili Practice açılışı, paketi IndexedDB'ye best-effort kaydeder. Cache yazımı başarısız olursa yetkili online çalışma engellenmez.
+- Offline açılış, restore edilmiş güvenilir `studentId` oturumu ve o öğrenciye ait ACTIVE cache kaydı gerektirir.
+- Online doğrulamada açık `REVOKED` sonucu öğrenilirse aynı publication'ın bütün cached package sürümleri erişime kapatılır.
+- Ağ/provider/sync hatası tek başına geçerli ACTIVE cache'i REVOKED yapmaz.
+- Aynı publication için yeni `packageId` eski immutable snapshot'ın üzerine yazılmaz; ayrı kayıt olarak korunur. Offline list/open davranışı en yeni ACTIVE cached sürümü seçer.
+- Firestore'da listeleme yalnız publication manifest metadata'sını okur. Practice açılırken gerekli package chunk'ları alınır ve her chunk en fazla **256 KiB** olabilir.
+- Firebase Cloud Storage, Background Sync API ve push notification STUDENT-05 kapsamında kullanılmaz.
+- Firebase project provisioning, production config ve credential değerleri repository'ye commit edilmemiştir.
+
+Gerçek fiziksel iPhone / Safari / VoiceOver kabul testi STUDENT-06 kapsamındadır.

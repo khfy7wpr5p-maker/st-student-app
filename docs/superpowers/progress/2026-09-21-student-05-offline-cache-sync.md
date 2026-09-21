@@ -36,3 +36,33 @@ Task 6: complete (commits 9a9fb4b..bc47e17, tests: GitHub CI 35646939843 -> 150/
 
 Task 7: RED a695c6e, CI 35647170582 -> 150 pass / 4 fail (expected missing Firebase adapters/rules).
 Task 7: complete (commits a695c6e..155468f, tests: GitHub CI 35647354464 -> 166/166 pass, 0 fail).
+
+
+Task 8 Step 1-2: complete at d292f22e0ed1a090a733d699adb98291fa4ac221, GitHub CI 35647630681 -> 169/169 pass, 0 fail.
+
+Task 8 Step 3: README and architecture updated to current STUDENT-05 truth: Firebase Authentication + Cloud Firestore selected; provisioning/config not committed; IndexedDB owns Practice Package offline cache; Service Worker is static-shell only; authorized online open caches best-effort; restored trusted studentId is required offline; explicit REVOKED blocks cached access; network/provider failure never revokes; Firestore chunks are bounded to 256 KiB; Cloud Storage, Background Sync API and push remain absent; physical iPhone/Safari/VoiceOver acceptance remains STUDENT-06.
+
+Task 8 Step 4: source-boundary scans investigated across src/ui, src/offline, src/providers/firebase, firebase/firestore.rules and service-worker.js. No credential literals, Firebase Storage use, Student UI/offline management write authority, or raw score/canonical/recipient leakage in UI modules found.
+
+Final review: self-review (no subagent tool available in this harness).
+
+Final review finding — Important: offline repositories rejected a second packageId for the same publication, contradicting immutable-version preservation and causing foreground sync to misclassify preserved older versions.
+Final review RED 74b8f6d0a732b6e516dc40343d1fb34cd5dc7b90, GitHub CI 35653099720 -> 167 pass / 4 fail of 171 (expected version-cache failures).
+Final review partial GREEN eac10fd6ab747fb98fcb0b5103ee7074dec5a7b8, GitHub CI 35653277356 -> 169 pass / 2 fail of 171; repository version storage fixed, sync grouping/revocation still exposed.
+Final review additional RED 5c8023e680e06a4ee6811b09771722ae3977048a, GitHub CI 35653496429 -> 169 pass / 3 fail of 172; pins behavior for a newer ACTIVE server package that is not yet cached.
+Final review fixed 164af4ac2d75ea3cb784cbe354e4e99c4437c054 — immutable versions preserved, foreground sync groups by publication, exact package verification refreshes only matching version, publication revocation blocks all cached versions; GitHub CI 35653604376 -> 172/172 pass.
+Final review parity coverage c0e4713d144289faa4ddaccc86303f9ae8488bd7, GitHub CI 35653749799 -> 174/174 pass, including IndexedDB all-version revocation and exact-version verification.
+
+Ruling: Aynı publicationId altında birden fazla immutable packageId cache kaydı korunur; offline list/open en yeni ACTIVE cachedAt kaydını seçer, revocation publication düzeyinde bütün cached sürümleri REVOKED yapar ve ACTIVE verification exact packageId'yi yeniler — tasarımın immutable version ve revocation kurallarıyla uyumludur — cost if wrong: latest-version selection policy repository selector seviyesinde değiştirilebilir; saklanan immutable snapshot'lar kaybolmaz.
+
+Ruling: Provider ACTIVE olarak cache'de bulunmayan daha yeni bir packageId bildirirse mevcut ACTIVE cache otomatik revoke edilmez ve sync failure sayılmaz — newer-version availability revocation kanıtı değildir ve STUDENT-05 yeni paketi background indirmez — cost if wrong: gelecekte explicit update-available metadata/counter eklenmesi gerekir, mevcut snapshot korunur.
+
+Task 8 Step 5: connector-only harness içinde local shell çalıştırılmadı; repository CI workflow exact olarak `npm ci` ve `npm test` çalıştırır. Latest pre-documentation exact-head verification: c0e4713d144289faa4ddaccc86303f9ae8488bd7 / CI 35653749799 / 174 tests / 174 pass / 0 fail.
+
+Task 8 Step 6: whole-branch explicit self-review completed against main...feat/student-05-offline-cache-sync with focus on cross-student isolation, revocation vs network failure, immutable versions, raw-data leakage, Service Worker scope, Firestore chunk bounds, provider-neutral core, no Firebase Storage/paid dependency, and STUDENT-01..04 regression risk. One Important finding above was fixed with RED -> GREEN evidence. No remaining Critical or Important finding identified.
+
+Task 8 Step 7: this ledger/README/architecture closure is committed with message `docs: close STUDENT-05 offline cache sync`.
+
+Deferred minor: Firebase project provisioning/configuration and real backend credentials are intentionally external and not committed.
+Deferred minor: Firestore Security Rules are contract-tested in repository CI but live Firebase project/emulator acceptance is deferred until provisioning exists.
+Deferred minor: physical iPhone/Safari/VoiceOver and real-device offline acceptance remain STUDENT-06.
