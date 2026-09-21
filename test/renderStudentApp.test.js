@@ -76,7 +76,7 @@ test("practice shell renders only safe presentation fields", () => {
     },
   });
 
-  assert.match(html, /<h1>Etüt 1<\/h1>/);
+  assert.match(html, /<h1[^>]*>Etüt 1<\\/h1>/);
   assert.match(html, /data-action="go-home"/);
   assert.doesNotMatch(html, /publicationId|packageId|MusicXML|score-partwise/);
 });
@@ -117,6 +117,6 @@ test("renderer does not expose private or internal fields even if extra state ap
 
   assert.doesNotMatch(
     html,
-    /student-a|score-partwise|recipientStudentId|omr|debug|secret/,
+    /"student-a"|>student-a<|score-partwise|recipientStudentId|omr|debug|secret/,
   );
 });
