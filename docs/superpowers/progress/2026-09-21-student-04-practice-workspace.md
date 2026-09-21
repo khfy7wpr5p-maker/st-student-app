@@ -77,3 +77,16 @@ Task 5 docs/final pre-review exact-head run `35634437885` at `58a0764ad80fd43ce4
 Task 5: implementation and production-reality docs complete; whole-branch review remains before PR.
 
 Task 1: complete (RED CI 35632222300: expected missing modules; GREEN CI 35632476341: 77/77 pass, fail 0; head 0bd03ef9712617e7ecb70a06e92b9a27f2874db0).
+
+
+Final review: self-review (no subagent tool available in this harness).
+
+Final review finding — Important: runtime playback/practice operation failures left capability state AVAILABLE. Existing RED evidence: runs 35634698512 / 35634708729 / 35638596114. Fixed by immutable generic capability updates plus sync/Promise error interception in commits aad9f96 and 3729f91. GREEN suite: run 35638869751, 114/114 pass.
+
+Final review finding — Important: a throwing injected renderer runtime getter escaped from notation feature detection and could block Practice opening. RED evidence: run 35638997752, 114/115 pass with only the new lookup-isolation regression failing. Fixed in commit c49a9fe by fail-closed runtime lookup. GREEN suite: run 35639055954, 115/115 pass.
+
+Final review source-boundary scan: changed production source contains no direct `opensheetmusicdisplay`/OSMD import, raw score example, recipient/approval/OMR/debug field access, or publish/revoke call surface.
+
+Final review: no remaining Critical or Important findings after the single fix pass. Deferred minors: none.
+
+Task 5: complete after whole-branch self-review and fix pass; PR remains intentionally unopened until exact final docs-head CI is green.
