@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://seslitab.local/schemas/practice-package-v1.schema.json",
+  "title": "SesliTab Practice Package v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "packageId",
+    "workId",
+    "title",
+    "approvedRevision",
+    "publication",
+    "content"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "packageId": { "type": "string", "minLength": 1 },
+    "workId": { "type": "string", "minLength": 1 },
+    "title": { "type": "string", "minLength": 1 },
+    "approvedRevision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["revisionId", "state", "approvedAt"],
+      "properties": {
+        "revisionId": { "type": "string", "minLength": 1 },
+        "state": { "const": "teacher_approved" },
+        "approvedAt": { "type": "string", "minLength": 1 }
+      }
+    },
+    "publication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scope"],
+      "properties": {
+        "scope": {
+          "enum": ["public_pool", "student_private"]
+        },
+        "recipientStudentId": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "scope": { "const": "student_private" } },
+            "required": ["scope"]
+          },
+          "then": {
+            "required": ["recipientStudentId"]
+          }
+        },
+        {
+          "if": {
+            "properties": { "scope": { "const": "public_pool" } },
+            "required": ["scope"]
+          },
+          "then": {
+            "not": {
+              "required": ["recipientStudentId"]
+            }
+          }
+        }
+      ]
+    },
+    "content": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["score", "canonicalEvents"],
+      "properties": {
+        "score": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["format", "data"],
+          "properties": {
+            "format": { "const": "musicxml" },
+            "data": { "type": "string", "minLength": 1 }
+          }
+        },
+        "canonicalEvents": {
+          "type": "array",
+          "items": { "type": "object" }
+        },
+        "guitarTab": { "type": ["object", "null"] },
+        "violin": { "type": ["object", "null"] }
+      }
+    },
+    "practice": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tempoBpm": { "type": "number", "exclusiveMinimum": 0 },
+        "allowTempoChange": { "type": "boolean" },
+        "allowMeasureRepeat": { "type": "boolean" },
+        "ttsLanguage": { "const": "tr-TR" }
+      }
+    }
+  }
+}
