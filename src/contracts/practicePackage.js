@@ -79,6 +79,15 @@ export function validatePracticePackage(value) {
         "publication.recipientStudentId is required for student_private",
       );
     }
+
+    if (
+      publication.scope === PRACTICE_PACKAGE_SCOPES.PUBLIC_POOL &&
+      "recipientStudentId" in publication
+    ) {
+      errors.push(
+        "publication.recipientStudentId is not allowed for public_pool",
+      );
+    }
   }
 
   const content = value.content;
