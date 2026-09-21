@@ -25,6 +25,45 @@ function immutablePackageMatches(left, right) {
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
+function newestRecord(records) {
+  return records.reduce((newest, record) => {
+    if (newest === null) {
+      return record;
+    }
+
+    if (record.cachedAt > newest.cachedAt) {
+      return record;
+    }
+
+    if (
+      record.cachedAt === newest.cachedAt &&
+      record.packageId > newest.packageId
+    ) {
+      return record;
+    }
+
+    return newest;
+  }, null);
+}
+
+function newestActivePerPublication(records) {
+  const newestByPublication = new Map();
+
+  for (const record of records) {
+    if (record.accessState !== OFFLINE_ACCESS_STATES.ACTIVE) {
+      continue;
+    }
+
+    const current = newestByPublication.get(record.publicationId) ?? null;
+    newestByPublication.set(
+      record.publicationId,
+      newestRecord(current === null ? [record] : [current, record]),
+    );
+  }
+
+  return [...newestByPublication.values()];
+}
+
 export function createInMemoryOfflineRepository() {
   const records = new Map();
 
@@ -65,14 +104,12 @@ export function createInMemoryOfflineRepository() {
       });
 
       const conflicts = matchingRecords(studentId, incoming.publicationId);
-      const otherPackage = conflicts.find(
-        (record) => record.packageId !== incoming.packageId,
+      const scopeConflict = conflicts.find(
+        (record) => record.scope !== incoming.scope,
       );
 
-      if (otherPackage) {
-        throw new Error(
-          "student publication is already bound to a different package",
-        );
+      if (scopeConflict) {
+        throw new Error("student publication scope changed unexpectedly");
       }
 
       const key = cacheKey(incoming);
@@ -104,11 +141,12 @@ export function createInMemoryOfflineRepository() {
     async listActiveForStudent({ studentId, scope = null }) {
       requireStudentId(studentId);
 
-      return [...records.values()].filter(
-        (record) =>
-          record.studentId === studentId &&
-          record.accessState === OFFLINE_ACCESS_STATES.ACTIVE &&
-          (scope === null || record.scope === scope),
+      return newestActivePerPublication(
+        [...records.values()].filter(
+          (record) =>
+            record.studentId === studentId &&
+            (scope === null || record.scope === scope),
+        ),
       );
     },
 
@@ -123,10 +161,10 @@ export function createInMemoryOfflineRepository() {
       requireStudentId(studentId);
       requirePublicationId(publicationId);
 
-      return (
-        matchingRecords(studentId, publicationId).find(
+      return newestRecord(
+        matchingRecords(studentId, publicationId).filter(
           (record) => record.accessState === OFFLINE_ACCESS_STATES.ACTIVE,
-        ) ?? null
+        ),
       );
     },
 

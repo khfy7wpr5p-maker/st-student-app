@@ -71,6 +71,48 @@ function samePackage(left, right) {
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
+function newestRecord(records) {
+  return records.reduce((newest, record) => {
+    if (newest === null) {
+      return record;
+    }
+
+    if (record.cachedAt > newest.cachedAt) {
+      return record;
+    }
+
+    if (
+      record.cachedAt === newest.cachedAt &&
+      record.packageId > newest.packageId
+    ) {
+      return record;
+    }
+
+    return newest;
+  }, null);
+}
+
+function newestActivePerPublication(records) {
+  const newestByPublication = new Map();
+
+  for (const record of records) {
+    if (
+      record === null ||
+      record.accessState !== OFFLINE_ACCESS_STATES.ACTIVE
+    ) {
+      continue;
+    }
+
+    const current = newestByPublication.get(record.publicationId) ?? null;
+    newestByPublication.set(
+      record.publicationId,
+      newestRecord(current === null ? [record] : [current, record]),
+    );
+  }
+
+  return [...newestByPublication.values()];
+}
+
 export function createIndexedDbOfflineRepository({
   indexedDB,
   dbName = "st-student-app",
@@ -188,14 +230,12 @@ export function createIndexedDbOfflineRepository({
           incoming.publicationId,
         );
 
-        const conflicting = existingRecords.find(
-          (record) => record.packageId !== incoming.packageId,
+        const scopeConflict = existingRecords.find(
+          (record) => record.scope !== incoming.scope,
         );
 
-        if (conflicting) {
-          throw new Error(
-            "student publication is already bound to a different package",
-          );
+        if (scopeConflict) {
+          throw new Error("student publication scope changed unexpectedly");
         }
 
         const exact = existingRecords.find(
@@ -239,13 +279,9 @@ export function createIndexedDbOfflineRepository({
                   .getAll(studentScopeKey({ studentId, scope })),
               );
 
-        return stored
-          .map(fromStorageRecord)
-          .filter(
-            (record) =>
-              record !== null &&
-              record.accessState === OFFLINE_ACCESS_STATES.ACTIVE,
-          );
+        return newestActivePerPublication(
+          stored.map(fromStorageRecord),
+        );
       });
     },
 
@@ -270,11 +306,15 @@ export function createIndexedDbOfflineRepository({
           studentId,
           publicationId,
         );
-        const active = stored.find(
-          (record) =>
-            record.accessState === OFFLINE_ACCESS_STATES.ACTIVE,
+        return newestRecord(
+          stored
+            .map(fromStorageRecord)
+            .filter(
+              (record) =>
+                record !== null &&
+                record.accessState === OFFLINE_ACCESS_STATES.ACTIVE,
+            ),
         );
-        return fromStorageRecord(active);
       });
     },
 
