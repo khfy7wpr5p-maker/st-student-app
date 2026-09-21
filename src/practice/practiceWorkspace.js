@@ -60,16 +60,33 @@ export function createPracticeWorkspace({
   });
 }
 
-export function withNotationCapability(viewModel, capability) {
+const PRACTICE_CAPABILITY_NAMES = Object.freeze([
+  "notation",
+  "playback",
+  "tempoChange",
+  "measureRepeat",
+  "guitarTab",
+  "violin",
+]);
+
+export function withPracticeCapability(viewModel, name, capability) {
+  if (!PRACTICE_CAPABILITY_NAMES.includes(name)) {
+    throw new TypeError("unsupported practice capability");
+  }
+
   if (!Object.values(PRACTICE_CAPABILITY_STATES).includes(capability)) {
-    throw new TypeError("unsupported notation capability state");
+    throw new TypeError("unsupported practice capability state");
   }
 
   return Object.freeze({
     ...viewModel,
     capabilities: Object.freeze({
       ...viewModel.capabilities,
-      notation: capability,
+      [name]: capability,
     }),
   });
+}
+
+export function withNotationCapability(viewModel, capability) {
+  return withPracticeCapability(viewModel, "notation", capability);
 }
