@@ -364,3 +364,110 @@ test("same-screen connectivity repaint restores the focused VoiceOver control", 
 
   await mounted.destroy();
 });
+
+
+test("My Work permission failures surface a bounded access diagnosis without provider details", async () => {
+  let clickListener = null;
+  const root = {
+    innerHTML: "",
+    ownerDocument: { activeElement: null },
+    addEventListener(type, listener) {
+      if (type === "click") clickListener = listener;
+    },
+    removeEventListener() {},
+    contains() {
+      return true;
+    },
+    querySelector() {
+      return null;
+    },
+    querySelectorAll() {
+      return [];
+    },
+  };
+  const controller = {
+    getState() {
+      return {
+        screen: "home",
+        session: { studentId: "student-a" },
+        items: [],
+        practice: null,
+      };
+    },
+    showMyWork() {
+      const error = new Error("Missing or insufficient permissions");
+      error.code = "permission-denied";
+      throw error;
+    },
+    getPracticeRenderSource() {
+      return null;
+    },
+  };
+
+  const mounted = mountStudentApp({ root, controller });
+
+  await clickListener({
+    target: {
+      closest() {
+        return { dataset: { action: "show-my-work" } };
+      },
+    },
+  });
+
+  assert.match(root.innerHTML, /Kişisel çalışmalar için erişim izni reddedildi/);
+  assert.doesNotMatch(root.innerHTML, /permission-denied|insufficient permissions/i);
+
+  await mounted.destroy();
+});
+
+test("My Work manifest failures surface a bounded data diagnosis", async () => {
+  let clickListener = null;
+  const root = {
+    innerHTML: "",
+    ownerDocument: { activeElement: null },
+    addEventListener(type, listener) {
+      if (type === "click") clickListener = listener;
+    },
+    removeEventListener() {},
+    contains() {
+      return true;
+    },
+    querySelector() {
+      return null;
+    },
+    querySelectorAll() {
+      return [];
+    },
+  };
+  const controller = {
+    getState() {
+      return {
+        screen: "home",
+        session: { studentId: "student-a" },
+        items: [],
+        practice: null,
+      };
+    },
+    showMyWork() {
+      throw new Error("Firestore publication scope mismatch");
+    },
+    getPracticeRenderSource() {
+      return null;
+    },
+  };
+
+  const mounted = mountStudentApp({ root, controller });
+
+  await clickListener({
+    target: {
+      closest() {
+        return { dataset: { action: "show-my-work" } };
+      },
+    },
+  });
+
+  assert.match(root.innerHTML, /Kişisel çalışma kaydı eksik veya uyumsuz/);
+  assert.doesNotMatch(root.innerHTML, /scope mismatch/i);
+
+  await mounted.destroy();
+});
