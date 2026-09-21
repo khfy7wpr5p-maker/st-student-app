@@ -82,3 +82,35 @@ Sunucu/servis katmanının minimum sorumlulukları:
 4. Salt-okunur çalışma ekranı.
 5. Offline cache/sync.
 6. iPhone VoiceOver ve erişilebilirlik kabul testleri.
+
+
+## 10. STUDENT-02 — Account + Sharing Layer
+
+### Kimlik
+
+- Authenticated öğrenci oturumu kararlı dahili `studentId` taşır.
+- `email` ve `displayName` yalnız sunum/giriş sağlayıcısı bağlamı içindir; yetkilendirme anahtarı değildir.
+- Geçerli `studentId` bulunmayan oturum unauthenticated kabul edilir.
+
+### Sharing kayıtları
+
+Practice Package ile operasyonel `Publication` kaydı ayrı sorumluluklardır.
+
+- `public_pool` Publication kaydı `recipientStudentId` taşımaz.
+- `student_private` Publication kaydı hedef `recipientStudentId` taşır.
+- Package içindeki STUDENT-01 publication metadata ile operasyonel Publication scope/recipient bilgisi publish sırasında eşleşmek zorundadır.
+- `revokedAt` bulunan yayınlar yeni online Public Pool / My Work okumalarından çıkarılır.
+- STUDENT-02, daha önce cihaza indirilmiş offline veriyi uzaktan sildiğini iddia etmez.
+
+### Provider sınırı
+
+Core paylaşım servisi vendor SDK'sına değil repository davranışlarına bağlıdır.
+
+İlk adapter'lar deterministik in-memory uygulamalardır. Gerçek auth/persistence sağlayıcısı, credential, billing ve production provisioning bu aşamada seçilmez.
+
+### Sürüm güvenliği
+
+- `packageId` repository içinde overwrite edilemez.
+- Repository, kabul edilen Practice Package'ın deep-frozen snapshot'ını saklar.
+- Yeni teacher-approved revision ayrı `packageId` / ayrı sürüm olarak yayınlanır.
+- Var olan yayınlanmış paket sessizce mutate edilmez.
