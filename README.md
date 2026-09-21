@@ -33,4 +33,4 @@ Node.js kurulu bir ortamda:
 npm test
 ```
 
-Bu aşamada herhangi bir auth, bulut sağlayıcısı veya UI framework'ü seçilmemiştir.
+STUDENT-02, provider-neutral öğrenci session ve Sharing Layer sözleşmelerini tanımlar. Gerçek auth/bulut sağlayıcısı ve UI framework'ü hâlâ bilinçli olarak seçilmemiştir.
