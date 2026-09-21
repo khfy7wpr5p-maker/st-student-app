@@ -201,15 +201,15 @@ The generic Student App renderer receives capability/status information, title, 
 
 STUDENT-04 defines a Student App-owned notation adapter so UI/controller code does not depend directly on global runtime details.
 
-Conceptual interface:
+Runtime-accurate Student App interface:
 
 ```js
-notationAdapter.render({
-  container,
-  musicXml,
-  sourceId
-})
+notationAdapter.isAvailable()
+notationAdapter.render({ musicXml })
+notationAdapter.dispose()
 ```
+
+The pinned generic renderer runtime owns a DOM root with the fixed id `st-score-root`. Student App creates that root only on the Practice screen before invoking the adapter. The global runtime call itself does not receive an arbitrary container argument.
 
 The adapter responsibilities are:
 
@@ -254,9 +254,26 @@ Standard notation may still be shown through the MusicXML renderer.
 
 STUDENT-04 must not create a new playback engine.
 
-No Play/Pause button should be advertised as functional unless an injected playback port reports AVAILABLE.
+No Play/Pause button should be advertised as functional unless an injected trusted playback port reports support and exposes the matching control methods.
 
-With the current repository contract, default playback state is expected to be UNAVAILABLE.
+The trusted port boundary is:
+
+```js
+playbackPort.canPlayPackage(pkg)
+playbackPort.playPackage(pkg)
+playbackPort.pausePackage(pkg)
+playbackPort.restartPackage(pkg)
+
+playbackPort.canChangeTempoForPackage(pkg)
+playbackPort.setTempoForPackage(pkg, bpm)
+
+playbackPort.canRepeatMeasureForPackage(pkg)
+playbackPort.setMeasureRepeatEnabledForPackage(pkg, enabled)
+```
+
+Student App does not interpret canonical-event timing to implement these methods. A future trusted playback adapter owns that responsibility.
+
+With the current repository contract and default browser bootstrap, no playback port is injected, so playback is UNAVAILABLE.
 
 This is intentionally honest behavior.
 
@@ -309,7 +326,9 @@ ERROR:
 ### Playback state
 
 AVAILABLE:
-- show usable controls provided by the playback port contract.
+- show Play, Pause and Baştan controls that delegate only to the trusted playback port.
+- when `tempoChange` is AVAILABLE, show a positive-number tempo input and apply action backed by `setTempoForPackage`.
+- when `measureRepeat` is AVAILABLE, show an explicit repeat on/off control backed by `setMeasureRepeatEnabledForPackage`.
 
 UNAVAILABLE:
 - do not display a fake enabled Play button;
