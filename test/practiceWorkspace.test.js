@@ -75,7 +75,9 @@ test("workspace view model excludes publication and approval internals", () => {
   const serialized = JSON.stringify(result.viewModel);
   assert.equal(serialized.includes("approvedRevision"), false);
   assert.equal(serialized.includes("recipientStudentId"), false);
-  assert.equal(serialized.includes("publication"), false);
+  assert.equal("publication" in result.viewModel, false);
+  assert.equal(serialized.includes("publishedAt"), false);
+  assert.equal(serialized.includes("revokedAt"), false);
   assert.equal(serialized.includes("canonicalEvents"), false);
   assert.equal(serialized.includes("guitarTab"), false);
   assert.equal(serialized.includes("violin"), false);
