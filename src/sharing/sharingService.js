@@ -40,40 +40,51 @@ function makeDeliveryItem(publication, pkg) {
   });
 }
 
+function publishPracticePackage({
+  packageRepository,
+  publicationRepository,
+  pkg,
+  publication,
+}) {
+  assertPublishablePracticePackage(pkg);
+
+  const normalizedPublication = createPublication(publication);
+
+  if (normalizedPublication.packageId !== pkg.packageId) {
+    throw new Error("publication packageId does not match package");
+  }
+
+  assertPublicationMatchesPackage(pkg, normalizedPublication);
+
+  if (
+    publicationRepository.getById(normalizedPublication.publicationId) !==
+    null
+  ) {
+    throw new Error("publicationId already exists");
+  }
+
+  const storedPackage = packageRepository.put(pkg);
+  const storedPublication = publicationRepository.save(normalizedPublication);
+
+  return makeDeliveryItem(storedPublication, storedPackage);
+}
+
 export function createSharingService({
   packageRepository,
   publicationRepository,
 }) {
   return Object.freeze({
-    publish({ package: pkg, publication }) {
-      assertPublishablePracticePackage(pkg);
-
-      const normalizedPublication = createPublication(publication);
-
-      if (normalizedPublication.packageId !== pkg.packageId) {
-        throw new Error("publication packageId does not match package");
-      }
-
-      assertPublicationMatchesPackage(pkg, normalizedPublication);
-
-      if (
-        publicationRepository.getById(normalizedPublication.publicationId) !==
-        null
-      ) {
-        throw new Error("publicationId already exists");
-      }
-
-      const storedPackage = packageRepository.put(pkg);
-      const storedPublication =
-        publicationRepository.save(normalizedPublication);
-
-      return makeDeliveryItem(storedPublication, storedPackage);
-    },
-
     listPublicPool({ session }) {
       requireStudentId(session);
 
       return publicationRepository.listActivePublic().map((publication) => {
+        if (
+          publication.scope !== PRACTICE_PACKAGE_SCOPES.PUBLIC_POOL ||
+          !canReadPublication({ session, publication })
+        ) {
+          throw new Error("forbidden");
+        }
+
         const pkg = packageRepository.getByPackageId(publication.packageId);
 
         if (pkg === null) {
@@ -124,6 +135,22 @@ export function createSharingService({
       }
 
       return makeDeliveryItem(publication, pkg);
+    },
+  });
+}
+
+export function createSharingManagementService({
+  packageRepository,
+  publicationRepository,
+}) {
+  return Object.freeze({
+    publish({ package: pkg, publication }) {
+      return publishPracticePackage({
+        packageRepository,
+        publicationRepository,
+        pkg,
+        publication,
+      });
     },
 
     revoke({ publicationId, revokedAt }) {
