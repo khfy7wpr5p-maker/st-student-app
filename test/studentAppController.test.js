@@ -204,3 +204,24 @@ test("student controller exposes no sharing write operations", () => {
   assert.equal("publish" in controller, false);
   assert.equal("revoke" in controller, false);
 });
+
+
+test("controller snapshots the authenticated student id", () => {
+  const mutableSession = {
+    studentId: "student-a",
+    email: "student@example.test",
+    displayName: "Ali",
+  };
+  const controller = createStudentAppController({
+    sharingService: makeSharingService(),
+  });
+
+  controller.attachSession(mutableSession);
+  mutableSession.studentId = "student-b";
+  mutableSession.email = "changed@example.test";
+
+  const state = controller.getState();
+
+  assert.deepEqual(state.session, { studentId: "student-a" });
+  assert.equal(Object.isFrozen(state.session), true);
+});
