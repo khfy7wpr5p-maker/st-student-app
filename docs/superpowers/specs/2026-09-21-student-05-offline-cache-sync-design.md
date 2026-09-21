@@ -64,6 +64,7 @@ A cache record contains only what is necessary to reopen authorized offline work
 - `studentId`
 - `publicationId`
 - `packageId`
+- safe display `title`
 - publication scope
 - immutable teacher-approved Practice Package snapshot
 - `cachedAt`
@@ -349,12 +350,13 @@ The Firestore adapter:
 1. selects the path from the authenticated student and publication scope;
 2. reads the publication/manifest;
 3. applies the existing scope/recipient/revocation authorization rules;
-4. validates manifest identity and chunk metadata;
-5. reads exactly the declared chunks;
-6. concatenates bytes in index order;
-7. decodes UTF-8 JSON;
-8. parses the Practice Package;
-9. passes the reconstructed package through the existing core Practice Package validation before delivery.
+4. uses manifest `title` for Public Pool / My Work list summaries without fetching package chunks;
+5. for an explicit Practice open, validates manifest identity and chunk metadata;
+6. reads exactly the declared chunks;
+7. concatenates bytes in index order;
+8. decodes UTF-8 JSON;
+9. parses the Practice Package;
+10. passes the reconstructed package through the existing core Practice Package validation before delivery.
 
 Missing, duplicate, out-of-range, malformed, wrong-student, wrong-scope, or revoked data fails that package closed.
 
