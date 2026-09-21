@@ -3,6 +3,7 @@ import { PRACTICE_CAPABILITY_STATES } from "../practice/practiceCapabilities.js"
 import {
   createPracticeWorkspace,
   withNotationCapability,
+  withPracticeCapability,
 } from "../practice/practiceWorkspace.js";
 
 export const STUDENT_APP_SCREENS = Object.freeze({
@@ -88,6 +89,50 @@ export function createStudentAppController({
     }
 
     return activePracticePackage;
+  }
+
+  function setPracticeCapability(capabilityName, capability) {
+    if (
+      state.screen !== STUDENT_APP_SCREENS.PRACTICE ||
+      state.practice === null
+    ) {
+      throw new Error("practice workspace is not active");
+    }
+
+    state = freezeState({
+      screen: state.screen,
+      session: state.session,
+      items: state.items,
+      practice: withPracticeCapability(
+        state.practice,
+        capabilityName,
+        capability,
+      ),
+    });
+  }
+
+  function runPracticeOperation(capabilityName, operation) {
+    try {
+      const result = operation();
+
+      if (result !== null && typeof result?.then === "function") {
+        return Promise.resolve(result).catch((error) => {
+          setPracticeCapability(
+            capabilityName,
+            PRACTICE_CAPABILITY_STATES.ERROR,
+          );
+          throw error;
+        });
+      }
+
+      return result;
+    } catch (error) {
+      setPracticeCapability(
+        capabilityName,
+        PRACTICE_CAPABILITY_STATES.ERROR,
+      );
+      throw error;
+    }
   }
 
   return Object.freeze({
@@ -195,17 +240,26 @@ export function createStudentAppController({
 
     playPractice() {
       const pkg = requirePracticeCapability("playback");
-      return playbackPort.playPackage(pkg);
+      return runPracticeOperation(
+        "playback",
+        () => playbackPort.playPackage(pkg),
+      );
     },
 
     pausePractice() {
       const pkg = requirePracticeCapability("playback");
-      return playbackPort.pausePackage(pkg);
+      return runPracticeOperation(
+        "playback",
+        () => playbackPort.pausePackage(pkg),
+      );
     },
 
     restartPractice() {
       const pkg = requirePracticeCapability("playback");
-      return playbackPort.restartPackage(pkg);
+      return runPracticeOperation(
+        "playback",
+        () => playbackPort.restartPackage(pkg),
+      );
     },
 
     setPracticeTempo(bpm) {
@@ -214,7 +268,10 @@ export function createStudentAppController({
       }
 
       const pkg = requirePracticeCapability("tempoChange");
-      return playbackPort.setTempoForPackage(pkg, bpm);
+      return runPracticeOperation(
+        "tempoChange",
+        () => playbackPort.setTempoForPackage(pkg, bpm),
+      );
     },
 
     setMeasureRepeatEnabled(enabled) {
@@ -223,7 +280,11 @@ export function createStudentAppController({
       }
 
       const pkg = requirePracticeCapability("measureRepeat");
-      return playbackPort.setMeasureRepeatEnabledForPackage(pkg, enabled);
+      return runPracticeOperation(
+        "measureRepeat",
+        () =>
+          playbackPort.setMeasureRepeatEnabledForPackage(pkg, enabled),
+      );
     },
 
     signOut() {
