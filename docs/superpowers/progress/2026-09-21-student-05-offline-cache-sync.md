@@ -17,3 +17,6 @@ Base main: 96dcfa9791f56956012070eaed8d74da4c4dca59
 
 Task 1: RED ac12951, CI 35645406225 -> 103 pass / 3 fail (expected missing deliveryItem/offline modules).
 Task 1: complete (commits ac12951..0671305, tests: GitHub CI 35645522258 -> 124/124 pass, 0 fail).
+
+Task 2: RED 9e2c949, CI 35645677554 -> 124 pass / 1 fail (expected missing IndexedDB adapter; npm ci succeeded).
+Task 2: complete (commits 9e2c949..15b87cd, tests: GitHub CI 35645801368 -> 128/128 pass, 0 fail).
