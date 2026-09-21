@@ -133,3 +133,29 @@ test("publication repository lists private work by stable studentId only", () =>
     ["pub-a"],
   );
 });
+
+
+test("repeated revoke is idempotent and preserves original revokedAt", () => {
+  const repo = createInMemoryPublicationRepository();
+
+  repo.save(
+    createPublication({
+      publicationId: "pub-revoke",
+      packageId: "pkg-revoke",
+      scope: PRACTICE_PACKAGE_SCOPES.PUBLIC_POOL,
+      publishedAt: "2026-09-21T16:00:00Z",
+    }),
+  );
+
+  const first = repo.revoke(
+    "pub-revoke",
+    "2026-09-21T17:00:00Z",
+  );
+  const second = repo.revoke(
+    "pub-revoke",
+    "2026-09-21T18:00:00Z",
+  );
+
+  assert.equal(first.revokedAt, "2026-09-21T17:00:00Z");
+  assert.equal(second.revokedAt, "2026-09-21T17:00:00Z");
+});
