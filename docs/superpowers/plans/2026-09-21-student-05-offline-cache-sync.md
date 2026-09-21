@@ -44,6 +44,7 @@
 - Modify: `src/sharing/sharingService.js`
 - Create: `src/offline/offlineRecord.js`
 - Create: `src/offline/inMemoryOfflineRepository.js`
+- Create: `test/support/practiceFixtures.js`
 - Create: `test/offlineRecord.test.js`
 - Create: `test/inMemoryOfflineRepository.test.js`
 - Modify: `test/sharingService.test.js`
@@ -63,9 +64,105 @@
     - `markVerifiedActive({ studentId, publicationId, lastVerifiedAt })`
     - `markRevoked({ studentId, publicationId, lastVerifiedAt })`
 
-- [ ] **Step 1: Extract delivery-item validation with characterization tests**
+- [ ] **Step 1: Add shared deterministic Practice fixtures and extract delivery-item validation with characterization tests**
 
-Add tests proving the existing Sharing Service still rejects publication/package scope mismatches and still returns the same frozen publication/package shape.
+Create `test/support/practiceFixtures.js` with these exported helpers so later tasks do not invent incompatible package shapes:
+
+```js
+export const studentA = createStudentSession({ studentId: "student-a" });
+
+export function makeApprovedPracticePackage({
+  packageId = "pkg-a",
+  workId = "work-a",
+  title = "Etüt A",
+  scope = "public_pool",
+  recipientStudentId,
+} = {}) {
+  return {
+    schemaVersion: "1.0.0",
+    packageId,
+    workId,
+    title,
+    approvedRevision: {
+      revisionId: `rev-${packageId}`,
+      state: "teacher_approved",
+      approvedAt: "2026-09-21T12:00:00Z",
+    },
+    publication:
+      scope === "student_private"
+        ? { scope, recipientStudentId }
+        : { scope },
+    content: {
+      score: {
+        format: "musicxml",
+        data: "<score-partwise><part-list/></score-partwise>",
+      },
+      canonicalEvents: [],
+    },
+    practice: {
+      tempoBpm: 80,
+      allowTempoChange: true,
+      allowMeasureRepeat: true,
+      ttsLanguage: "tr-TR",
+    },
+  };
+}
+
+export function makeDelivery(
+  publicationId = "pub-a",
+  packageId = "pkg-a",
+  {
+    scope = "public_pool",
+    studentId = "student-a",
+    title = "Etüt A",
+  } = {},
+) {
+  const pkg = makeApprovedPracticePackage({
+    packageId,
+    title,
+    scope,
+    recipientStudentId:
+      scope === "student_private" ? studentId : undefined,
+  });
+
+  return {
+    publication: {
+      publicationId,
+      packageId,
+      scope,
+      ...(scope === "student_private"
+        ? { recipientStudentId: studentId }
+        : {}),
+      publishedAt: "2026-09-21T12:00:00Z",
+      revokedAt: null,
+    },
+    package: pkg,
+  };
+}
+
+export const makePublicDelivery = () =>
+  makeDelivery("pub-a", "pkg-a");
+
+export const makePrivateDelivery = (studentId = "student-a") =>
+  makeDelivery("pub-private", "pkg-private", {
+    scope: "student_private",
+    studentId,
+    title: "Özel Etüt",
+  });
+
+export function makePutArgs(
+  studentId,
+  deliveryItem,
+  {
+    cachedAt = "2026-09-21T12:00:00Z",
+    lastVerifiedAt = "2026-09-21T12:00:00Z",
+  } = {},
+) {
+  return { studentId, deliveryItem, cachedAt, lastVerifiedAt };
+}
+```
+
+Then add tests proving the existing Sharing Service still rejects publication/package scope mismatches and still returns the same frozen publication/package shape.
 
 ```js
 test("shared delivery validation rejects mismatched package metadata", () => {
@@ -249,7 +346,7 @@ Expected: PASS.
 - [ ] **Step 5: Commit Task 1**
 
 ```bash
-git add src/sharing/deliveryItem.js src/sharing/sharingService.js src/offline/offlineRecord.js src/offline/inMemoryOfflineRepository.js test/offlineRecord.test.js test/inMemoryOfflineRepository.test.js test/sharingService.test.js
+git add src/sharing/deliveryItem.js src/sharing/sharingService.js src/offline/offlineRecord.js src/offline/inMemoryOfflineRepository.js test/support/practiceFixtures.js test/offlineRecord.test.js test/inMemoryOfflineRepository.test.js test/sharingService.test.js
 git commit -m "feat: add student-scoped offline record contract"
 ```
 
@@ -456,6 +553,42 @@ export const CONNECTIVITY_STATES = Object.freeze({
 Run the focused test; expected PASS.
 
 - [ ] **Step 3: Write failing offline-aware service tests**
+
+Define these local test helpers at the top of `test/offlineAwareSharingService.test.js`:
+
+```js
+const fixedConnectivity = (state) => ({
+  getState: () => state,
+  subscribe: () => () => {},
+});
+
+function onlineServiceThatMustNotBeCalled() {
+  return new Proxy({}, {
+    get() {
+      return () => {
+        throw new Error("online service must not be called");
+      };
+    },
+  });
+}
+
+function makeOnlineSharingService() {
+  return {
+    async listPublicPool() {
+      return [makePublicDelivery()];
+    },
+    async listMyWork() {
+      return [makePrivateDelivery("student-a")];
+    },
+    async getPracticeItem({ publicationId }) {
+      assert.equal(publicationId, "pub-a");
+      return makePublicDelivery();
+    },
+  };
+}
+```
+
+Seed repositories through `createInMemoryOfflineRepository()` plus Task 1 fixture helpers; do not create a second cache implementation inside tests.
 
 Pin these behaviors:
 
@@ -933,6 +1066,27 @@ Run focused test; expected PASS.
 Build serialized UTF-8 Practice Package bytes, split them in test fixtures, then pin:
 
 ```js
+function encodeFixture(pkg, maxChunkBytes = 64) {
+  const bytes = new TextEncoder().encode(JSON.stringify(pkg));
+  const chunks = [];
+
+  for (let offset = 0, index = 0; offset < bytes.length; index += 1) {
+    const next = bytes.slice(offset, offset + maxChunkBytes);
+    chunks.push({ index, data: next });
+    offset += next.byteLength;
+  }
+
+  return {
+    manifest: {
+      representationVersion: "1",
+      encoding: "utf-8-json",
+      chunkCount: chunks.length,
+      totalBytes: bytes.byteLength,
+    },
+    chunks,
+  };
+}
+
 test("manifest chunks reconstruct exactly one validated Practice Package", () => {
   const pkg = makeApprovedPracticePackage();
   const { manifest, chunks } = encodeFixture(pkg, 64);
@@ -940,19 +1094,65 @@ test("manifest chunks reconstruct exactly one validated Practice Package", () =>
   assert.deepEqual(decodeFirestorePackage({ manifest, chunks }), pkg);
 });
 
-for (const caseName of [
-  "missing chunk",
-  "duplicate chunk index",
-  "out of range chunk index",
-  "chunk larger than 256 KiB",
-  "declared total byte mismatch",
-  "invalid json",
-  "invalid Practice Package",
-]) {
-  test(`transport fails closed for ${caseName}`, () => {
-    assert.throws(() => decodeBrokenFixture(caseName));
-  });
-}
+test("transport rejects a missing chunk", () => {
+  const fixture = encodeFixture(makeApprovedPracticePackage(), 32);
+  fixture.chunks.pop();
+  assert.throws(() => decodeFirestorePackage(fixture));
+});
+
+test("transport rejects duplicate indices", () => {
+  const fixture = encodeFixture(makeApprovedPracticePackage(), 32);
+  fixture.chunks[1] = { ...fixture.chunks[1], index: 0 };
+  assert.throws(() => decodeFirestorePackage(fixture));
+});
+
+test("transport rejects out-of-range indices", () => {
+  const fixture = encodeFixture(makeApprovedPracticePackage(), 32);
+  fixture.chunks[0] = {
+    ...fixture.chunks[0],
+    index: fixture.manifest.chunkCount,
+  };
+  assert.throws(() => decodeFirestorePackage(fixture));
+});
+
+test("transport rejects a chunk larger than 256 KiB", () => {
+  const huge = new Uint8Array((256 * 1024) + 1);
+  assert.throws(() =>
+    decodeFirestorePackage({
+      manifest: {
+        representationVersion: "1",
+        encoding: "utf-8-json",
+        chunkCount: 1,
+        totalBytes: huge.byteLength,
+      },
+      chunks: [{ index: 0, data: huge }],
+    }),
+  );
+});
+
+test("transport rejects declared byte-count mismatch", () => {
+  const fixture = encodeFixture(makeApprovedPracticePackage(), 64);
+  fixture.manifest.totalBytes += 1;
+  assert.throws(() => decodeFirestorePackage(fixture));
+});
+
+test("transport rejects invalid JSON and invalid Practice Package", () => {
+  const invalidJson = new TextEncoder().encode("{");
+  assert.throws(() =>
+    decodeFirestorePackage({
+      manifest: {
+        representationVersion: "1",
+        encoding: "utf-8-json",
+        chunkCount: 1,
+        totalBytes: invalidJson.byteLength,
+      },
+      chunks: [{ index: 0, data: invalidJson }],
+    }),
+  );
+
+  const fixture = encodeFixture({ not: "a practice package" }, 64);
+  assert.throws(() => decodeFirestorePackage(fixture));
+});
 ```
 
 The implementation must order chunks by explicit zero-based index and verify `chunkCount` and exact UTF-8 byte count before JSON parse.
