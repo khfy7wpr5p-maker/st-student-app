@@ -20,3 +20,6 @@ Task 1: complete (commits ac12951..0671305, tests: GitHub CI 35645522258 -> 124/
 
 Task 2: RED 9e2c949, CI 35645677554 -> 124 pass / 1 fail (expected missing IndexedDB adapter; npm ci succeeded).
 Task 2: complete (commits 9e2c949..15b87cd, tests: GitHub CI 35645801368 -> 128/128 pass, 0 fail).
+
+Task 3: RED 1fe7105, CI 35645959818 -> 128 pass / 2 fail (expected missing connectivity/offline-aware modules).
+Task 3: complete (commits 1fe7105..19d3270, tests: GitHub CI 35646078820 -> 136/136 pass, 0 fail).
