@@ -128,3 +128,75 @@ Public Pool ve My Work sorguları repository adapter sonucuna körü körüne g�
 `revokedAt`, null değilse boş olmayan bir string olmak zorundadır. Bu aşamada timestamp biçiminin provider-level canonicalization'ı ayrıca seçilmemiştir.
 
 Gerçek persistence adapter'ı eklenirken package + publication yazımının atomik/transactional davranışı ayrıca tanımlanmalıdır; STUDENT-02'nin deterministik in-memory adapter'ı production veritabanı transaction'ı iddiasında bulunmaz.
+
+
+## 11. STUDENT-03 — Minimal Student App Shell
+
+### UI yaklaşımı
+
+STUDENT-03 yeni framework veya dependency eklemez. Shell vanilla ECMAScript modules ve semantic HTML ile çalışır.
+
+Katmanlar:
+
+- `studentAppController.js`: navigation ve safe UI state.
+- `renderStudentApp.js`: semantic HTML renderer.
+- `shellActions.js`: whitelist edilmiş öğrenci action dispatcher.
+- `mountStudentApp.js`: ince browser event/mount adapter.
+- `index.html` + `main.js`: sağlayıcısız güvenli static giriş noktası.
+
+### Ekranlar
+
+- Sign In
+- Home
+- Public Pool
+- My Work
+- Practice shell
+
+Practice ekranı STUDENT-03'te yalnız güvenli başlık/navigation yüzeyidir. Nota, playback, ritim, Guitar TAB, keman görünümü ve offline cache daha sonraki bounded aşamalardır.
+
+### Veri minimizasyonu
+
+Controller, Sharing Service'den gelen tam Practice Package'ı renderer'a taşımaz.
+
+UI state'e yalnız:
+
+- `publicationId`
+- `packageId`
+- `title`
+
+özetleri alınır.
+
+MusicXML, `recipientStudentId`, approval/revision internalleri, OMR/debug/editor alanları renderer'a taşınmaz.
+
+Authenticated session da dış adapter nesnesi olarak tutulmaz. Controller yalnız frozen `{ studentId }` snapshot'ı saklar; dışarıdaki session nesnesi mutate edilse bile mevcut öğrenci kimliği değişmez.
+
+### Yetki yüzeyi
+
+Student shell yalnız read/navigation action'ları tanır:
+
+- Public Pool
+- My Work
+- Home
+- Open Practice
+- Sign Out
+- host-provided Sign In request
+
+`publish`, `revoke`, delete ve diğer management/write action'ları unsupported'tur.
+
+### Auth provider sınırı
+
+STUDENT-03 auth sağlayıcısı seçmez ve credential saklamaz. Browser mount gelecekteki host/provider'dan `requestSignIn` callback alabilir.
+
+Default `main.js` herhangi bir fake kullanıcı veya credential üretmez. Provider yokken Sign In action'ı disabled render edilir.
+
+### Erişilebilirlik tabanı
+
+- semantic headings
+- semantic nav
+- gerçek button elementleri
+- list semantics
+- görünür empty-state metni
+- `role="status"` / `aria-live="polite"` status region
+- keyboard-visible focus styling
+
+Gerçek iPhone/Safari/VoiceOver kabul testi STUDENT-06'da yapılacaktır.
