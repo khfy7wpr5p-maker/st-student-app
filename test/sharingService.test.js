@@ -6,6 +6,7 @@ import { PRACTICE_PACKAGE_SCOPES } from "../src/contracts/practicePackage.js";
 import { createInMemoryPackageRepository } from "../src/sharing/inMemoryPackageRepository.js";
 import { createInMemoryPublicationRepository } from "../src/sharing/inMemoryPublicationRepository.js";
 import { createPublication } from "../src/sharing/publication.js";
+import { createDeliveryItem } from "../src/sharing/deliveryItem.js";
 import {
   createSharingManagementService,
   createSharingService,
@@ -399,5 +400,29 @@ test("My Work rejects public publication returned by a faulty adapter", () => {
   assert.throws(
     () => service.listMyWork({ session }),
     /forbidden/,
+  );
+});
+
+
+test("shared delivery validation rejects mismatched package metadata", () => {
+  const pkg = makePackage({
+    packageId: "pkg-shared-check",
+    scope: PRACTICE_PACKAGE_SCOPES.STUDENT_PRIVATE,
+    recipientStudentId: "student-a",
+  });
+
+  assert.throws(
+    () =>
+      createDeliveryItem(
+        {
+          publicationId: "pub-shared-check",
+          packageId: pkg.packageId,
+          scope: PRACTICE_PACKAGE_SCOPES.PUBLIC_POOL,
+          publishedAt: "2026-09-21T20:00:00Z",
+          revokedAt: null,
+        },
+        pkg,
+      ),
+    /publication does not match package publication metadata/,
   );
 });

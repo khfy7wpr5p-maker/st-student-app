@@ -1,0 +1,33 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    match /publicPublications/{publicationId} {
+      allow read: if signedIn();
+      allow write: if false;
+
+      match /chunks/{chunkId} {
+        allow read: if signedIn()
+          && get(/databases/$(database)/documents/publicPublications/$(publicationId)).data.revokedAt == null;
+        allow write: if false;
+      }
+    }
+
+    match /students/{studentId}/publications/{publicationId} {
+      allow read: if signedIn()
+        && request.auth.uid == studentId;
+      allow write: if false;
+
+      match /chunks/{chunkId} {
+        allow read: if signedIn()
+          && request.auth.uid == studentId
+          && get(/databases/$(database)/documents/students/$(studentId)/publications/$(publicationId)).data.revokedAt == null;
+        allow write: if false;
+      }
+    }
+  }
+}

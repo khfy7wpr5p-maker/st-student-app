@@ -1,3 +1,4 @@
+import { CONNECTIVITY_STATES } from "../offline/connectivityPort.js";
 import { PRACTICE_CAPABILITY_STATES } from "../practice/practiceCapabilities.js";
 import { STUDENT_APP_SCREENS } from "./studentAppController.js";
 import { renderStudentApp } from "./renderStudentApp.js";
@@ -23,6 +24,7 @@ export function mountStudentApp({
   controller,
   requestSignIn,
   notationAdapter = null,
+  connectivityPort = null,
 }) {
   if (
     root === null ||
@@ -33,6 +35,13 @@ export function mountStudentApp({
   }
 
   let status = "";
+  let connectivityState =
+    connectivityPort?.getState?.() === CONNECTIVITY_STATES.OFFLINE
+      ? CONNECTIVITY_STATES.OFFLINE
+      : connectivityPort?.getState?.() === CONNECTIVITY_STATES.ONLINE
+        ? CONNECTIVITY_STATES.ONLINE
+        : null;
+  let unsubscribeConnectivity = () => {};
   let lastMarkup = null;
   let lastPresentationKey = null;
   let domGeneration = 0;
@@ -45,6 +54,7 @@ export function mountStudentApp({
     const markup = renderStudentApp(state, {
       signInAvailable: typeof requestSignIn === "function",
       status,
+      connectivityState,
     });
     const presentationKey = practicePresentationKey(state);
 
@@ -251,6 +261,49 @@ export function mountStudentApp({
     return render();
   }
 
+  function onConnectivityChange(nextState) {
+    if (destroyed) {
+      return;
+    }
+
+    connectivityState =
+      nextState === CONNECTIVITY_STATES.OFFLINE
+        ? CONNECTIVITY_STATES.OFFLINE
+        : nextState === CONNECTIVITY_STATES.ONLINE
+          ? CONNECTIVITY_STATES.ONLINE
+          : connectivityState;
+
+    let syncResult;
+
+    if (
+      connectivityState === CONNECTIVITY_STATES.ONLINE &&
+      typeof controller.synchronizeOffline === "function"
+    ) {
+      try {
+        syncResult = controller.synchronizeOffline();
+      } catch {
+        syncResult = null;
+      }
+    }
+
+    Promise.resolve(syncResult)
+      .catch(() => null)
+      .finally(() => {
+        if (!destroyed) {
+          render();
+        }
+      });
+  }
+
+  if (typeof connectivityPort?.subscribe === "function") {
+    try {
+      unsubscribeConnectivity =
+        connectivityPort.subscribe(onConnectivityChange);
+    } catch {
+      unsubscribeConnectivity = () => {};
+    }
+  }
+
   root.addEventListener("click", onClick);
   render();
 
@@ -264,6 +317,13 @@ export function mountStudentApp({
 
       destroyed = true;
       root.removeEventListener("click", onClick);
+
+      try {
+        unsubscribeConnectivity();
+      } catch {
+        // Connectivity teardown cannot block Student App cleanup.
+      }
+      unsubscribeConnectivity = () => {};
 
       lifecycle = lifecycle.then(async () => {
         await disposeActiveNotation();

@@ -2,6 +2,7 @@ import { getAuthenticatedStudentId } from "../auth/session.js";
 import { PRACTICE_PACKAGE_SCOPES } from "../contracts/practicePackage.js";
 import { canReadPublication } from "./accessPolicy.js";
 import { assertPublishablePracticePackage } from "./packageEligibility.js";
+import { createDeliveryItem } from "./deliveryItem.js";
 import { createPublication } from "./publication.js";
 
 function requireStudentId(session) {
@@ -12,32 +13,6 @@ function requireStudentId(session) {
   }
 
   return studentId;
-}
-
-function assertPublicationMatchesPackage(pkg, publication) {
-  const packagePublication = pkg.publication;
-
-  const sameScope = packagePublication.scope === publication.scope;
-  const sameRecipient =
-    publication.scope !== PRACTICE_PACKAGE_SCOPES.STUDENT_PRIVATE ||
-    packagePublication.recipientStudentId === publication.recipientStudentId;
-
-  if (!sameScope || !sameRecipient) {
-    throw new Error(
-      "publication does not match package publication metadata",
-    );
-  }
-}
-
-function makeDeliveryItem(publication, pkg) {
-  const normalizedPublication = createPublication(publication);
-  assertPublishablePracticePackage(pkg);
-  assertPublicationMatchesPackage(pkg, normalizedPublication);
-
-  return Object.freeze({
-    publication: normalizedPublication,
-    package: pkg,
-  });
 }
 
 function publishPracticePackage({
@@ -54,7 +29,7 @@ function publishPracticePackage({
     throw new Error("publication packageId does not match package");
   }
 
-  assertPublicationMatchesPackage(pkg, normalizedPublication);
+  createDeliveryItem(normalizedPublication, pkg);
 
   if (
     publicationRepository.getById(normalizedPublication.publicationId) !==
@@ -66,7 +41,7 @@ function publishPracticePackage({
   const storedPackage = packageRepository.put(pkg);
   const storedPublication = publicationRepository.save(normalizedPublication);
 
-  return makeDeliveryItem(storedPublication, storedPackage);
+  return createDeliveryItem(storedPublication, storedPackage);
 }
 
 export function createSharingService({
@@ -91,7 +66,7 @@ export function createSharingService({
           throw new Error("package not found");
         }
 
-        return makeDeliveryItem(publication, pkg);
+        return createDeliveryItem(publication, pkg);
       });
     },
 
@@ -115,7 +90,7 @@ export function createSharingService({
             throw new Error("package not found");
           }
 
-          return makeDeliveryItem(publication, pkg);
+          return createDeliveryItem(publication, pkg);
         });
     },
 
@@ -138,7 +113,7 @@ export function createSharingService({
         throw new Error("package not found");
       }
 
-      return makeDeliveryItem(publication, pkg);
+      return createDeliveryItem(publication, pkg);
     },
   });
 }
