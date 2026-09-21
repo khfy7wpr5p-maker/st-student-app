@@ -37,7 +37,7 @@
 
 ---
 
-### Task 1: Shared Delivery Validation and In-Memory Offline Repository
+### Task 1: Provider-Neutral Offline Contract, Shared Delivery Validation, and In-Memory Repository
 
 **Files:**
 - Create: `src/sharing/deliveryItem.js`
@@ -51,7 +51,7 @@
 
 **Interfaces:**
 - Consumes: `createPublication(publication)`, `assertPublishablePracticePackage(pkg)`, `getAuthenticatedStudentId(session)`.
-- Produces:
+- Produces the provider-neutral offline repository contract and:
   - `createDeliveryItem(publication, pkg) -> frozen { publication, package }`
   - `OFFLINE_ACCESS_STATES = { ACTIVE, REVOKED }`
   - `createOfflineRecord({ studentId, deliveryItem, cachedAt, lastVerifiedAt, accessState }) -> deep-frozen record`
