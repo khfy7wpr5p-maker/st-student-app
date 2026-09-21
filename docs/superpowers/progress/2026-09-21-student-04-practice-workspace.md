@@ -64,3 +64,14 @@ Task 4: Ruling: Practice presentation identity includes packageId plus DOM gener
 Task 4: GREEN run `35633947702` at `dd23e95c20eaaf5e42cd0509276cbb75d0c930b0`: 107/107 tests PASS, 0 fail.
 
 Task 4: complete (commits `3db8a38..dd23e95`, tests: full GitHub CI → 107/107 pass).
+
+
+Task 5 default wiring: RED run `35634199017` at `716ac64a5f1bb06f2a7cb7562652470ebb2bc3c7`: default bootstrap did not yet inject `createStNotationAdapter`.
+
+Task 5 default wiring: GREEN run `35634265140` at `209c28de459ae7aa806f9d7ef84689fa5ce24e58`: 109/109 tests PASS, 0 fail.
+
+Task 5: Ruling: default bootstrap injects the Student App-owned global ST notation adapter but does not bundle renderer assets, CDN URLs, OSMD, or playback. Missing verified runtime remains notation UNAVAILABLE — cost if wrong: a deployment that expects notation without provisioning a compatible runtime/adapter will see the honest unavailable state rather than silently importing a vendor.
+
+Task 5 docs/final pre-review exact-head run `35634437885` at `58a0764ad80fd43ce4895f75f3feabee691a6158`: 109/109 tests PASS, 0 fail.
+
+Task 5: implementation and production-reality docs complete; whole-branch review remains before PR.
