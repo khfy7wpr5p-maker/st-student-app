@@ -29,3 +29,6 @@ Branch: `feat/student-03-minimal-shell`
 ## Scope exclusions preserved
 
 No real auth provider, cloud provisioning, provider SDK, notation rendering, playback, rhythm UI, TAB/violin renderer, offline cache, teacher tools, OMR, messaging, groups, social features, gamification, or payments were introduced.
+
+- Immutable shell-state RED: run `35626819081`.
+- Immutable shell-state GREEN: run `35626873086` at `20bef2ee600a6effd4e565aafddea5ad24dd957b`.
