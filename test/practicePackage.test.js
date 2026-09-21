@@ -45,6 +45,20 @@ test("public pool teacher-approved package is valid", () => {
   assert.deepEqual(result.errors, []);
 });
 
+test("public pool package cannot carry a private student identifier", () => {
+  const result = validatePracticePackage(
+    makePackage({
+      publication: {
+        scope: PRACTICE_PACKAGE_SCOPES.PUBLIC_POOL,
+        recipientStudentId: "student-040",
+      },
+    }),
+  );
+
+  assert.equal(result.ok, false);
+  assert.match(result.errors.join("\n"), /not allowed for public_pool/);
+});
+
 test("student-private package requires a recipient student id", () => {
   const result = validatePracticePackage(
     makePackage({
