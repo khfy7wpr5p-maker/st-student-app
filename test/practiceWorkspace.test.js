@@ -79,8 +79,15 @@ test("workspace view model excludes publication and approval internals", () => {
   assert.equal(serialized.includes("publishedAt"), false);
   assert.equal(serialized.includes("revokedAt"), false);
   assert.equal(serialized.includes("canonicalEvents"), false);
-  assert.equal(serialized.includes("guitarTab"), false);
-  assert.equal(serialized.includes("violin"), false);
+  assert.equal(serialized.includes('"unknown"'), false);
+  assert.equal(
+    result.viewModel.capabilities.guitarTab,
+    PRACTICE_CAPABILITY_STATES.UNAVAILABLE,
+  );
+  assert.equal(
+    result.viewModel.capabilities.violin,
+    PRACTICE_CAPABILITY_STATES.UNAVAILABLE,
+  );
 });
 
 test("workspace snapshot and render source are immutable", () => {
