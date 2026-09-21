@@ -8,3 +8,5 @@ Pre-flight: Task 3 package eligibility feeds Tasks 4-6 repositories and service.
 Pre-flight: Task 4 repositories feed Tasks 5-6 service behavior.
 Pre-flight: Task 5 service feeds Task 6 revocation/version-safety tests.
 Ruling: STUDENT-01 Practice Package still contains a publication field while STUDENT-02 adds a separate operational Publication record. On publish, scope and recipient must match across both records to prevent contradictory access metadata. Cost if wrong: a legitimate future workflow that intentionally separates package-declared scope from operational scope would need an explicit contract revision.
+
+Task 1: complete (RED run 35623210086 failed on missing src/auth/session.js; GREEN run 35623271735 succeeded at caf5cf7c3d1a1df0ed89f6cbadb5c08fcf90d5d0).
