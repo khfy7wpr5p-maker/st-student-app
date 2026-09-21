@@ -16,3 +16,5 @@ Task 3: complete (RED run 35623598965; GREEN run 35623658806 succeeded at b76566
 Task 4: Ruling: store a deep-frozen structured clone rather than the caller's mutable package reference — required by immutable published-package contract — cost if wrong: adapters that depend on reference identity would need adjustment.
 Task 4: complete (RED run 35623726964; GREEN run 35623782210 succeeded at 2fb7d0bc48481409464addbea1a207363b9b625d).
 Task 5: complete (RED run 35623877263 failed on missing sharingService.js; GREEN run 35623969520 succeeded at b6d089780615d2b3406a0da68a3665ca3ba72550).
+
+Task 6: complete (characterization tests required no production change; run 35624068727 succeeded at 08f4156f0489eb14f1052fa0e00bd08c7bde4415).
