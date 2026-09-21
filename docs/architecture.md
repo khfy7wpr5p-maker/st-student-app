@@ -114,3 +114,17 @@ Core paylaşım servisi vendor SDK'sına değil repository davranışlarına ba�
 - Repository, kabul edilen Practice Package'ın deep-frozen snapshot'ını saklar.
 - Yeni teacher-approved revision ayrı `packageId` / ayrı sürüm olarak yayınlanır.
 - Var olan yayınlanmış paket sessizce mutate edilmez.
+
+
+### Servis yüzeyleri
+
+STUDENT-02 iki ayrı servis yüzeyi kullanır:
+
+- `createSharingService`: Student App için salt-okunur yüzeydir; yalnız Public Pool, My Work ve tek çalışma okuma işlemlerini sunar. `publish` veya `revoke` işlemi içermez.
+- `createSharingManagementService`: Sharing Layer'ın güvenilen yönetim yüzeyidir; yayınlama ve geri çekme işlemlerini içerir. Bu yüzey Student App'e verilmez. Gerçek provider/admin kimlik doğrulaması STUDENT-02 kapsamı dışındadır ve provider adapter aşamasında bağlanacaktır.
+
+Public Pool ve My Work sorguları repository adapter sonucuna körü körüne güvenmez. Public Pool yalnız `public_pool`; My Work yalnız oturumdaki aynı `studentId` hedefli `student_private` kayıtlarını kabul eder. Yanlış scope döndüren adapter sonucu fail-closed biçimde reddedilir.
+
+`revokedAt`, null değilse boş olmayan bir string olmak zorundadır. Bu aşamada timestamp biçiminin provider-level canonicalization'ı ayrıca seçilmemiştir.
+
+Gerçek persistence adapter'ı eklenirken package + publication yazımının atomik/transactional davranışı ayrıca tanımlanmalıdır; STUDENT-02'nin deterministik in-memory adapter'ı production veritabanı transaction'ı iddiasında bulunmaz.
