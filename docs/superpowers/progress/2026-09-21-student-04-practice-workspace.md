@@ -16,3 +16,14 @@ Pre-flight interfaces:
 Ruling: The pinned generic ST renderer runtime owns `#st-score-root`; Student App creates that DOM root but does not pass arbitrary containers to `renderMusicXml`. Cost if wrong: notation integration would fail at runtime without affecting source authorization.
 
 Ruling: A playback capability is only AVAILABLE when the trusted port both reports support and exposes the control methods that the UI will actually call. Cost if wrong: a future port would remain unavailable until its interface is corrected rather than exposing non-functional controls.
+
+
+Task 1: RED run `35632222300` at `6684287b892974f462be9385ecebe142eed15fd9`: expected `ERR_MODULE_NOT_FOUND` for new practice modules; 67 pre-existing tests passed.
+
+Task 1: Ruling: capability support probes that throw are treated as unsupported/UNAVAILABLE instead of aborting the workspace — this preserves capability failure isolation from the spec — cost if wrong: a broken future capability probe is hidden as unavailable rather than surfaced as a workspace error.
+
+Task 1: Ruling: privacy tests distinguish safe capability labels (`guitarTab`, `violin`) and safe `publicationId` from raw package/publication objects — cost if wrong: a future field with the same label would need a more structural privacy assertion.
+
+Task 1: GREEN run `35632476341` at `0bd03ef9712617e7ecb70a06e92b9a27f2874db0`: 77/77 tests PASS, 0 fail.
+
+Task 1: complete (commits `689a391..0bd03ef`, tests: full GitHub CI → 77/77 pass).
