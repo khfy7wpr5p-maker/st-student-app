@@ -1,3 +1,4 @@
+import { createStNotationAdapter } from "../practice/notationAdapter.js";
 import { createStudentAppController } from "./studentAppController.js";
 import { mountStudentApp } from "./mountStudentApp.js";
 
@@ -16,12 +17,15 @@ const unconfiguredSharingService = Object.freeze({
 });
 
 const root = document.querySelector("#app");
+const notationAdapter = createStNotationAdapter();
 
 const controller = createStudentAppController({
   sharingService: unconfiguredSharingService,
+  notationAdapter,
 });
 
 mountStudentApp({
   root,
   controller,
+  notationAdapter,
 });
