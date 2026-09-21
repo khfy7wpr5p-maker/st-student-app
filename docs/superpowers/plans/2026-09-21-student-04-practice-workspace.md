@@ -117,8 +117,13 @@ test("undefined-shape guitar and violin objects remain unavailable", () => {
 test("tempo and repeat require teacher permission and trusted port support", () => {
   const playbackPort = {
     canPlayPackage: () => true,
+    playPackage() {},
+    pausePackage() {},
+    restartPackage() {},
     canChangeTempoForPackage: () => true,
+    setTempoForPackage() {},
     canRepeatMeasureForPackage: () => true,
+    setMeasureRepeatEnabledForPackage() {},
   };
 
   const result = derivePracticeCapabilities({
@@ -176,12 +181,19 @@ function trueFrom(port, method, pkg) {
   return typeof port?.[method] === "function" && port[method](pkg) === true;
 }
 
+function hasMethods(port, names) {
+  return names.every((name) => typeof port?.[name] === "function");
+}
+
 export function derivePracticeCapabilities({
   pkg,
   notationRuntimeAvailable,
   playbackPort = null,
 }) {
-  const playback = trueFrom(playbackPort, "canPlayPackage", pkg);
+  const playback =
+    trueFrom(playbackPort, "canPlayPackage", pkg) &&
+    hasMethods(playbackPort, ["playPackage", "pausePackage", "restartPackage"]);
+
   const allowTempoChange = pkg.practice?.allowTempoChange === true;
   const allowMeasureRepeat = pkg.practice?.allowMeasureRepeat === true;
 
@@ -195,13 +207,15 @@ export function derivePracticeCapabilities({
     tempoChange:
       playback &&
       allowTempoChange &&
-      trueFrom(playbackPort, "canChangeTempoForPackage", pkg)
+      trueFrom(playbackPort, "canChangeTempoForPackage", pkg) &&
+      typeof playbackPort?.setTempoForPackage === "function"
         ? PRACTICE_CAPABILITY_STATES.AVAILABLE
         : PRACTICE_CAPABILITY_STATES.UNAVAILABLE,
     measureRepeat:
       playback &&
       allowMeasureRepeat &&
-      trueFrom(playbackPort, "canRepeatMeasureForPackage", pkg)
+      trueFrom(playbackPort, "canRepeatMeasureForPackage", pkg) &&
+      typeof playbackPort?.setMeasureRepeatEnabledForPackage === "function"
         ? PRACTICE_CAPABILITY_STATES.AVAILABLE
         : PRACTICE_CAPABILITY_STATES.UNAVAILABLE,
     guitarTab: PRACTICE_CAPABILITY_STATES.UNAVAILABLE,
@@ -570,8 +584,9 @@ git commit -m "feat: add ST notation runtime adapter"
 - Produces:
   - existing `getState()` with safe `state.practice` view-model only;
   - new internal-facing `getPracticeRenderSource()`;
-  - new internal-facing `setNotationCapability(capability)`.
-- The action dispatcher must not expose `getPracticeRenderSource` or `setNotationCapability` as student actions.
+  - new internal-facing `setNotationCapability(capability)`;
+  - playback/practice delegates `playPractice()`, `pausePractice()`, `restartPractice()`, `setPracticeTempo(bpm)`, and `setMeasureRepeatEnabled(enabled)`.
+- The action dispatcher must not expose `getPracticeRenderSource` or `setNotationCapability` as student actions. It may expose only the approved practice controls above when the corresponding capability is AVAILABLE.
 
 - [ ] **Step 1: Add failing controller tests**
 
@@ -636,7 +651,11 @@ test("notation ERROR does not change playback state", () => {
 
 Also test:
 - `getPracticeRenderSource()` returns `null` outside Practice;
-- `showHome()` and `signOut()` clear the private render source;
+- `showHome()` and `signOut()` clear the private render source and active private package reference;
+- playback methods reject when playback capability is not AVAILABLE;
+- trusted playback delegates receive the private package object but it never enters `getState()`;
+- `setPracticeTempo(bpm)` rejects non-finite or non-positive values and delegates only when `tempoChange` is AVAILABLE;
+- `setMeasureRepeatEnabled(enabled)` accepts booleans only and delegates only when `measureRepeat` is AVAILABLE;
 - public controller still exposes no `publish`, `revoke`, `edit`, or `delete`.
 
 - [ ] **Step 2: Run controller tests and verify RED**
@@ -690,7 +709,47 @@ setNotationCapability(capability) {
 },
 ```
 
-Clear `activePracticeRenderSource` on `showHome()`, `signOut()`, and before replacing an existing Practice.
+Keep `let activePracticePackage = null;` beside `activePracticeRenderSource`. Store the authorized package privately on open and clear both private references on `showHome()`, `signOut()`, and before replacing an existing Practice.
+
+Add bounded practice delegates:
+
+```js
+playPractice() {
+  requirePracticeCapability("playback");
+  return playbackPort.playPackage(activePracticePackage);
+},
+
+pausePractice() {
+  requirePracticeCapability("playback");
+  return playbackPort.pausePackage(activePracticePackage);
+},
+
+restartPractice() {
+  requirePracticeCapability("playback");
+  return playbackPort.restartPackage(activePracticePackage);
+},
+
+setPracticeTempo(bpm) {
+  requirePracticeCapability("tempoChange");
+  if (!Number.isFinite(bpm) || bpm <= 0) {
+    throw new TypeError("tempo must be a positive finite number");
+  }
+  return playbackPort.setTempoForPackage(activePracticePackage, bpm);
+},
+
+setMeasureRepeatEnabled(enabled) {
+  requirePracticeCapability("measureRepeat");
+  if (typeof enabled !== "boolean") {
+    throw new TypeError("repeat enabled must be boolean");
+  }
+  return playbackPort.setMeasureRepeatEnabledForPackage(
+    activePracticePackage,
+    enabled,
+  );
+},
+```
+
+These methods delegate to a trusted port only. They do not parse `canonicalEvents`.
 
 - [ ] **Step 4: Run controller tests and full suite**
 
@@ -718,6 +777,8 @@ git commit -m "feat: connect STUDENT-04 workspace to controller"
 - Create: `src/ui/renderPracticeWorkspace.js`
 - Create: `test/renderPracticeWorkspace.test.js`
 - Modify: `src/ui/renderStudentApp.js`
+- Modify: `src/ui/shellActions.js`
+- Modify: `test/shellActions.test.js`
 - Modify: `src/ui/mountStudentApp.js`
 - Create: `test/practiceNotationLifecycle.test.js`
 
@@ -767,6 +828,23 @@ test("playback unavailable never renders a fake enabled play button", () => {
   assert.doesNotMatch(html, /data-action="play-practice"/);
   assert.match(html, /Dinleme bu çalışma için kullanılamıyor/);
 });
+
+test("trusted playback capability renders usable controls only", () => {
+  const html = renderPracticeWorkspace(
+    makePractice({
+      playback: PRACTICE_CAPABILITY_STATES.AVAILABLE,
+      tempoChange: PRACTICE_CAPABILITY_STATES.AVAILABLE,
+      measureRepeat: PRACTICE_CAPABILITY_STATES.AVAILABLE,
+    }),
+  );
+
+  assert.match(html, /data-action="play-practice"/);
+  assert.match(html, /data-action="pause-practice"/);
+  assert.match(html, /data-action="restart-practice"/);
+  assert.match(html, /data-practice-tempo/);
+  assert.match(html, /data-action="set-practice-tempo"/);
+  assert.match(html, /data-action="set-measure-repeat"/);
+});
 ```
 
 Also verify:
@@ -812,7 +890,19 @@ function renderNotation(capability) {
 }
 ```
 
-Playback remains a truthful unavailable message in the default build. Do not render active playback controls unless a later trusted port/action surface is actually wired.
+Playback remains a truthful unavailable message in the default build. When the workspace capability is AVAILABLE, render only the controls backed by the trusted port contract:
+
+```html
+<button type="button" data-action="play-practice">Dinle</button>
+<button type="button" data-action="pause-practice">Duraklat</button>
+<button type="button" data-action="restart-practice">Baştan</button>
+```
+
+When `tempoChange` is AVAILABLE, render a positive-number input marked `data-practice-tempo` plus `data-action="set-practice-tempo"`.
+
+When `measureRepeat` is AVAILABLE, render a checkbox/button marked `data-action="set-measure-repeat"`.
+
+Do not render these controls when their capability is UNAVAILABLE or ERROR.
 
 - [ ] **Step 4: Delegate Practice rendering from `renderStudentApp`**
 
@@ -836,7 +926,59 @@ node --test test/renderPracticeWorkspace.test.js test/renderStudentApp.test.js
 
 Expected: PASS.
 
-- [ ] **Step 6: Write failing notation lifecycle tests**
+- [ ] **Step 6: Add practice-control action tests**
+
+Extend `test/shellActions.test.js` so `dispatchStudentAppAction` forwards:
+
+```js
+await dispatchStudentAppAction({
+  action: "play-practice",
+  controller,
+});
+
+await dispatchStudentAppAction({
+  action: "set-practice-tempo",
+  tempoBpm: 72,
+  controller,
+});
+
+await dispatchStudentAppAction({
+  action: "set-measure-repeat",
+  repeatEnabled: true,
+  controller,
+});
+```
+
+Assert exact controller calls `playPractice()`, `setPracticeTempo(72)`, and `setMeasureRepeatEnabled(true)`. Keep `publish`, `revoke`, `edit`, and `delete` rejected.
+
+- [ ] **Step 7: Implement practice-control dispatch and DOM value extraction**
+
+Extend `dispatchStudentAppAction` arguments with `tempoBpm` and `repeatEnabled`, then add only these approved cases:
+
+```js
+case "play-practice":
+  return controller.playPractice();
+case "pause-practice":
+  return controller.pausePractice();
+case "restart-practice":
+  return controller.restartPractice();
+case "set-practice-tempo":
+  return controller.setPracticeTempo(tempoBpm);
+case "set-measure-repeat":
+  return controller.setMeasureRepeatEnabled(repeatEnabled);
+```
+
+In `mountStudentApp.onClick`, for `set-practice-tempo` read the current `[data-practice-tempo]` value and convert it with `Number(...)`. For `set-measure-repeat`, pass `Boolean(actionElement.checked)`. Do not read any hidden package/source data from the DOM.
+
+Run:
+
+```bash
+node --test test/shellActions.test.js test/renderPracticeWorkspace.test.js
+```
+
+Expected: PASS.
+
+- [ ] **Step 8: Write failing notation lifecycle tests**
 
 Create `test/practiceNotationLifecycle.test.js` around a minimal fake root and fake controller/notation adapter.
 
@@ -867,7 +1009,7 @@ test("switching package keys disposes old runtime before rendering new source", 
 
 Use an adapter call log so ordering is directly asserted.
 
-- [ ] **Step 7: Run lifecycle tests and verify RED**
+- [ ] **Step 9: Run lifecycle tests and verify RED**
 
 Run:
 
@@ -877,7 +1019,7 @@ node --test test/practiceNotationLifecycle.test.js
 
 Expected: FAIL because mount has no Practice notation synchronization.
 
-- [ ] **Step 8: Add bounded notation synchronization to `mountStudentApp`**
+- [ ] **Step 10: Add bounded notation synchronization to `mountStudentApp`**
 
 Extend `mountStudentApp({ root, controller, requestSignIn, notationAdapter = null })`.
 
@@ -905,7 +1047,7 @@ Keep raw caught errors out of `status`; continue using bounded student messages.
 
 Because the mount renderer is currently synchronous, implement the async notation synchronization as a serialized promise chain owned by the mount rather than making click dispatch race against multiple independent renders.
 
-- [ ] **Step 9: Run lifecycle tests and full suite**
+- [ ] **Step 11: Run lifecycle tests and full suite**
 
 Run:
 
@@ -916,10 +1058,10 @@ npm test
 
 Expected: PASS with no repeated render loop.
 
-- [ ] **Step 10: Commit Task 4**
+- [ ] **Step 12: Commit Task 4**
 
 ```bash
-git add src/ui/renderPracticeWorkspace.js src/ui/renderStudentApp.js src/ui/mountStudentApp.js test/renderPracticeWorkspace.test.js test/practiceNotationLifecycle.test.js
+git add src/ui/renderPracticeWorkspace.js src/ui/renderStudentApp.js src/ui/shellActions.js src/ui/mountStudentApp.js test/renderPracticeWorkspace.test.js test/shellActions.test.js test/practiceNotationLifecycle.test.js
 git commit -m "feat: render STUDENT-04 practice workspace"
 ```
 
