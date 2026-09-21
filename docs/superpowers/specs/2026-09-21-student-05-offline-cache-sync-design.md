@@ -372,7 +372,7 @@ At minimum they must enforce:
 
 - Public Pool reads require an authenticated Firebase user.
 - `students/{studentId}/...` private reads require `request.auth.uid == studentId`.
-- Revoked publication manifests/chunks are not newly delivered by online reads.
+- A revoked publication may expose only bounded manifest/status metadata to the same authorized student so foreground sync can learn `REVOKED`; its Practice Package chunks are not delivered.
 - Student App clients have no write authority for teacher approval, publication, revocation, manifests, or package chunks.
 - Approved Practice Package payloads are immutable from Student App clients.
 - Child chunk reads must be covered by the same publication-scope authorization as their parent manifest.
