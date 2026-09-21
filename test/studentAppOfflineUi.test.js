@@ -420,7 +420,7 @@ test("My Work permission failures surface a bounded access diagnosis without pro
   await mounted.destroy();
 });
 
-test("My Work manifest failures surface a bounded data diagnosis", async () => {
+test("My Work scope mismatch surfaces a bounded field diagnosis", async () => {
   let clickListener = null;
   const root = {
     innerHTML: "",
@@ -466,7 +466,7 @@ test("My Work manifest failures surface a bounded data diagnosis", async () => {
     },
   });
 
-  assert.match(root.innerHTML, /Kişisel çalışma kaydı eksik veya uyumsuz/);
+  assert.match(root.innerHTML, /Kişisel çalışma: scope alanı eksik veya hatalı/);
   assert.doesNotMatch(root.innerHTML, /scope mismatch/i);
 
   await mounted.destroy();
