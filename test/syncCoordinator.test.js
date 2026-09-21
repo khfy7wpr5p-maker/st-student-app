@@ -249,3 +249,30 @@ test("revocation blocks every cached package version of one publication", async 
     null,
   );
 });
+
+
+test("newer server package that is not cached does not revoke or invalidate the existing snapshot", async () => {
+  const repo = await seededRepository();
+  const coordinator = createForegroundSyncCoordinator({
+    offlineRepository: repo,
+    publicationStatusService: {
+      async getPublicationStatus() {
+        return { state: "ACTIVE", packageId: "pkg-newer" };
+      },
+    },
+    clock: () => "2026-09-21T19:00:00Z",
+  });
+
+  const result = await coordinator.sync({ session: studentA });
+  const [record] = await repo.listAllForStudent({ studentId: "student-a" });
+
+  assert.deepEqual(result, {
+    state: SYNC_STATES.SYNCED,
+    checked: 1,
+    revoked: 0,
+    failed: 0,
+  });
+  assert.equal(record.packageId, "pkg-a");
+  assert.equal(record.accessState, "ACTIVE");
+  assert.equal(record.lastVerifiedAt, "2026-09-21T12:00:00Z");
+});
