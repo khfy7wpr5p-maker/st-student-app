@@ -8,7 +8,13 @@ export function createStNotationAdapter({
   let ticket = 0;
 
   function runtimeOrNull() {
-    const runtime = getRuntime();
+    let runtime;
+
+    try {
+      runtime = getRuntime();
+    } catch {
+      return null;
+    }
 
     return runtime !== null &&
       runtime !== undefined &&
