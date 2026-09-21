@@ -18,3 +18,13 @@ Task 4: complete (RED run 35623726964; GREEN run 35623782210 succeeded at 2fb7d0
 Task 5: complete (RED run 35623877263 failed on missing sharingService.js; GREEN run 35623969520 succeeded at b6d089780615d2b3406a0da68a3665ca3ba72550).
 
 Task 6: complete (characterization tests required no production change; run 35624068727 succeeded at 08f4156f0489eb14f1052fa0e00bd08c7bde4415).
+
+Task 7: documentation aligned with implemented STUDENT-02 boundaries.
+
+Final review: self-review (no subagent tool available in this harness).
+Final: fixed student write surface — test "student sharing service exposes no publish or revoke operations" RED in run 35624359022 → GREEN in run 35624494066.
+Final: fixed Public Pool adapter trust — test "Public Pool rejects private publication returned by a faulty adapter" covered by GREEN run 35624494066.
+Final: fixed blank revokedAt validation — test "revokedAt must be null or a non-empty string" RED in run 35624359022 → GREEN in run 35624494066.
+Final: fixed My Work adapter trust — test "My Work rejects public publication returned by a faulty adapter" RED in run 35624589217 → GREEN in run 35624639528.
+Final suite before final documentation commit: 42/42 PASS, 0 fail on run 35624639528 at dbc26973fbec8f0e627f557fc087ea300e04e8a4.
+Final: minor (deferred): real provider adapter must define atomic package + publication persistence and trusted management authorization; no real provider is provisioned in STUDENT-02.
