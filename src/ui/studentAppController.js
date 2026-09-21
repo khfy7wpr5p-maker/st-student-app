@@ -5,6 +5,7 @@ import {
   withNotationCapability,
   withPracticeCapability,
 } from "../practice/practiceWorkspace.js";
+import { SYNC_STATES } from "../offline/syncCoordinator.js";
 
 export const STUDENT_APP_SCREENS = Object.freeze({
   SIGN_IN: "sign_in",
@@ -19,19 +20,21 @@ function freezeState({
   session = null,
   items = [],
   practice = null,
+  syncState,
 }) {
-  return Object.freeze({
+  const value = {
     screen,
     session,
     items: Object.freeze([...items]),
     practice,
-  });
-}
+  };
 
-const emptyState = () =>
-  freezeState({
-    screen: STUDENT_APP_SCREENS.SIGN_IN,
-  });
+  if (syncState !== undefined) {
+    value.syncState = syncState;
+  }
+
+  return Object.freeze(value);
+}
 
 function requireSession(session) {
   const studentId = getAuthenticatedStudentId(session);
@@ -43,11 +46,40 @@ function requireSession(session) {
   return Object.freeze({ studentId });
 }
 
+function resolveMaybe(value, onResolved) {
+  if (value !== null && typeof value?.then === "function") {
+    return Promise.resolve(value).then(onResolved);
+  }
+
+  return onResolved(value);
+}
+
 function toWorkSummary(item) {
-  return Object.freeze({
+  const summary = {
     publicationId: item.publication.publicationId,
     packageId: item.package.packageId,
     title: item.package.title,
+  };
+
+  if (item.offlineAvailability !== undefined) {
+    summary.deviceAvailable =
+      item.offlineAvailability?.deviceAvailable === true;
+  }
+
+  return Object.freeze(summary);
+}
+
+function withOfflinePracticeMetadata(viewModel, item) {
+  if (item.offlineAvailability === undefined) {
+    return viewModel;
+  }
+
+  return Object.freeze({
+    ...viewModel,
+    deviceAvailable:
+      item.offlineAvailability?.deviceAvailable === true,
+    offlineSaveFailed:
+      item.offlineAvailability?.saveFailed === true,
   });
 }
 
@@ -56,7 +88,17 @@ export function createStudentAppController({
   initialSession = null,
   notationAdapter = null,
   playbackPort = null,
+  syncCoordinator = null,
 }) {
+  let currentSyncState =
+    syncCoordinator === null ? undefined : SYNC_STATES.IDLE;
+
+  const emptyState = () =>
+    freezeState({
+      screen: STUDENT_APP_SCREENS.SIGN_IN,
+      syncState: currentSyncState,
+    });
+
   let state = emptyState();
   let activePracticeRenderSource = null;
   let activePracticePackage = null;
@@ -66,10 +108,22 @@ export function createStudentAppController({
     activePracticePackage = null;
   }
 
+  function stateArgs(overrides = {}) {
+    return {
+      screen: state.screen,
+      session: state.session,
+      items: state.items,
+      practice: state.practice,
+      syncState: currentSyncState,
+      ...overrides,
+    };
+  }
+
   if (initialSession !== null) {
     state = freezeState({
       screen: STUDENT_APP_SCREENS.HOME,
       session: requireSession(initialSession),
+      syncState: currentSyncState,
     });
   }
 
@@ -99,16 +153,15 @@ export function createStudentAppController({
       throw new Error("practice workspace is not active");
     }
 
-    state = freezeState({
-      screen: state.screen,
-      session: state.session,
-      items: state.items,
-      practice: withPracticeCapability(
-        state.practice,
-        capabilityName,
-        capability,
-      ),
-    });
+    state = freezeState(
+      stateArgs({
+        practice: withPracticeCapability(
+          state.practice,
+          capabilityName,
+          capability,
+        ),
+      }),
+    );
   }
 
   function runPracticeOperation(capabilityName, operation) {
@@ -135,6 +188,12 @@ export function createStudentAppController({
     }
   }
 
+  function setSyncState(nextState) {
+    currentSyncState = nextState;
+    state = freezeState(stateArgs());
+    return state;
+  }
+
   return Object.freeze({
     getState() {
       return state;
@@ -149,9 +208,15 @@ export function createStudentAppController({
     attachSession(session) {
       const nextSession = requireSession(session);
       clearActivePractice();
+
+      if (syncCoordinator !== null) {
+        currentSyncState = SYNC_STATES.IDLE;
+      }
+
       state = freezeState({
         screen: STUDENT_APP_SCREENS.HOME,
         session: nextSession,
+        syncState: currentSyncState,
       });
       return state;
     },
@@ -163,62 +228,112 @@ export function createStudentAppController({
       state = freezeState({
         screen: STUDENT_APP_SCREENS.HOME,
         session,
+        syncState: currentSyncState,
       });
       return state;
     },
 
     showPublicPool() {
       const session = requireCurrentSession();
-      const items = sharingService
-        .listPublicPool({ session })
-        .map(toWorkSummary);
+      const result = sharingService.listPublicPool({ session });
 
-      clearActivePractice();
-      state = freezeState({
-        screen: STUDENT_APP_SCREENS.PUBLIC_POOL,
-        session,
-        items,
+      return resolveMaybe(result, (items) => {
+        clearActivePractice();
+        state = freezeState({
+          screen: STUDENT_APP_SCREENS.PUBLIC_POOL,
+          session,
+          items: items.map(toWorkSummary),
+          syncState: currentSyncState,
+        });
+        return state;
       });
-      return state;
     },
 
     showMyWork() {
       const session = requireCurrentSession();
-      const items = sharingService
-        .listMyWork({ session })
-        .map(toWorkSummary);
+      const result = sharingService.listMyWork({ session });
 
-      clearActivePractice();
-      state = freezeState({
-        screen: STUDENT_APP_SCREENS.MY_WORK,
-        session,
-        items,
+      return resolveMaybe(result, (items) => {
+        clearActivePractice();
+        state = freezeState({
+          screen: STUDENT_APP_SCREENS.MY_WORK,
+          session,
+          items: items.map(toWorkSummary),
+          syncState: currentSyncState,
+        });
+        return state;
       });
-      return state;
     },
 
     openPractice(publicationId) {
       const session = requireCurrentSession();
-      const item = sharingService.getPracticeItem({
+      const result = sharingService.getPracticeItem({
         session,
         publicationId,
       });
 
-      const workspace = createPracticeWorkspace({
-        deliveryItem: item,
-        notationRuntimeAvailable: notationAdapter?.isAvailable?.() === true,
-        playbackPort,
-      });
+      return resolveMaybe(result, (item) => {
+        const workspace = createPracticeWorkspace({
+          deliveryItem: item,
+          notationRuntimeAvailable:
+            notationAdapter?.isAvailable?.() === true,
+          playbackPort,
+        });
 
-      activePracticeRenderSource = workspace.renderSource;
-      activePracticePackage = item.package;
+        activePracticeRenderSource = workspace.renderSource;
+        activePracticePackage = item.package;
 
-      state = freezeState({
-        screen: STUDENT_APP_SCREENS.PRACTICE,
-        session,
-        practice: workspace.viewModel,
+        state = freezeState({
+          screen: STUDENT_APP_SCREENS.PRACTICE,
+          session,
+          practice: withOfflinePracticeMetadata(
+            workspace.viewModel,
+            item,
+          ),
+          syncState: currentSyncState,
+        });
+        return state;
       });
-      return state;
+    },
+
+    synchronizeOffline() {
+      if (
+        syncCoordinator === null ||
+        typeof syncCoordinator?.sync !== "function"
+      ) {
+        return state;
+      }
+
+      const session = requireCurrentSession();
+      setSyncState(SYNC_STATES.SYNCING);
+
+      let result;
+
+      try {
+        result = syncCoordinator.sync({ session });
+      } catch {
+        return setSyncState(SYNC_STATES.SYNC_ERROR);
+      }
+
+      const applyResult = (outcome) => {
+        const allowed = [
+          SYNC_STATES.SYNCED,
+          SYNC_STATES.SYNC_ERROR,
+        ];
+        return setSyncState(
+          allowed.includes(outcome?.state)
+            ? outcome.state
+            : SYNC_STATES.SYNC_ERROR,
+        );
+      };
+
+      if (result !== null && typeof result?.then === "function") {
+        return Promise.resolve(result)
+          .then(applyResult)
+          .catch(() => setSyncState(SYNC_STATES.SYNC_ERROR));
+      }
+
+      return applyResult(result);
     },
 
     setNotationCapability(capability) {
@@ -229,12 +344,14 @@ export function createStudentAppController({
         throw new Error("practice workspace is not active");
       }
 
-      state = freezeState({
-        screen: state.screen,
-        session: state.session,
-        items: state.items,
-        practice: withNotationCapability(state.practice, capability),
-      });
+      state = freezeState(
+        stateArgs({
+          practice: withNotationCapability(
+            state.practice,
+            capability,
+          ),
+        }),
+      );
       return state;
     },
 
@@ -283,12 +400,20 @@ export function createStudentAppController({
       return runPracticeOperation(
         "measureRepeat",
         () =>
-          playbackPort.setMeasureRepeatEnabledForPackage(pkg, enabled),
+          playbackPort.setMeasureRepeatEnabledForPackage(
+            pkg,
+            enabled,
+          ),
       );
     },
 
     signOut() {
       clearActivePractice();
+
+      if (syncCoordinator !== null) {
+        currentSyncState = SYNC_STATES.IDLE;
+      }
+
       state = emptyState();
       return state;
     },

@@ -1,13 +1,31 @@
+import { CONNECTIVITY_STATES } from "../offline/connectivityPort.js";
 import { STUDENT_APP_SCREENS } from "./studentAppController.js";
 import { escapeHtml } from "./escapeHtml.js";
 import { renderPracticeWorkspace } from "./renderPracticeWorkspace.js";
 
 export { escapeHtml } from "./escapeHtml.js";
 
-function renderStatus(status) {
-  return `<div class="app-status" role="status" aria-live="polite">${escapeHtml(
+function connectivityText(connectivityState) {
+  if (connectivityState === CONNECTIVITY_STATES.ONLINE) {
+    return "Çevrimiçi";
+  }
+
+  if (connectivityState === CONNECTIVITY_STATES.OFFLINE) {
+    return "Çevrimdışı";
+  }
+
+  return "";
+}
+
+function renderStatus(status, connectivityState) {
+  const parts = [
+    connectivityText(connectivityState),
     status ?? "",
-  )}</div>`;
+  ].filter((part) => part.length > 0);
+
+  return `<div class="app-status" role="status" aria-live="polite">${parts
+    .map(escapeHtml)
+    .join(" · ")}</div>`;
 }
 
 function renderSignIn({ signInAvailable }) {
@@ -46,6 +64,11 @@ function renderWorkList({ heading, items, emptyText }) {
               (item) => `
                 <li>
                   <span>${escapeHtml(item.title)}</span>
+                  ${
+                    item.deviceAvailable === true
+                      ? '<span class="offline-availability">Cihazda mevcut</span>'
+                      : ""
+                  }
                   <button
                     type="button"
                     data-action="open-practice"
@@ -67,9 +90,22 @@ function renderWorkList({ heading, items, emptyText }) {
   `;
 }
 
+function renderPractice(practice) {
+  const saveStatus =
+    practice?.offlineSaveFailed === true
+      ? '<p class="offline-save-status" role="status">Çevrimdışı kaydedilemedi.</p>'
+      : "";
+
+  return `${saveStatus}${renderPracticeWorkspace(practice)}`;
+}
+
 export function renderStudentApp(
   state,
-  { signInAvailable = true, status = "" } = {},
+  {
+    signInAvailable = true,
+    status = "",
+    connectivityState = null,
+  } = {},
 ) {
   let body;
 
@@ -95,11 +131,14 @@ export function renderStudentApp(
       });
       break;
     case STUDENT_APP_SCREENS.PRACTICE:
-      body = renderPracticeWorkspace(state.practice);
+      body = renderPractice(state.practice);
       break;
     default:
       throw new Error("unknown student app screen");
   }
 
-  return `<main class="student-app">${renderStatus(status)}${body}</main>`;
+  return `<main class="student-app">${renderStatus(
+    status,
+    connectivityState,
+  )}${body}</main>`;
 }
