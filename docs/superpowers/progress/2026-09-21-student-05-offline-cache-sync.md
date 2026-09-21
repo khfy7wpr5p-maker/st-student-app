@@ -23,3 +23,6 @@ Task 2: complete (commits 9e2c949..15b87cd, tests: GitHub CI 35645801368 -> 128/
 
 Task 3: RED 1fe7105, CI 35645959818 -> 128 pass / 2 fail (expected missing connectivity/offline-aware modules).
 Task 3: complete (commits 1fe7105..19d3270, tests: GitHub CI 35646078820 -> 136/136 pass, 0 fail).
+
+Task 4: RED eb3c672, CI 35646227389 -> 136 pass / 1 fail (expected missing syncCoordinator).
+Task 4: complete (commits eb3c672..228245e, tests: GitHub CI 35646321743 -> 141/141 pass, 0 fail).
