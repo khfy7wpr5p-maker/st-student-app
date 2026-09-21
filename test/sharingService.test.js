@@ -255,3 +255,57 @@ test("read service re-checks stored package eligibility", () => {
     /teacher_approved/,
   );
 });
+
+
+test("revoked publication disappears from new online reads", () => {
+  const { service, studentA } = makeServiceWithPublicItem();
+
+  const before = service.listPublicPool({ session: studentA });
+  assert.equal(before.length, 1);
+
+  service.revoke({
+    publicationId: before[0].publication.publicationId,
+    revokedAt: "2026-09-21T18:00:00Z",
+  });
+
+  assert.deepEqual(service.listPublicPool({ session: studentA }), []);
+});
+
+test("new approved revision is published as a distinct package version", () => {
+  const { service, studentA } = makeEmptyService();
+
+  const packageR1 = makePackage({
+    packageId: "pkg-r1",
+    revisionId: "R1",
+  });
+  const packageR2 = makePackage({
+    packageId: "pkg-r2",
+    revisionId: "R2",
+  });
+
+  service.publish({
+    package: packageR1,
+    publication: createPublication({
+      publicationId: "pub-r1",
+      packageId: "pkg-r1",
+      scope: PRACTICE_PACKAGE_SCOPES.PUBLIC_POOL,
+      publishedAt: "2026-09-21T16:00:00Z",
+    }),
+  });
+  service.publish({
+    package: packageR2,
+    publication: createPublication({
+      publicationId: "pub-r2",
+      packageId: "pkg-r2",
+      scope: PRACTICE_PACKAGE_SCOPES.PUBLIC_POOL,
+      publishedAt: "2026-09-21T17:00:00Z",
+    }),
+  });
+
+  const items = service.listPublicPool({ session: studentA });
+
+  assert.deepEqual(
+    items.map((item) => item.package.approvedRevision.revisionId),
+    ["R1", "R2"],
+  );
+});
