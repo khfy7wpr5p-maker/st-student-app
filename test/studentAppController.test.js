@@ -225,3 +225,22 @@ test("controller snapshots the authenticated student id", () => {
   assert.deepEqual(state.session, { studentId: "student-a" });
   assert.equal(Object.isFrozen(state.session), true);
 });
+
+
+test("controller exposes immutable UI state", () => {
+  const controller = createStudentAppController({
+    sharingService: makeSharingService(),
+    initialSession: student,
+  });
+
+  controller.showPublicPool();
+  const state = controller.getState();
+
+  assert.equal(Object.isFrozen(state), true);
+  assert.equal(Object.isFrozen(state.items), true);
+  assert.equal(Object.isFrozen(state.items[0]), true);
+  assert.throws(
+    () => state.items.push({ publicationId: "fake", packageId: "fake", title: "Fake" }),
+    TypeError,
+  );
+});
