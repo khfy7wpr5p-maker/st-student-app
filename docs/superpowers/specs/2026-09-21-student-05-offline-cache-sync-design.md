@@ -93,7 +93,7 @@ STUDENT-05 does not invent a local account or silently authenticate a student of
 
 Offline package access is available only when the host application can supply a trusted student session representing the same stable `studentId`.
 
-How the production Firebase auth session is persisted/restored is an adapter concern. Core Student App code only consumes the normalized session contract already established by STUDENT-02/03.
+How the production Firebase auth session is persisted/restored is an adapter concern. Firebase Auth for web supports persisted auth state, including local persistence, but STUDENT-05 still requires the adapter to restore a trusted Firebase-authenticated user before exposing cached records. Core Student App code only consumes the normalized session contract already established by STUDENT-02/03.
 
 ## 5. Offline repository boundary
 
@@ -315,6 +315,43 @@ Expected adapter responsibilities:
 
 Firestore queries or security rules do not replace core validation. Provider and core layers provide defense in depth.
 
+### Firestore Practice Package representation
+
+Cloud Firestore has a 1 MiB maximum document size. STUDENT-05 therefore must not assume that one serialized Practice Package fits in one Firestore document.
+
+The initial provider representation uses a package manifest plus bounded chunk documents:
+
+```text
+packages/{packageId}                 -> manifest
+packages/{packageId}/chunks/{index}  -> serialized package byte chunk
+```
+
+The manifest records at least:
+
+- `packageId`
+- representation version
+- UTF-8 JSON encoding identifier
+- `chunkCount`
+- total serialized byte length
+
+Each chunk carries a deterministic zero-based index and no more than 256 KiB of serialized package payload bytes. This is intentionally well below Firestore's document-size ceiling and leaves room for document/field overhead.
+
+The Firestore adapter:
+
+1. reads the manifest;
+2. validates the manifest and chunk indices;
+3. reads exactly the declared chunks;
+4. concatenates bytes in index order;
+5. decodes UTF-8 JSON;
+6. parses the Practice Package;
+7. passes the reconstructed package through the existing core Practice Package validation before delivery.
+
+Missing, duplicate, out-of-range, or malformed chunks fail that package closed.
+
+This provider representation is not exposed to Student UI or core Practice Workspace code. Core code still receives one validated Practice Package object.
+
+STUDENT-05 does not introduce Firebase Cloud Storage merely to bypass the document limit.
+
 ## 14. Firebase security assumptions
 
 Production Firebase Security Rules are required before real student data is deployed.
@@ -403,12 +440,13 @@ STUDENT-05 is complete when all of the following are demonstrated:
 12. Online verified revocation updates local access to `REVOKED`.
 13. Service Worker caches only the application shell/static assets and does not become the canonical Practice Package store.
 14. Firebase Auth and Firestore are isolated behind provider adapters.
-15. Firebase Cloud Storage is not introduced.
-16. Existing STUDENT-01 through STUDENT-04 behavior remains green.
-17. New offline/sync behavior is covered through TDD.
-18. Exact-head CI passes before PR creation.
-19. Whole-branch review has no unresolved Critical or Important findings.
-20. PR is opened but not merged without explicit human approval.
+15. Firestore Practice Package storage does not assume a single package fits in one document; manifest/chunk reconstruction is validated before delivery.
+16. Firebase Cloud Storage is not introduced.
+17. Existing STUDENT-01 through STUDENT-04 behavior remains green.
+18. New offline/sync behavior is covered through TDD.
+19. Exact-head CI passes before PR creation.
+20. Whole-branch review has no unresolved Critical or Important findings.
+21. PR is opened but not merged without explicit human approval.
 
 ## 20. Planned implementation boundaries
 
