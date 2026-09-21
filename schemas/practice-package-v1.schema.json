@@ -14,37 +14,18 @@
     "content"
   ],
   "properties": {
-    "schemaVersion": {
-      "const": "1.0.0"
-    },
-    "packageId": {
-      "type": "string",
-      "minLength": 1
-    },
-    "workId": {
-      "type": "string",
-      "minLength": 1
-    },
-    "title": {
-      "type": "string",
-      "minLength": 1
-    },
+    "schemaVersion": { "const": "1.0.0" },
+    "packageId": { "type": "string", "minLength": 1 },
+    "workId": { "type": "string", "minLength": 1 },
+    "title": { "type": "string", "minLength": 1 },
     "approvedRevision": {
       "type": "object",
       "additionalProperties": false,
       "required": ["revisionId", "state", "approvedAt"],
       "properties": {
-        "revisionId": {
-          "type": "string",
-          "minLength": 1
-        },
-        "state": {
-          "const": "teacher_approved"
-        },
-        "approvedAt": {
-          "type": "string",
-          "minLength": 1
-        }
+        "revisionId": { "type": "string", "minLength": 1 },
+        "state": { "const": "teacher_approved" },
+        "approvedAt": { "type": "string", "minLength": 1 }
       }
     },
     "publication": {
@@ -63,15 +44,22 @@
       "allOf": [
         {
           "if": {
-            "properties": {
-              "scope": {
-                "const": "student_private"
-              }
-            },
+            "properties": { "scope": { "const": "student_private" } },
             "required": ["scope"]
           },
           "then": {
             "required": ["recipientStudentId"]
+          }
+        },
+        {
+          "if": {
+            "properties": { "scope": { "const": "public_pool" } },
+            "required": ["scope"]
+          },
+          "then": {
+            "not": {
+              "required": ["recipientStudentId"]
+            }
           }
         }
       ]
@@ -86,46 +74,26 @@
           "additionalProperties": false,
           "required": ["format", "data"],
           "properties": {
-            "format": {
-              "const": "musicxml"
-            },
-            "data": {
-              "type": "string",
-              "minLength": 1
-            }
+            "format": { "const": "musicxml" },
+            "data": { "type": "string", "minLength": 1 }
           }
         },
         "canonicalEvents": {
           "type": "array",
-          "items": {
-            "type": "object"
-          }
+          "items": { "type": "object" }
         },
-        "guitarTab": {
-          "type": ["object", "null"]
-        },
-        "violin": {
-          "type": ["object", "null"]
-        }
+        "guitarTab": { "type": ["object", "null"] },
+        "violin": { "type": ["object", "null"] }
       }
     },
     "practice": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "tempoBpm": {
-          "type": "number",
-          "exclusiveMinimum": 0
-        },
-        "allowTempoChange": {
-          "type": "boolean"
-        },
-        "allowMeasureRepeat": {
-          "type": "boolean"
-        },
-        "ttsLanguage": {
-          "const": "tr-TR"
-        }
+        "tempoBpm": { "type": "number", "exclusiveMinimum": 0 },
+        "allowTempoChange": { "type": "boolean" },
+        "allowMeasureRepeat": { "type": "boolean" },
+        "ttsLanguage": { "const": "tr-TR" }
       }
     }
   }
