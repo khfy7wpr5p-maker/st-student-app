@@ -74,6 +74,7 @@ export function mountStudentApp({
   root,
   controller,
   requestSignIn,
+  requestSignOut,
   notationAdapter = null,
   connectivityPort = null,
 }) {
@@ -301,6 +302,16 @@ export function mountStudentApp({
         ? Boolean(actionElement.checked)
         : undefined;
 
+    const credentials =
+      action === "request-sign-in"
+        ? Object.freeze({
+            email:
+              root.querySelector?.("[data-sign-in-email]")?.value ?? "",
+            password:
+              root.querySelector?.("[data-sign-in-password]")?.value ?? "",
+          })
+        : undefined;
+
     try {
       status = "";
       await dispatchStudentAppAction({
@@ -308,8 +319,10 @@ export function mountStudentApp({
         publicationId,
         tempoBpm,
         repeatEnabled,
+        credentials,
         controller,
         requestSignIn,
+        requestSignOut,
       });
     } catch {
       status = "İşlem tamamlanamadı.";

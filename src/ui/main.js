@@ -1,39 +1,60 @@
 import { createDefaultOfflineInfrastructure } from "../offline/defaultOfflineInfrastructure.js";
 import { registerStudentAppServiceWorker } from "../offline/serviceWorkerRegistration.js";
 import { createStNotationAdapter } from "../practice/notationAdapter.js";
+import { createFirebaseBrowserRuntime } from "../providers/firebase/firebaseBrowserRuntime.js";
 import { createStudentAppController } from "./studentAppController.js";
 import { mountStudentApp } from "./mountStudentApp.js";
 
-const unconfiguredSharingService = Object.freeze({
-  listPublicPool() {
-    throw new Error("sharing service is not configured");
-  },
-
-  listMyWork() {
-    throw new Error("sharing service is not configured");
-  },
-
-  getPracticeItem() {
-    throw new Error("sharing service is not configured");
-  },
-});
-
 const root = document.querySelector("#app");
 const notationAdapter = createStNotationAdapter();
+const firebaseRuntime = createFirebaseBrowserRuntime();
+
+let initialSession = null;
+
+try {
+  initialSession = await firebaseRuntime.authAdapter.restoreSession();
+} catch {
+  initialSession = null;
+}
+
 const offlineInfrastructure = createDefaultOfflineInfrastructure({
-  onlineSharingService: unconfiguredSharingService,
+  onlineSharingService: firebaseRuntime.sharingService,
 });
 
 const controller = createStudentAppController({
   sharingService: offlineInfrastructure.sharingService,
+  initialSession,
   notationAdapter,
 });
 
-mountStudentApp({
+const mounted = mountStudentApp({
   root,
   controller,
   notationAdapter,
   connectivityPort: offlineInfrastructure.connectivityPort,
+  requestSignIn(credentials) {
+    return firebaseRuntime.authAdapter.signIn(credentials);
+  },
+  requestSignOut() {
+    return firebaseRuntime.authAdapter.signOut();
+  },
+});
+
+firebaseRuntime.authAdapter.subscribe((session) => {
+  const currentSession = controller.getState().session;
+
+  if (session === null) {
+    if (currentSession !== null) {
+      controller.signOut();
+      mounted.render();
+    }
+    return;
+  }
+
+  if (currentSession?.studentId !== session.studentId) {
+    controller.attachSession(session);
+    mounted.render();
+  }
 });
 
 registerStudentAppServiceWorker().catch(() => {});

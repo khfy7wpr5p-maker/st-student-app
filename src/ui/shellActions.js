@@ -6,8 +6,10 @@ export async function dispatchStudentAppAction({
   publicationId,
   tempoBpm,
   repeatEnabled,
+  credentials,
   controller,
   requestSignIn,
+  requestSignOut,
 }) {
   switch (action) {
     case "show-public-pool":
@@ -41,14 +43,23 @@ export async function dispatchStudentAppAction({
       return controller.setMeasureRepeatEnabled(repeatEnabled);
 
     case "sign-out":
-      return controller.signOut();
+      if (typeof requestSignOut !== "function") {
+        return controller.signOut();
+      }
+
+      try {
+        await requestSignOut();
+      } finally {
+        controller.signOut();
+      }
+      return undefined;
 
     case "request-sign-in": {
       if (typeof requestSignIn !== "function") {
         throw new Error("sign-in provider is not configured");
       }
 
-      const session = await requestSignIn();
+      const session = await requestSignIn(credentials);
       return controller.attachSession(session);
     }
 

@@ -29,6 +29,32 @@ export function createFirebaseAuthAdapter({ auth, sdk }) {
   }
 
   return Object.freeze({
+    async signIn({ email, password } = {}) {
+      if (!hasText(email) || !hasText(password)) {
+        throw new TypeError("email and password are required");
+      }
+
+      if (typeof sdk?.signInWithEmailAndPassword !== "function") {
+        throw new TypeError("Firebase email/password sign-in is unavailable");
+      }
+
+      const credential = await sdk.signInWithEmailAndPassword(
+        auth,
+        email.trim(),
+        password,
+      );
+
+      return studentSessionFromFirebaseUser(credential?.user);
+    },
+
+    async signOut() {
+      if (typeof sdk?.signOut !== "function") {
+        throw new TypeError("Firebase sign-out is unavailable");
+      }
+
+      await sdk.signOut(auth);
+    },
+
     async restoreSession() {
       await sdk.setPersistence(auth, sdk.browserLocalPersistence);
 
