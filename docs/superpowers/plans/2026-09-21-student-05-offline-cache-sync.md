@@ -163,6 +163,20 @@ test("repository never returns another student's cache", async () => {
   );
 });
 
+test("re-caching the same immutable package is idempotent", async () => {
+  const repo = createInMemoryOfflineRepository();
+  await repo.putAuthorized(makePutArgs("student-a", makeDelivery("pub-1", "pkg-1")));
+  await repo.putAuthorized({
+    ...makePutArgs("student-a", makeDelivery("pub-1", "pkg-1")),
+    cachedAt: "2026-09-21T13:00:00Z",
+    lastVerifiedAt: "2026-09-21T13:00:00Z",
+  });
+
+  const records = await repo.listAllForStudent({ studentId: "student-a" });
+  assert.equal(records.length, 1);
+  assert.equal(records[0].packageId, "pkg-1");
+});
+
 test("new package ids remain distinct immutable cache records", async () => {
   const repo = createInMemoryOfflineRepository();
   await repo.putAuthorized(makePutArgs("student-a", makeDelivery("pub-1", "pkg-1")));
@@ -217,7 +231,9 @@ const cacheKey = ({ studentId, publicationId, packageId }) =>
 - rebuild the delivery item through `createDeliveryItem`;
 - require a private package recipient to equal `studentId`;
 - structured-clone and deep-freeze the cached package;
-- reject an existing identical cache key rather than mutate it;
+- treat an existing identical cache key as an idempotent re-cache: keep the same immutable package snapshot while allowing `cachedAt` / `lastVerifiedAt` metadata to advance;
+- reject a conflicting attempt to bind the same `studentId + publicationId` to a different `packageId`;
+- never let `markVerifiedActive` reactivate a record already marked `REVOKED`;
 - return an immutable record.
 
 `markRevoked` and `markVerifiedActive` replace matching immutable records rather than mutating them.
@@ -993,6 +1009,7 @@ test("private read is scoped directly under authenticated uid", async () => {
 Also pin:
 - Public Pool comes only from `publicPublications`;
 - My Work comes only from `students/{uid}/publications`;
+- list methods use manifest `title` and never fetch `chunks`;
 - revoked manifest is never delivered as Practice item;
 - private recipient must match current `studentId`;
 - child chunk path stays under selected publication path;
@@ -1019,7 +1036,13 @@ Do not expose Firestore snapshots outside this module.
 
 For revocation verification, read only publication status/manifest metadata. A revoked publication returns `{ state: "REVOKED" }` and package chunks are not fetched.
 
-For active delivery:
+For list methods:
+1. normalize manifest to `createPublication`;
+2. verify `canReadPublication`;
+3. return only the summary-compatible shape `{ publication, package: { packageId, title } }`;
+4. never read package chunks.
+
+For active Practice delivery:
 1. normalize manifest to `createPublication`;
 2. verify `canReadPublication`;
 3. fetch exactly declared chunks;
