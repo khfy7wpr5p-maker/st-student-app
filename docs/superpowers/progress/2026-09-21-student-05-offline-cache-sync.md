@@ -14,3 +14,6 @@ Pre-flight shared interfaces:
 - Task 6 -> Task 8: Service Worker is shell-only and independent from package IndexedDB; plan is consistent.
 
 Base main: 96dcfa9791f56956012070eaed8d74da4c4dca59
+
+Task 1: RED ac12951, CI 35645406225 -> 103 pass / 3 fail (expected missing deliveryItem/offline modules).
+Task 1: complete (commits ac12951..0671305, tests: GitHub CI 35645522258 -> 124/124 pass, 0 fail).
