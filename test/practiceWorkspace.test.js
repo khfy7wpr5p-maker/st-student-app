@@ -7,6 +7,7 @@ import {
 import {
   createPracticeWorkspace,
   withNotationCapability,
+  withPracticeCapability,
 } from "../src/practice/practiceWorkspace.js";
 
 function makeDeliveryItem() {
@@ -139,4 +140,47 @@ test("tempo metadata is normalized to a positive finite number or null", () => {
     notationRuntimeAvailable: false,
   });
   assert.equal(invalid.viewModel.practice.tempoBpm, null);
+});
+
+
+test("generic capability update changes only the targeted capability", () => {
+  const result = createPracticeWorkspace({
+    deliveryItem: makeDeliveryItem(),
+    notationRuntimeAvailable: true,
+  });
+
+  const next = withPracticeCapability(
+    result.viewModel,
+    "playback",
+    PRACTICE_CAPABILITY_STATES.ERROR,
+  );
+
+  assert.equal(next.capabilities.playback, PRACTICE_CAPABILITY_STATES.ERROR);
+  assert.equal(
+    next.capabilities.notation,
+    PRACTICE_CAPABILITY_STATES.AVAILABLE,
+  );
+  assert.equal(
+    next.capabilities.tempoChange,
+    result.viewModel.capabilities.tempoChange,
+  );
+  assert.equal(Object.isFrozen(next), true);
+  assert.equal(Object.isFrozen(next.capabilities), true);
+});
+
+test("generic capability update rejects unknown capability names", () => {
+  const result = createPracticeWorkspace({
+    deliveryItem: makeDeliveryItem(),
+    notationRuntimeAvailable: true,
+  });
+
+  assert.throws(
+    () =>
+      withPracticeCapability(
+        result.viewModel,
+        "teacherApproval",
+        PRACTICE_CAPABILITY_STATES.ERROR,
+      ),
+    /unsupported practice capability/,
+  );
 });
