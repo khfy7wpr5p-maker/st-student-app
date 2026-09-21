@@ -26,3 +26,7 @@ Task 3: complete (commits 1fe7105..19d3270, tests: GitHub CI 35646078820 -> 136/
 
 Task 4: RED eb3c672, CI 35646227389 -> 136 pass / 1 fail (expected missing syncCoordinator).
 Task 4: complete (commits eb3c672..228245e, tests: GitHub CI 35646321743 -> 141/141 pass, 0 fail).
+
+Task 5: Ruling: controller read methods are sync-or-Promise instead of always-Promise — preserves STUDENT-03/04 synchronous provider compatibility while accepting async Firebase/offline providers; shell already awaits both — cost if wrong: a caller that requires Promise identity rather than await-compatible behavior would need normalization.
+Task 5: RED 051e2e3, CI 35646521926 -> 141 pass / 5 fail (expected async/offline UI gaps).
+Task 5: complete (commits 051e2e3..c1c01f6, tests: GitHub CI 35646709627 -> 146/146 pass, 0 fail).
