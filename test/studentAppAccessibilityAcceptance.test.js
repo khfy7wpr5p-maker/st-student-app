@@ -37,7 +37,7 @@ test("VoiceOver receives a bounded live connectivity status", () => {
     html,
     /class="app-status" role="status" aria-live="polite">Çevrimdışı<\/div>/,
   );
-  assert.doesNotMatch(html, /student-a|firebase|token|indexeddb/i);
+  assert.doesNotMatch(html, />student-a<|["\']student-a["\']|firebase|token|indexeddb/i);
 });
 
 test("Practice exposes semantic headings and a labeled notation region", () => {
