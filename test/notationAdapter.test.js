@@ -141,3 +141,19 @@ test("dispose swallows renderer disposal details", async () => {
 
   await assert.doesNotReject(() => adapter.dispose());
 });
+
+
+test("throwing runtime getter degrades to unavailable instead of escaping", async () => {
+  const adapter = createStNotationAdapter({
+    getRuntime() {
+      throw new Error("host runtime lookup secret");
+    },
+  });
+
+  assert.equal(adapter.isAvailable(), false);
+  assert.deepEqual(
+    await adapter.render({ musicXml: "<score-partwise/>" }),
+    { capability: PRACTICE_CAPABILITY_STATES.UNAVAILABLE },
+  );
+  await assert.doesNotReject(() => adapter.dispose());
+});
