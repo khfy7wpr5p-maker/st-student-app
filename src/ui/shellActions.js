@@ -4,6 +4,8 @@ const hasText = (value) =>
 export async function dispatchStudentAppAction({
   action,
   publicationId,
+  tempoBpm,
+  repeatEnabled,
   controller,
   requestSignIn,
 }) {
@@ -22,6 +24,21 @@ export async function dispatchStudentAppAction({
         throw new Error("publication id required");
       }
       return controller.openPractice(publicationId);
+
+    case "play-practice":
+      return controller.playPractice();
+
+    case "pause-practice":
+      return controller.pausePractice();
+
+    case "restart-practice":
+      return controller.restartPractice();
+
+    case "set-practice-tempo":
+      return controller.setPracticeTempo(tempoBpm);
+
+    case "set-measure-repeat":
+      return controller.setMeasureRepeatEnabled(repeatEnabled);
 
     case "sign-out":
       return controller.signOut();

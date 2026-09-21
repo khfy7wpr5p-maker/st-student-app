@@ -200,3 +200,127 @@ Default `main.js` herhangi bir fake kullanıcı veya credential üretmez. Provid
 - keyboard-visible focus styling
 
 Gerçek iPhone/Safari/VoiceOver kabul testi STUDENT-06'da yapılacaktır.
+
+
+## 12. STUDENT-04 — Read-only Practice Workspace
+
+### Capability modeli
+
+Practice Workspace birbirinden bağımsız capability durumları kullanır:
+
+- `AVAILABLE`
+- `UNAVAILABLE`
+- `ERROR`
+
+İlk anahtarlar:
+
+- notation
+- playback
+- tempoChange
+- measureRepeat
+- guitarTab
+- violin
+
+Bir capability'nin hata/eksikliği bütün çalışma ekranını kilitlemez.
+
+### Güvenli workspace projection
+
+Authorized Practice Package iki ayrı iç yüzeye ayrılır:
+
+```text
+authorized delivery item
+  -> safe frozen workspace view-model -> Student HTML
+  -> private frozen render source     -> notation adapter only
+```
+
+Student UI state yalnız gerekli sunum bilgilerini taşır. MusicXML, canonical event ham verisi, approvedRevision, publication nesnesi, recipient, OMR/debug/editor alanları HTML renderer'a verilmez.
+
+MusicXML private render source olarak tutulur ve yalnız notation adapter'a geçirilir.
+
+### Notation sınırı
+
+Student App doğrudan OpenSheetMusicDisplay kullanmaz.
+
+Student App-owned `createStNotationAdapter()` şu ST-owned runtime sınırını feature-detect eder:
+
+```text
+globalThis.__ST_SCORE_RENDER_HOST__
+```
+
+Beklenen renderer contract version:
+
+`0.2.0`
+
+Mimari doğrulamada referans alınan ST Score Rendering Layer revision:
+
+`13c32eefccd5bf2c227e815aa27aae4a0583801d`
+
+Runtime'ın `renderMusicXml` ve `dispose` metodları birlikte yoksa notation `UNAVAILABLE` olur. Runtime render hatası bounded biçimde notation `ERROR` durumuna çevrilir; ham exception öğrenciye çıkmaz.
+
+Practice HTML, notation AVAILABLE olduğunda renderer-owned DOM hedefi olarak:
+
+`#st-score-root`
+
+oluşturur.
+
+Mount katmanı notation lifecycle'ını serialize eder. Aynı immutable package aynı DOM generation içinde tekrar render edilmez. Package değişiminde önce eski presentation dispose edilir, sonra yeni kaynak render edilir. Practice ekranından çıkış ve mount destroy da aktif notation presentation'ını dispose eder.
+
+### Runtime asset gerçekliği
+
+Default Student App bootstrap, Student App-owned notation adapter'ını inject eder fakat renderer runtime asset graph'ını, OSMD'yi veya CDN URL'sini bundle etmez.
+
+Bu nedenle doğrulanmış `__ST_SCORE_RENDER_HOST__` runtime aynı browser context'te mevcut değilse notation dürüstçe `UNAVAILABLE` kalır.
+
+Production deployment/integration, ST Score Rendering Layer'ın manifest/integrity kurallarını koruyan doğrulanmış runtime/adapter bağlantısını ayrıca sağlamalıdır. STUDENT-04 bu deployment işlemini tamamlanmış saymaz.
+
+### Playback ve practice kontrolleri
+
+ST Score Rendering Layer playback motoru değildir.
+
+Practice Package v1 şu anda `canonicalEvents: array<object>` taşır fakat güvenilir onset/duration playback şeması tanımlamaz. Student App bu veriden timing tahmin etmez.
+
+Default bootstrap trusted playback port inject etmez; bu nedenle playback `UNAVAILABLE` olur.
+
+Bir gelecekteki trusted playback port playback'i ancak şu gerçek metodları sağladığında AVAILABLE yapabilir:
+
+- `canPlayPackage`
+- `playPackage`
+- `pausePackage`
+- `restartPackage`
+
+Tempo değişikliği ayrıca:
+
+- öğretmenin `allowTempoChange === true` iznini,
+- `canChangeTempoForPackage`,
+- `setTempoForPackage`
+
+gerektirir.
+
+Ölçü tekrarı ayrıca:
+
+- öğretmenin `allowMeasureRepeat === true` iznini,
+- `canRepeatMeasureForPackage`,
+- `setMeasureRepeatEnabledForPackage`
+
+gerektirir.
+
+Bu port package timing'inin gerçek otoritesidir; Student App canonicalEvents yapısını tahmin etmez.
+
+Trusted playback/practice port çağrısı runtime sırasında hata verirse yalnız ilgili capability `ERROR` durumuna geçirilir: playback hatası notation'ı değiştirmez; tempo hatası playback'i değiştirmez; measure-repeat hatası playback'i değiştirmez. Raw backend exception state/HTML içine yazılmaz ve shell yalnız bounded öğrenci mesajı gösterir.
+
+### TAB ve keman
+
+`content.guitarTab` ve `content.violin` nesnelerinin item contract'ları tanımlı olmadığı için non-null olmaları capability'yi AVAILABLE yapmaz.
+
+MusicXML içinde renderer'ın desteklediği tablature varsa bu notation rendering'in parçası olarak gösterilebilir; Student App ayrıca string/fret çıkarımı yapmaz.
+
+### Güvenlik ve erişilebilirlik
+
+- Student App publish/revoke/edit/delete surface eklemez.
+- Practice state frozen snapshot'tır.
+- Ham MusicXML öğrenci HTML/status metnine girmez.
+- Internal exception metinleri öğrenciye gösterilmez.
+- Notation region accessible label taşır.
+- Unavailable kontroller sahte aktif button olarak gösterilmez.
+- Gerçek iPhone/Safari/VoiceOver acceptance STUDENT-06 kapsamındadır.
+- Offline cache/sync STUDENT-05 kapsamındadır.

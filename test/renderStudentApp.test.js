@@ -64,7 +64,7 @@ test("My Work has a visible empty state", () => {
   assert.match(html, /Henüz atanmış çalışma yok/);
 });
 
-test("practice shell renders only safe presentation fields", () => {
+test("practice screen delegates to capability-aware workspace renderer", () => {
   const html = renderStudentApp({
     screen: STUDENT_APP_SCREENS.PRACTICE,
     session: { studentId: "student-a" },
@@ -73,11 +73,22 @@ test("practice shell renders only safe presentation fields", () => {
       publicationId: "pub-1",
       packageId: "pkg-1",
       title: "Etüt 1",
+      capabilities: {
+        notation: "AVAILABLE",
+        playback: "UNAVAILABLE",
+        tempoChange: "UNAVAILABLE",
+        measureRepeat: "UNAVAILABLE",
+        guitarTab: "UNAVAILABLE",
+        violin: "UNAVAILABLE",
+      },
+      practice: { tempoBpm: 80 },
     },
   });
 
   assert.match(html, /<h1[^>]*>Etüt 1<[/]h1>/);
   assert.match(html, /data-action="go-home"/);
+  assert.match(html, /id="st-score-root"/);
+  assert.match(html, /Dinleme bu çalışma için kullanılamıyor/);
   assert.doesNotMatch(html, /publicationId|packageId|MusicXML|score-partwise/);
 });
 

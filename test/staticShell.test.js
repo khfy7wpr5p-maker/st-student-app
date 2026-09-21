@@ -26,3 +26,34 @@ test("default browser bootstrap contains no management or fake auth behavior", a
   assert.match(source, /mountStudentApp/);
   assert.match(source, /createStudentAppController/);
 });
+
+test("default bootstrap wires only the ST-owned notation adapter", async () => {
+  const source = await readFile(
+    new URL("../src/ui/main.js", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /createStNotationAdapter/);
+  assert.match(source, /notationAdapter/);
+  assert.doesNotMatch(
+    source,
+    /opensheetmusicdisplay|new\s+OSMD|from\s+["'](?:osmd|opensheetmusicdisplay)["']/i,
+  );
+  assert.doesNotMatch(source, /https?:\/\/|cdn|score-partwise|fake.*playback/i);
+});
+
+test("Student App package adds no direct OSMD dependency", async () => {
+  const source = await readFile(
+    new URL("../package.json", import.meta.url),
+    "utf8",
+  );
+  const pkg = JSON.parse(source);
+  const dependencies = {
+    ...(pkg.dependencies ?? {}),
+    ...(pkg.devDependencies ?? {}),
+    ...(pkg.optionalDependencies ?? {}),
+  };
+
+  assert.equal("opensheetmusicdisplay" in dependencies, false);
+  assert.equal("osmd" in dependencies, false);
+});

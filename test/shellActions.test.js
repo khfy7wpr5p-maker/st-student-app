@@ -27,6 +27,21 @@ function makeController() {
       attachSession(session) {
         calls.push(["attachSession", session]);
       },
+      playPractice() {
+        calls.push(["playPractice"]);
+      },
+      pausePractice() {
+        calls.push(["pausePractice"]);
+      },
+      restartPractice() {
+        calls.push(["restartPractice"]);
+      },
+      setPracticeTempo(bpm) {
+        calls.push(["setPracticeTempo", bpm]);
+      },
+      setMeasureRepeatEnabled(enabled) {
+        calls.push(["setMeasureRepeatEnabled", enabled]);
+      },
     },
   };
 }
@@ -114,10 +129,45 @@ test("missing auth callback does not mint a fake session", async () => {
   assert.deepEqual(calls, []);
 });
 
+test("practice actions forward only approved control values", async () => {
+  const { controller, calls } = makeController();
+
+  await dispatchStudentAppAction({
+    action: "play-practice",
+    controller,
+  });
+  await dispatchStudentAppAction({
+    action: "pause-practice",
+    controller,
+  });
+  await dispatchStudentAppAction({
+    action: "restart-practice",
+    controller,
+  });
+  await dispatchStudentAppAction({
+    action: "set-practice-tempo",
+    tempoBpm: 72,
+    controller,
+  });
+  await dispatchStudentAppAction({
+    action: "set-measure-repeat",
+    repeatEnabled: true,
+    controller,
+  });
+
+  assert.deepEqual(calls, [
+    ["playPractice"],
+    ["pausePractice"],
+    ["restartPractice"],
+    ["setPracticeTempo", 72],
+    ["setMeasureRepeatEnabled", true],
+  ]);
+});
+
 test("write or unknown actions are rejected", async () => {
   const { controller, calls } = makeController();
 
-  for (const action of ["publish", "revoke", "delete", "unknown"]) {
+  for (const action of ["publish", "revoke", "edit", "delete", "unknown"]) {
     await assert.rejects(
       () => dispatchStudentAppAction({ action, controller }),
       /unsupported student app action/,

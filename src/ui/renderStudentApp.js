@@ -1,13 +1,8 @@
 import { STUDENT_APP_SCREENS } from "./studentAppController.js";
+import { escapeHtml } from "./escapeHtml.js";
+import { renderPracticeWorkspace } from "./renderPracticeWorkspace.js";
 
-export function escapeHtml(value) {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
-}
+export { escapeHtml } from "./escapeHtml.js";
 
 function renderStatus(status) {
   return `<div class="app-status" role="status" aria-live="polite">${escapeHtml(
@@ -72,19 +67,6 @@ function renderWorkList({ heading, items, emptyText }) {
   `;
 }
 
-function renderPractice(practice) {
-  if (practice === null) {
-    throw new Error("practice state is required");
-  }
-
-  return `
-    <section aria-labelledby="page-title">
-      <h1 id="page-title">${escapeHtml(practice.title)}</h1>
-      <button type="button" data-action="go-home">Ana Sayfa</button>
-    </section>
-  `;
-}
-
 export function renderStudentApp(
   state,
   { signInAvailable = true, status = "" } = {},
@@ -113,7 +95,7 @@ export function renderStudentApp(
       });
       break;
     case STUDENT_APP_SCREENS.PRACTICE:
-      body = renderPractice(state.practice);
+      body = renderPracticeWorkspace(state.practice);
       break;
     default:
       throw new Error("unknown student app screen");
