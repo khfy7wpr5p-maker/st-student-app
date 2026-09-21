@@ -12,7 +12,7 @@ test("sign in screen has a clear heading and sign-in action", () => {
     practice: null,
   });
 
-  assert.match(html, /<h1>ST Student<\/h1>/);
+  assert.match(html, /<h1[^>]*>ST Student<[/]h1>/);
   assert.match(html, /data-action="request-sign-in"/);
   assert.match(html, /aria-live="polite"/);
 });
@@ -45,7 +45,7 @@ test("Public Pool renders semantic work list and open actions", () => {
     practice: null,
   });
 
-  assert.match(html, /<h1>Havuz<\/h1>/);
+  assert.match(html, /<h1[^>]*>Havuz<[/]h1>/);
   assert.match(html, /<ul/);
   assert.match(html, /Etüt 1/);
   assert.match(html, /data-action="open-practice"/);
@@ -60,7 +60,7 @@ test("My Work has a visible empty state", () => {
     practice: null,
   });
 
-  assert.match(html, /<h1>Benim Çalışmalarım<\/h1>/);
+  assert.match(html, /<h1[^>]*>Benim Çalışmalarım<[/]h1>/);
   assert.match(html, /Henüz atanmış çalışma yok/);
 });
 
