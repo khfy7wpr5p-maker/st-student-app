@@ -27,3 +27,10 @@ Task 1: Ruling: privacy tests distinguish safe capability labels (`guitarTab`, `
 Task 1: GREEN run `35632476341` at `0bd03ef9712617e7ecb70a06e92b9a27f2874db0`: 77/77 tests PASS, 0 fail.
 
 Task 1: complete (commits `689a391..0bd03ef`, tests: full GitHub CI → 77/77 pass).
+
+
+Task 2: RED run `35632588814` at `5f1349b50ab2846599bf0eb6309f767b458a273f`: expected `ERR_MODULE_NOT_FOUND` for `src/practice/notationAdapter.js`.
+
+Task 2: GREEN run `35632660664` at `8bbb0ecbeb63a1dec8c010e533fbe5b1e6b00982`: 84/84 tests PASS, 0 fail.
+
+Task 2: complete (commits `b72ed81..8bbb0ec`, tests: full GitHub CI → 84/84 pass).
