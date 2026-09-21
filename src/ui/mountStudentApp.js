@@ -37,14 +37,23 @@ function statusForActionError(action, error) {
     return "Kişisel çalışmalar için erişim izni reddedildi.";
   }
 
-  if (
-    message.includes("firestore publication") ||
-    message.includes("firestore packageid") ||
-    message.includes("recipient mismatch") ||
-    message.includes("publication id mismatch") ||
-    message.includes("scope mismatch") ||
-    message.includes("publishedat")
-  ) {
+  const manifestFieldDiagnostics = [
+    ["firestore packageid", "packageId"],
+    ["packageid must", "packageId"],
+    ["firestore publication title", "title"],
+    ["scope mismatch", "scope"],
+    ["publishedat must", "publishedAt"],
+    ["publication id mismatch", "publicationId"],
+    ["recipient mismatch", "recipientStudentId"],
+  ];
+
+  for (const [needle, fieldName] of manifestFieldDiagnostics) {
+    if (message.includes(needle)) {
+      return `Kişisel çalışma: ${fieldName} alanı eksik veya hatalı.`;
+    }
+  }
+
+  if (message.includes("firestore publication")) {
     return "Kişisel çalışma kaydı eksik veya uyumsuz.";
   }
 
