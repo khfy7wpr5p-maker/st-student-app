@@ -291,3 +291,47 @@ test("private manifest recipient mismatch fails closed", async () => {
     /recipient|forbidden/i,
   );
 });
+
+
+test("Practice read rejects chunks whose package id disagrees with the manifest", async () => {
+  const manifestPublication = {
+    publicationId: "pub-public",
+    packageId: "pkg-manifest",
+    scope: "public_pool",
+    publishedAt: "2026-09-21T12:00:00Z",
+    revokedAt: null,
+  };
+  const wrongPackage = makeApprovedPracticePackage({
+    packageId: "pkg-chunks",
+    title: "Wrong package",
+    scope: "public_pool",
+  });
+  const fixture = transportFixture(wrongPackage, manifestPublication);
+  const adapter = createFirestoreSharingAdapter({
+    db: {},
+    sdk: fakeFirestoreSdk(
+      {
+        docs: {
+          "publicPublications/pub-public": fixture.manifest,
+        },
+        collections: {
+          "publicPublications/pub-public/chunks":
+            fixture.chunks.map((data, index) => ({
+              id: String(index),
+              data,
+            })),
+        },
+      },
+      [],
+    ),
+  });
+
+  await assert.rejects(
+    () =>
+      adapter.getPracticeItem({
+        session: studentA,
+        publicationId: "pub-public",
+      }),
+    /package.*mismatch/i,
+  );
+});

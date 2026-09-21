@@ -542,3 +542,70 @@ test("measure repeat runtime failure changes only repeat capability to ERROR", (
     PRACTICE_CAPABILITY_STATES.AVAILABLE,
   );
 });
+
+
+test("async Practice read cannot restore a previous student after account switch", async () => {
+  let resolvePractice;
+  const pendingPractice = new Promise((resolve) => {
+    resolvePractice = resolve;
+  });
+  const sharingService = {
+    ...makeSharingService(),
+    getPracticeItem() {
+      return pendingPractice;
+    },
+  };
+  const studentB = createStudentSession({
+    studentId: "student-b",
+    displayName: "Bora",
+  });
+  const controller = createStudentAppController({
+    sharingService,
+    initialSession: student,
+    notationAdapter: { isAvailable: () => true },
+  });
+
+  const pending = controller.openPractice("pub-public");
+  controller.attachSession(studentB);
+  resolvePractice({
+    publication: {
+      publicationId: "pub-public",
+      packageId: "pkg-public",
+      scope: "public_pool",
+    },
+    package: makeApprovedPracticePackage(),
+  });
+
+  await pending;
+
+  assert.equal(controller.getState().screen, STUDENT_APP_SCREENS.HOME);
+  assert.equal(controller.getState().session.studentId, "student-b");
+  assert.equal(controller.getState().practice, null);
+  assert.equal(controller.getPracticeRenderSource(), null);
+});
+
+test("async list read cannot restore a previous student after sign out", async () => {
+  let resolveList;
+  const pendingList = new Promise((resolve) => {
+    resolveList = resolve;
+  });
+  const sharingService = {
+    ...makeSharingService(),
+    listMyWork() {
+      return pendingList;
+    },
+  };
+  const controller = createStudentAppController({
+    sharingService,
+    initialSession: student,
+  });
+
+  const pending = controller.showMyWork();
+  controller.signOut();
+  resolveList([]);
+
+  await pending;
+
+  assert.equal(controller.getState().screen, STUDENT_APP_SCREENS.SIGN_IN);
+  assert.equal(controller.getState().session, null);
+});
