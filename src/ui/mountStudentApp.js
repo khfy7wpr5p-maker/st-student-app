@@ -19,6 +19,38 @@ function isNotationCapability(value) {
   return Object.values(PRACTICE_CAPABILITY_STATES).includes(value);
 }
 
+function statusForActionError(action, error) {
+  if (action !== "show-my-work") {
+    return "İşlem tamamlanamadı.";
+  }
+
+  const code =
+    typeof error?.code === "string" ? error.code.toLowerCase() : "";
+  const message =
+    typeof error?.message === "string" ? error.message.toLowerCase() : "";
+
+  if (
+    code.includes("permission-denied") ||
+    message.includes("insufficient permissions") ||
+    message.includes("permission denied")
+  ) {
+    return "Kişisel çalışmalar için erişim izni reddedildi.";
+  }
+
+  if (
+    message.includes("firestore publication") ||
+    message.includes("firestore packageid") ||
+    message.includes("recipient mismatch") ||
+    message.includes("publication id mismatch") ||
+    message.includes("scope mismatch") ||
+    message.includes("publishedat")
+  ) {
+    return "Kişisel çalışma kaydı eksik veya uyumsuz.";
+  }
+
+  return "Kişisel çalışmalar okunamadı.";
+}
+
 function focusedActionIdentity(root) {
   const activeElement = root.ownerDocument?.activeElement;
 
@@ -324,8 +356,8 @@ export function mountStudentApp({
         requestSignIn,
         requestSignOut,
       });
-    } catch {
-      status = "İşlem tamamlanamadı.";
+    } catch (error) {
+      status = statusForActionError(action, error);
     }
 
     return render();
