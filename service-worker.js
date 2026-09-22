@@ -1,9 +1,22 @@
-const CACHE_NAME = "st-student-shell-v1";
+const CACHE_NAME = "st-student-shell-v2";
+
+const FIREBASE_RUNTIME_ASSETS = Object.freeze([
+  "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js",
+  "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js",
+  "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js",
+]);
+
+const FIREBASE_RUNTIME_URLS = new Set(FIREBASE_RUNTIME_ASSETS);
 
 const SHELL_ASSETS = Object.freeze([
   "./",
   "./index.html",
   "./src/ui/main.js",
+  "./src/config/firebaseConfig.js",
+  "./src/providers/firebase/firebaseBrowserRuntime.js",
+  "./src/providers/firebase/firebaseAuthAdapter.js",
+  "./src/providers/firebase/firestoreSharingAdapter.js",
+  "./src/providers/firebase/firestorePackageTransport.js",
   "./src/ui/studentAppController.js",
   "./src/ui/mountStudentApp.js",
   "./src/ui/renderStudentApp.js",
@@ -16,6 +29,7 @@ const SHELL_ASSETS = Object.freeze([
   "./src/auth/session.js",
   "./src/contracts/practicePackage.js",
   "./src/sharing/deliveryItem.js",
+  "./src/sharing/accessPolicy.js",
   "./src/sharing/packageEligibility.js",
   "./src/sharing/publication.js",
   "./src/offline/connectivityPort.js",
@@ -35,9 +49,24 @@ const SHELL_ASSET_PATHS = new Set(
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches
-      .open(CACHE_NAME)
-      .then((cache) => cache.addAll(SHELL_ASSETS)),
+    caches.open(CACHE_NAME).then(async (cache) => {
+      await cache.addAll(SHELL_ASSETS);
+
+      await Promise.all(
+        FIREBASE_RUNTIME_ASSETS.map(async (asset) => {
+          try {
+            const response = await fetch(asset, { mode: "cors" });
+
+            if (response?.ok === true) {
+              await cache.put(asset, response.clone());
+            }
+          } catch {
+            // Firebase runtime caching is best-effort. A failed CDN prefetch
+            // must not prevent the same-origin Student App shell from installing.
+          }
+        }),
+      );
+    }),
   );
 });
 
@@ -64,11 +93,12 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(event.request.url);
 
-  if (url.origin !== self.location.origin) {
-    return;
-  }
+  const firebaseRuntimeRequest = FIREBASE_RUNTIME_URLS.has(url.href);
+  const shellRequest =
+    url.origin === self.location.origin &&
+    SHELL_ASSET_PATHS.has(url.pathname);
 
-  if (!SHELL_ASSET_PATHS.has(url.pathname)) {
+  if (!shellRequest && !firebaseRuntimeRequest) {
     return;
   }
 

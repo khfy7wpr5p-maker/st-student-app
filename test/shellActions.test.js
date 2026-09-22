@@ -176,3 +176,45 @@ test("write or unknown actions are rejected", async () => {
 
   assert.deepEqual(calls, []);
 });
+
+
+test("email/password credentials are forwarded only to the auth provider", async () => {
+  const { controller, calls } = makeController();
+  const seen = [];
+  const credentials = {
+    email: "student@example.test",
+    password: "secret-password",
+  };
+
+  await dispatchStudentAppAction({
+    action: "request-sign-in",
+    controller,
+    credentials,
+    requestSignIn: async (received) => {
+      seen.push(received);
+      return { studentId: "uid-email" };
+    },
+  });
+
+  assert.deepEqual(seen, [credentials]);
+  assert.deepEqual(calls, [
+    ["attachSession", { studentId: "uid-email" }],
+  ]);
+  assert.equal(JSON.stringify(calls).includes("secret-password"), false);
+});
+
+test("sign-out clears local state even when a provider sign-out callback is present", async () => {
+  const { controller, calls } = makeController();
+  const providerCalls = [];
+
+  await dispatchStudentAppAction({
+    action: "sign-out",
+    controller,
+    requestSignOut: async () => {
+      providerCalls.push("signOut");
+    },
+  });
+
+  assert.deepEqual(providerCalls, ["signOut"]);
+  assert.deepEqual(calls, [["signOut"]]);
+});

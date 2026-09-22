@@ -261,3 +261,282 @@ test("mount synchronizes on online transition and unsubscribes on destroy", asyn
   await mounted.destroy();
   assert.equal(connectivity.subscribed(), false);
 });
+
+
+function makeVoiceOverFocusHarness() {
+  let markup = "";
+  let activeElement = null;
+  let renderedControl = null;
+  let focusRestored = false;
+
+  const ownerDocument = {
+    get activeElement() {
+      return activeElement;
+    },
+  };
+
+  function createControl() {
+    return {
+      dataset: { action: "show-public-pool" },
+      isConnected: true,
+      focus() {
+        focusRestored = true;
+        activeElement = this;
+      },
+    };
+  }
+
+  const root = {
+    ownerDocument,
+    get innerHTML() {
+      return markup;
+    },
+    set innerHTML(value) {
+      markup = value;
+
+      if (activeElement !== null) {
+        activeElement.isConnected = false;
+      }
+
+      renderedControl = createControl();
+    },
+    addEventListener() {},
+    removeEventListener() {},
+    contains(element) {
+      return element === activeElement || element === renderedControl;
+    },
+    querySelector() {
+      return null;
+    },
+    querySelectorAll(selector) {
+      return selector === "[data-action]" && renderedControl !== null
+        ? [renderedControl]
+        : [];
+    },
+  };
+
+  return {
+    root,
+    focusCurrentControl() {
+      activeElement = renderedControl;
+      focusRestored = false;
+    },
+    wasFocusRestored() {
+      return focusRestored;
+    },
+  };
+}
+
+test("same-screen connectivity repaint restores the focused VoiceOver control", async () => {
+  const connectivity = makeConnectivityHarness();
+  const focus = makeVoiceOverFocusHarness();
+
+  const controller = {
+    getState() {
+      return {
+        screen: STUDENT_APP_SCREENS.HOME,
+        session: { studentId: "student-a" },
+        items: [],
+        practice: null,
+        syncState: SYNC_STATES.IDLE,
+      };
+    },
+    getPracticeRenderSource() {
+      return null;
+    },
+    async synchronizeOffline() {},
+  };
+
+  const mounted = mountStudentApp({
+    root: focus.root,
+    controller,
+    connectivityPort: connectivity.port,
+  });
+
+  await mounted.render();
+  focus.focusCurrentControl();
+
+  connectivity.emit(CONNECTIVITY_STATES.ONLINE);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  await mounted.render();
+
+  assert.equal(focus.wasFocusRestored(), true);
+
+  await mounted.destroy();
+});
+
+
+test("My Work permission failures surface a bounded access diagnosis without provider details", async () => {
+  let clickListener = null;
+  const root = {
+    innerHTML: "",
+    ownerDocument: { activeElement: null },
+    addEventListener(type, listener) {
+      if (type === "click") clickListener = listener;
+    },
+    removeEventListener() {},
+    contains() {
+      return true;
+    },
+    querySelector() {
+      return null;
+    },
+    querySelectorAll() {
+      return [];
+    },
+  };
+  const controller = {
+    getState() {
+      return {
+        screen: "home",
+        session: { studentId: "student-a" },
+        items: [],
+        practice: null,
+      };
+    },
+    showMyWork() {
+      const error = new Error("Missing or insufficient permissions");
+      error.code = "permission-denied";
+      throw error;
+    },
+    getPracticeRenderSource() {
+      return null;
+    },
+  };
+
+  const mounted = mountStudentApp({ root, controller });
+
+  await clickListener({
+    target: {
+      closest() {
+        return { dataset: { action: "show-my-work" } };
+      },
+    },
+  });
+
+  assert.match(root.innerHTML, /Kişisel çalışmalar için erişim izni reddedildi/);
+  assert.doesNotMatch(root.innerHTML, /permission-denied|insufficient permissions/i);
+
+  await mounted.destroy();
+});
+
+test("My Work scope mismatch surfaces a bounded field diagnosis", async () => {
+  let clickListener = null;
+  const root = {
+    innerHTML: "",
+    ownerDocument: { activeElement: null },
+    addEventListener(type, listener) {
+      if (type === "click") clickListener = listener;
+    },
+    removeEventListener() {},
+    contains() {
+      return true;
+    },
+    querySelector() {
+      return null;
+    },
+    querySelectorAll() {
+      return [];
+    },
+  };
+  const controller = {
+    getState() {
+      return {
+        screen: "home",
+        session: { studentId: "student-a" },
+        items: [],
+        practice: null,
+      };
+    },
+    showMyWork() {
+      throw new Error("Firestore publication scope mismatch");
+    },
+    getPracticeRenderSource() {
+      return null;
+    },
+  };
+
+  const mounted = mountStudentApp({ root, controller });
+
+  await clickListener({
+    target: {
+      closest() {
+        return { dataset: { action: "show-my-work" } };
+      },
+    },
+  });
+
+  assert.match(root.innerHTML, /Kişisel çalışma: scope alanı eksik veya hatalı/);
+  assert.doesNotMatch(root.innerHTML, /scope mismatch/i);
+
+  await mounted.destroy();
+});
+
+
+async function renderMyWorkFailure(message) {
+  let clickListener = null;
+  const root = {
+    innerHTML: "",
+    ownerDocument: { activeElement: null },
+    addEventListener(type, listener) {
+      if (type === "click") clickListener = listener;
+    },
+    removeEventListener() {},
+    contains() {
+      return true;
+    },
+    querySelector() {
+      return null;
+    },
+    querySelectorAll() {
+      return [];
+    },
+  };
+  const controller = {
+    getState() {
+      return {
+        screen: "home",
+        session: { studentId: "student-a" },
+        items: [],
+        practice: null,
+      };
+    },
+    showMyWork() {
+      throw new Error(message);
+    },
+    getPracticeRenderSource() {
+      return null;
+    },
+  };
+
+  const mounted = mountStudentApp({ root, controller });
+  await clickListener({
+    target: {
+      closest() {
+        return { dataset: { action: "show-my-work" } };
+      },
+    },
+  });
+  await mounted.destroy();
+  return root.innerHTML;
+}
+
+test("My Work malformed manifest diagnosis identifies the failing field without backend detail", async () => {
+  const cases = [
+    ["Firestore packageId is invalid", "packageId"],
+    ["Firestore publication title is invalid", "title"],
+    ["Firestore publication scope mismatch", "scope"],
+    ["publishedAt must be a non-empty string", "publishedAt"],
+    ["Firestore publication id mismatch", "publicationId"],
+    ["private publication recipient mismatch", "recipientStudentId"],
+  ];
+
+  for (const [providerMessage, fieldName] of cases) {
+    const html = await renderMyWorkFailure(providerMessage);
+    assert.match(html, new RegExp(`Kişisel çalışma: ${fieldName} alanı eksik veya hatalı`));
+    assert.doesNotMatch(
+      html,
+      /Firestore|recipient mismatch|scope mismatch|non-empty string/i,
+    );
+  }
+});

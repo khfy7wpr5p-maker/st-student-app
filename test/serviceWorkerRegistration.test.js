@@ -29,17 +29,18 @@ test("registration failure is bounded and does not expose provider error", async
   );
 });
 
-test("service worker caches only explicit same-origin app-shell assets", async () => {
+test("service worker caches only explicit app-shell assets plus pinned Firebase runtime", async () => {
   const source = await readFile(
     new URL("../service-worker.js", import.meta.url),
     "utf8",
   );
 
-  assert.match(source, /st-student-shell-v1/);
+  assert.match(source, /st-student-shell-v2/);
   assert.match(source, /index\.html/);
   assert.match(source, /src\/ui\/main\.js/);
   assert.match(source, /request\.method\s*!==\s*["']GET["']/);
-  assert.match(source, /url\.origin\s*!==\s*self\.location\.origin/);
+  assert.match(source, /url\.origin\s*===\s*self\.location\.origin/);
+  assert.match(source, /FIREBASE_RUNTIME_URLS\.has\(url\.href\)/);
 
   assert.doesNotMatch(
     source,
@@ -55,4 +56,18 @@ test("service worker fetch handler uses a static allowlist before Cache Storage"
 
   assert.match(source, /SHELL_ASSET_PATHS\.has\(url\.pathname\)/);
   assert.doesNotMatch(source, /caches\.match\(event\.request\)[\s\S]*without/i);
+});
+
+
+test("service worker explicitly caches only the Firebase browser modules used by the app", async () => {
+  const source = await readFile(
+    new URL("../service-worker.js", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /firebasejs\/12\.19\.0\/firebase-app\.js/);
+  assert.match(source, /firebasejs\/12\.19\.0\/firebase-auth\.js/);
+  assert.match(source, /firebasejs\/12\.19\.0\/firebase-firestore\.js/);
+  assert.doesNotMatch(source, /firebase-analytics\.js|firebase-storage\.js/);
+  assert.match(source, /FIREBASE_RUNTIME_URLS/);
 });

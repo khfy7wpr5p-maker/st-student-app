@@ -19,10 +19,103 @@ function isNotationCapability(value) {
   return Object.values(PRACTICE_CAPABILITY_STATES).includes(value);
 }
 
+function statusForActionError(action, error) {
+  if (action !== "show-my-work") {
+    return "İşlem tamamlanamadı.";
+  }
+
+  const code =
+    typeof error?.code === "string" ? error.code.toLowerCase() : "";
+  const message =
+    typeof error?.message === "string" ? error.message.toLowerCase() : "";
+
+  if (
+    code.includes("permission-denied") ||
+    message.includes("insufficient permissions") ||
+    message.includes("permission denied")
+  ) {
+    return "Kişisel çalışmalar için erişim izni reddedildi.";
+  }
+
+  const manifestFieldDiagnostics = [
+    ["firestore packageid", "packageId"],
+    ["packageid must", "packageId"],
+    ["firestore publication title", "title"],
+    ["scope mismatch", "scope"],
+    ["publishedat must", "publishedAt"],
+    ["publication id mismatch", "publicationId"],
+    ["recipient mismatch", "recipientStudentId"],
+  ];
+
+  for (const [needle, fieldName] of manifestFieldDiagnostics) {
+    if (message.includes(needle)) {
+      return `Kişisel çalışma: ${fieldName} alanı eksik veya hatalı.`;
+    }
+  }
+
+  if (message.includes("firestore publication")) {
+    return "Kişisel çalışma kaydı eksik veya uyumsuz.";
+  }
+
+  return "Kişisel çalışmalar okunamadı.";
+}
+
+function focusedActionIdentity(root) {
+  const activeElement = root.ownerDocument?.activeElement;
+
+  if (
+    activeElement === null ||
+    activeElement === undefined ||
+    root.contains?.(activeElement) !== true
+  ) {
+    return null;
+  }
+
+  const action = activeElement.dataset?.action;
+
+  if (typeof action !== "string" || action.length === 0) {
+    return null;
+  }
+
+  return Object.freeze({
+    action,
+    publicationId: activeElement.dataset?.publicationId ?? null,
+  });
+}
+
+function restoreFocusedAction(root, identity) {
+  if (identity === null) {
+    return;
+  }
+
+  const controls = root.querySelectorAll?.("[data-action]");
+
+  if (controls === null || controls === undefined) {
+    return;
+  }
+
+  const match = [...controls].find(
+    (control) =>
+      control.dataset?.action === identity.action &&
+      (control.dataset?.publicationId ?? null) === identity.publicationId,
+  );
+
+  if (typeof match?.focus !== "function") {
+    return;
+  }
+
+  try {
+    match.focus({ preventScroll: true });
+  } catch {
+    match.focus();
+  }
+}
+
 export function mountStudentApp({
   root,
   controller,
   requestSignIn,
+  requestSignOut,
   notationAdapter = null,
   connectivityPort = null,
 }) {
@@ -62,7 +155,13 @@ export function mountStudentApp({
       markup !== lastMarkup ||
       presentationKey !== lastPresentationKey
     ) {
+      const focusIdentity =
+        presentationKey === lastPresentationKey
+          ? focusedActionIdentity(root)
+          : null;
+
       root.innerHTML = markup;
+      restoreFocusedAction(root, focusIdentity);
       lastMarkup = markup;
       lastPresentationKey = presentationKey;
       domGeneration += 1;
@@ -244,6 +343,16 @@ export function mountStudentApp({
         ? Boolean(actionElement.checked)
         : undefined;
 
+    const credentials =
+      action === "request-sign-in"
+        ? Object.freeze({
+            email:
+              root.querySelector?.("[data-sign-in-email]")?.value ?? "",
+            password:
+              root.querySelector?.("[data-sign-in-password]")?.value ?? "",
+          })
+        : undefined;
+
     try {
       status = "";
       await dispatchStudentAppAction({
@@ -251,11 +360,13 @@ export function mountStudentApp({
         publicationId,
         tempoBpm,
         repeatEnabled,
+        credentials,
         controller,
         requestSignIn,
+        requestSignOut,
       });
-    } catch {
-      status = "İşlem tamamlanamadı.";
+    } catch (error) {
+      status = statusForActionError(action, error);
     }
 
     return render();

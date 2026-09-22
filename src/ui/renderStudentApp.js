@@ -35,6 +35,25 @@ function renderSignIn({ signInAvailable }) {
     <section aria-labelledby="page-title">
       <h1 id="page-title">ST Student</h1>
       <p>Çalışmalarına erişmek için giriş yap.</p>
+      <label>
+        E-posta
+        <input
+          type="email"
+          data-sign-in-email
+          autocomplete="email"
+          inputmode="email"
+          autocapitalize="none"
+          spellcheck="false"
+        >
+      </label>
+      <label>
+        Şifre
+        <input
+          type="password"
+          data-sign-in-password
+          autocomplete="current-password"
+        >
+      </label>
       <button type="button" data-action="request-sign-in"${disabled}>Giriş Yap</button>
     </section>
   `;
