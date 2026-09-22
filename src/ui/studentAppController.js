@@ -224,6 +224,11 @@ export function createStudentAppController({
         : null;
     },
 
+    disposeActivePractice() {
+      clearActivePractice();
+      return state;
+    },
+
     attachSession(session) {
       const nextSession = requireSession(session);
       sessionGeneration += 1;
