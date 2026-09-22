@@ -35,7 +35,7 @@ Task 3: Ruling: A direct 100,001 playable-note MusicXML fixture cannot fit under
 - Task 1: complete — RED `6e56767` / CI #273: 214 tests, 213 pass, 1 expected fail (`ERR_MODULE_NOT_FOUND`); GREEN `bd78e3e` / CI #274: 225/225 PASS.
 - Task 2: complete — RED `ba3c768` / CI #276: 226 tests, 225 pass, 1 expected fail (`ERR_MODULE_NOT_FOUND`); GREEN `db4cbfe` / CI #279: 233/233 PASS.
 - Task 3: complete — meaningful RED `f843006` / CI #282: 246 tests, 237 pass, 9 expected semantic failures; GREEN `bd07738` / CI #283: 246/246 PASS.
-- Task 4: pending.
+- Task 4: complete — RED `3eb2ec1` / CI #285: 247 tests, 246 pass, 1 expected fail (`ERR_MODULE_NOT_FOUND`); GREEN `5f1c904` / CI #286: 254/254 PASS.
 - Task 5: pending.
 - Task 6: pending.
 - Task 7: pending.
