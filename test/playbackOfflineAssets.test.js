@@ -78,3 +78,27 @@ test("playback static cache is best-effort and fetch handling is allowlisted", a
     /Practice Package|indexedDbOfflineRepository.*PLAYBACK_STATIC_ASSETS/i,
   );
 });
+
+
+test("required shell caching completes before best-effort piano caching", async () => {
+  const source = await readFile(
+    new URL("../service-worker.js", import.meta.url),
+    "utf8",
+  );
+
+  const shellIndex = source.indexOf("await cache.addAll(SHELL_ASSETS)");
+  const playbackIndex = source.indexOf(
+    "for (const asset of PLAYBACK_STATIC_ASSETS)",
+  );
+
+  assert.ok(shellIndex >= 0);
+  assert.ok(playbackIndex > shellIndex);
+  assert.match(
+    source.slice(playbackIndex),
+    /try\s*\{[\s\S]*?await cache\.add\(asset\)[\s\S]*?catch\s*\{/,
+  );
+  assert.doesNotMatch(
+    source,
+    /PLAYBACK_STATIC_ASSETS[\s\S]*?(practicePackages|recipientStudentId|approvedRevision)/i,
+  );
+});
