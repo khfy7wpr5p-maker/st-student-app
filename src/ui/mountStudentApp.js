@@ -167,6 +167,21 @@ export function mountStudentApp({
         persistentNotationRoot = liveNotationRoot;
       }
 
+      if (
+        liveNotationRoot !== null &&
+        liveNotationRoot === persistentNotationRoot
+      ) {
+        try {
+          if (typeof liveNotationRoot.remove === "function") {
+            liveNotationRoot.remove();
+          } else {
+            liveNotationRoot.parentNode?.removeChild?.(liveNotationRoot);
+          }
+        } catch {
+          // Repaint still proceeds; notation capability remains independently degradable.
+        }
+      }
+
       root.innerHTML = markup;
 
       const replacementNotationRoot = root.querySelector?.("#st-score-root") ?? null;
