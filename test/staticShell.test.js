@@ -87,3 +87,21 @@ test("browser bootstrap uses the Firebase provider runtime without Analytics or 
   assert.match(source, /requestSignOut/);
   assert.doesNotMatch(source, /getAnalytics|getStorage|uploadBytes/);
 });
+
+
+test("static shell declares the pinned local renderer import map without eager renderer execution", async () => {
+  const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
+
+  for (const mapping of [
+    '"@st/score-renderer-contracts": "./vendor/st-score-runtime/modules/contracts.js"',
+    '"@st/score-renderer-core": "./vendor/st-score-runtime/modules/renderer-core.js"',
+    '"@st/score-renderer-osmd": "./vendor/st-score-runtime/modules/adapter-osmd.js"',
+    '"@st/score-renderer-browser-host": "./vendor/st-score-runtime/modules/browser-host.js"',
+    '"opensheetmusicdisplay": "./vendor/st-score-runtime/modules/osmd-module-shim.mjs"',
+  ]) {
+    assert.equal(html.includes(mapping), true);
+  }
+
+  assert.doesNotMatch(html, /<script[^>]+src=["'][^"']*browser-bootstrap\.mjs/i);
+  assert.doesNotMatch(html, /<script[^>]+src=["'][^"']*opensheetmusicdisplay\.min\.js/i);
+});
