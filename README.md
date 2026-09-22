@@ -61,7 +61,11 @@ Nota, Student App-owned adapter üzerinden ST Score Rendering Layer sözleşmesi
 
 Practice Package içindeki MusicXML yalnız private render girdisidir; öğrenci HTML'ine veya hata mesajlarına yazılmaz.
 
-Mevcut package sözleşmesi canonical event zamanlamasını tanımlamadığı için varsayılan build playback üretmez. Trusted playback port bağlanmadığında Dinleme, tempo değiştirme ve ölçü tekrarı dürüstçe `UNAVAILABLE` kalır.
+Practice Package v1 içindeki `canonicalEvents` nesne dizisi güvenilir onset/duration playback şeması değildir ve Student App bunu hiçbir zaman timing kaynağı olarak tahmin etmez. `main` üzerindeki mevcut default bootstrap hâlâ playback port inject etmediği için merge edilmiş ürün davranışında Dinleme/tempo/ölçü tekrarı `UNAVAILABLE` kalır.
+
+STUDENT-07B feature branch'i playback çekirdeğini ayrı bir Student App-owned katman olarak geliştiriyor. Task 1–9 doğrulanmış durumdadır; Task 10 UI entegrasyonu devam etmektedir, Task 11 browser bootstrap/offline static cache, Task 12 failure-isolation, Task 13 final verification/docs ve Task 14 fiziksel iPhone/Safari/VoiceOver kabulü henüz tamamlanmamıştır. Bu nedenle feature branch'teki playback altyapısı production-ready veya merge-ready kabul edilmez.
+
+STUDENT-07B çekirdeği iki kalite kullanır: güvenilir dış timing provider'dan doğrulanmış plan varsa `FULL`; aksi halde desteklenen MusicXML'den bounded derlenen `APPROXIMATE`. Default route `APPROXIMATE`'tır. Ses motoru aynı-origin Web Audio + deterministik yerel piyano bankası kullanır. Banka bir oktavdaki 12 kromatik perde sınıfını (C–B) temsil eden 12 PCM16 WAV örneğidir; bu ifade “aynı anda yalnız 12 ses” anlamına gelmez. Farklı oktavlar `playbackRate` ile eşlenir ve çok sesli MusicXML aynı anda birden fazla note event çalabilir.
 
 `content.guitarTab` ve `content.violin` nesnelerinin iç sözleşmesi henüz tanımlı değildir; yalnız nesnenin varlığı bu capability'leri açmaz. MusicXML'in kendi içinde bulunan tablature, ST renderer tarafından notation sunumunun parçası olarak gösterilebilir.
 

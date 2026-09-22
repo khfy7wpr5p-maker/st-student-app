@@ -286,18 +286,51 @@ Student App doğrudan OSMD nesnelerini ürün sözleşmesi yapmaz. Runtime CDN'd
 
 ### Playback ve practice kontrolleri
 
-ST Score Rendering Layer playback motoru değildir.
+ST Score Rendering Layer playback motoru değildir. STUDENT-07B playback authority'si Student App içindeki ayrı bir playback katmanıdır.
 
-Practice Package v1 şu anda `canonicalEvents: array<object>` taşır fakat güvenilir onset/duration playback şeması tanımlamaz. Student App bu veriden timing tahmin etmez.
+Practice Package v1 hâlâ `canonicalEvents: array<object>` taşır fakat güvenilir onset/duration playback şeması tanımlamaz. Student App bu alandan timing tahmin etmez. Playback timing yalnız iki kaynaktan gelebilir:
 
-Default bootstrap trusted playback port inject etmez; bu nedenle playback `UNAVAILABLE` olur.
+1. exact package kimliğine bağlı, doğrulanmış trusted `FULL PlaybackPlan`;
+2. desteklenen `score-partwise` MusicXML'den bounded derlenen `APPROXIMATE PlaybackPlan`.
 
-Bir gelecekteki trusted playback port playback'i ancak şu gerçek metodları sağladığında AVAILABLE yapabilir:
+Default STUDENT-07B route `APPROXIMATE`'tır. Trusted provider açıkça geçerli `FULL` plan döndürmedikçe `FULL` iddiası yapılmaz. Invalid/non-null trusted sonuç veya provider error fail-closed davranır; sessizce approximate'a düşülmez.
+
+STUDENT-07B feature branch'inde şu çekirdek katmanlar uygulanmıştır:
+
+- `src/playback/playbackPlan.js`: immutable plan sözleşmesi, quality, note/measure bounds.
+- `src/playback/musicXmlPlaybackDom.js`: namespace-agnostic MusicXML DOM yardımcıları.
+- `src/playback/musicXmlApproximatePlayback.js`: bounded approximate compiler.
+- `src/playback/playbackPlanResolver.js`: trusted FULL precedence + explicit-null approximate fallback.
+- `src/playback/pianoSampleBank.js`: same-origin 12-note chromatic piano bank manifest/loader.
+- `src/playback/webAudioPianoEngine.js`: Web Audio scheduler, pause/resume/restart, tempo ve current-measure repeat.
+- `src/playback/studentPlaybackPort.js`: Practice Workspace'in existing playback port yüzeyi üzerinde resolver + engine birleşimi.
+
+Approximate compiler mevcut kapsamda chord, `backup/forward` polifonisi, tie merge, divisions, part transposition, numeric tempo map ve multi-part global measure alignment davranışlarını bounded biçimde işler. `score-timewise`, oversized XML, malformed timing cursor veya unsupported/unsafe materyal fail-closed olur. D.C./D.S./volta/repeat navigation, percussion ve ornament execution için kesinlik iddiası yapılmaz.
+
+### Piyano ses bankası
+
+Playback asset'leri `vendor/st-piano/` altındadır. Banka:
+
+- 12 deterministik, repository-generated mono PCM16 WAV dosyası taşır;
+- C4–B4 arasındaki 12 kromatik perde sınıfını temsil eder;
+- 44.1 kHz, 2.5 saniye/sample'dır;
+- toplam WAV payload'u 2,646,528 byte'dır;
+- üçüncü taraf ses kaydı içermez;
+- SHA-256 ve byte-length provenance bilgilerini `runtime-manifest.json` içinde taşır.
+
+Bu mimari 12-note sample bank kullanır; polyphony'yi 12 simultaneous voice ile sınırlamaz. MIDI perde sınıfı C–B referans sample'ına eşlenir, oktav farkı `playbackRate = 2 ** ((midi - referenceMidi) / 12)` ile uygulanır. STUDENT-07B'de bütün part/voice'lar şimdilik aynı piyano sound family'sini kullanır.
+
+### Playback kontrol sözleşmesi
+
+Practice playback AVAILABLE olmak için validated plan + supported audio engine gerekir. Public Practice port yüzeyi:
 
 - `canPlayPackage`
 - `playPackage`
 - `pausePackage`
 - `restartPackage`
+- `getPlaybackQualityForPackage`
+- `getReferenceTempoForPackage`
+- `disposePackage`
 
 Tempo değişikliği ayrıca:
 
@@ -305,7 +338,7 @@ Tempo değişikliği ayrıca:
 - `canChangeTempoForPackage`,
 - `setTempoForPackage`
 
-gerektirir.
+gerektirir ve STUDENT-07B range'i 20–300 BPM'dir.
 
 Ölçü tekrarı ayrıca:
 
@@ -313,11 +346,27 @@ gerektirir.
 - `canRepeatMeasureForPackage`,
 - `setMeasureRepeatEnabledForPackage`
 
-gerektirir.
+gerektirir. Repeat current-measure domain'ini enable anında capture eder.
 
-Bu port package timing'inin gerçek otoritesidir; Student App canonicalEvents yapısını tahmin etmez.
+Package switch, Home/Public Pool/My Work navigation, session change ve sign-out eski playback ownership'ini best-effort dispose eder. Slow sample load completion generation token ile stale hale getirilir; eski package gecikmiş async completion'dan ses başlatamaz.
 
-Trusted playback/practice port çağrısı runtime sırasında hata verirse yalnız ilgili capability `ERROR` durumuna geçirilir: playback hatası notation'ı değiştirmez; tempo hatası playback'i değiştirmez; measure-repeat hatası playback'i değiştirmez. Raw backend exception state/HTML içine yazılmaz ve shell yalnız bounded öğrenci mesajı gösterir.
+Playback/practice port çağrısı hata verirse yalnız ilgili capability `ERROR` durumuna geçirilir: playback hatası notation'ı değiştirmez; tempo hatası playback'i değiştirmez; measure-repeat hatası playback'i değiştirmez. Raw backend exception state/HTML içine yazılmaz.
+
+### Mevcut STUDENT-07B checkpoint
+
+Feature branch: `feat/student-07b-hybrid-playback`.
+
+- Task 1–9: doğrulanmış.
+- Son tamamen green checkpoint: `54b25d897ea1acec96f9855a660c5271a668c8fc`, CI #304, 284/284 PASS.
+- Current code checkpoint: `38f6039e0cbacab2b6629c1110707d9b1eee649c`.
+- Current CI #309: 297 test, 296 PASS, 1 FAIL.
+- Failing test: `APPROXIMATE playback renders bounded quality and teacher-gated controls`.
+
+Task 10'un safe state projection ve controller lifecycle değişiklikleri branch'te bulunmaktadır; current renderer hâlâ üç UI düzeltmesini tamamlamamıştır: `APPROXIMATE` için “Yaklaşık çalma” etiketi, tempo input `min=20/max=300`, repeat checkbox'ın `measureRepeatEnabled` state'ini `checked` olarak yansıtması. İlk assertion failure “Yaklaşık çalma” etiketidir; diğer iki renderer beklentisi aynı test içinde sonraki assertion'larda doğrulanacaktır.
+
+Task 11 tamamlanmadan default browser `main.js` playback port inject etmez ve Service Worker piano runtime graph'ını cache'lemez. Bu nedenle core playback modüllerinin varlığı browser ürününde playback'in hazır olduğu anlamına gelmez.
+
+Task 12–14 tamamlanmadan production-ready/merge-ready iddiası yapılmaz. Özellikle exact-head CI, independent verification ve fiziksel iPhone/Safari/VoiceOver + offline audio acceptance merge gate'idir.
 
 ### TAB ve keman
 
