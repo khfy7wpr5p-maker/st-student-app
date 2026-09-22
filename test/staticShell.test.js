@@ -35,9 +35,13 @@ test("default bootstrap wires only the ST-owned notation adapter", async () => {
 
   assert.match(source, /createStNotationAdapter/);
   assert.match(source, /notationAdapter/);
+  assert.match(
+    source,
+    /vendor\/st-score-runtime\/vendor\/opensheetmusicdisplay\.min\.js/,
+  );
   assert.doesNotMatch(
     source,
-    /opensheetmusicdisplay|new\s+OSMD|from\s+["'](?:osmd|opensheetmusicdisplay)["']/i,
+    /new\s+OSMD|from\s+["'](?:osmd|opensheetmusicdisplay)["']/i,
   );
   assert.doesNotMatch(source, /https?:\/\/|cdn|score-partwise|fake.*playback/i);
 });
