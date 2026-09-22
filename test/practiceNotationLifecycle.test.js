@@ -285,3 +285,53 @@ test("destroy removes listener and disposes active notation runtime", async () =
     /click listener missing/,
   );
 });
+
+test("same Practice repaint preserves the renderer root DOM identity", async () => {
+  const fixture = makeController(makePracticeState("pkg-a"));
+  let markup = "";
+  let notationRoot = null;
+  let clickListener = null;
+  const root = {
+    addEventListener(type, listener) {
+      if (type === "click") clickListener = listener;
+    },
+    removeEventListener(type, listener) {
+      if (type === "click" && clickListener === listener) clickListener = null;
+    },
+    contains() {
+      return true;
+    },
+    querySelector(selector) {
+      if (selector === "#st-score-root") return notationRoot;
+      return null;
+    },
+    get innerHTML() {
+      return markup;
+    },
+    set innerHTML(value) {
+      markup = value;
+      if (value.includes('id="st-score-root"')) {
+        const next = {
+          replaceWith(existing) {
+            notationRoot = existing;
+          },
+        };
+        notationRoot = next;
+      } else {
+        notationRoot = null;
+      }
+    },
+  };
+  const { adapter, calls } = makeNotationAdapter();
+  const mounted = mountStudentApp({ root, controller: fixture.controller, notationAdapter: adapter });
+  await mounted.render();
+  const firstRoot = notationRoot;
+
+  const changed = makePracticeState("pkg-a");
+  changed.practice.practice.tempoBpm = 90;
+  fixture.setState(changed);
+  await mounted.render();
+
+  assert.equal(notationRoot, firstRoot);
+  assert.deepEqual(calls, [["render", "<score-partwise>pkg-a</score-partwise>"]]);
+});
