@@ -109,3 +109,39 @@ test("static shell declares the pinned local renderer import map without eager r
   assert.doesNotMatch(html, /<script[^>]+src=["'][^"']*browser-bootstrap\.mjs/i);
   assert.doesNotMatch(html, /<script[^>]+src=["'][^"']*opensheetmusicdisplay\.min\.js/i);
 });
+
+
+test("default bootstrap wires lazy local playback runtime", async () => {
+  const source = await readFile(
+    new URL("../src/ui/main.js", import.meta.url),
+    "utf8",
+  );
+
+  for (const symbol of [
+    "createPlaybackPlanResolver",
+    "createPianoSampleBank",
+    "createWebAudioPianoEngine",
+    "createStudentPlaybackPort",
+  ]) {
+    assert.match(source, new RegExp(symbol));
+  }
+
+  assert.match(
+    source,
+    /manifestUrl:\s*["']\.\/vendor\/st-piano\/runtime-manifest\.json["']/,
+  );
+  assert.match(source, /await\s+sampleBank\.initialize\(\)/);
+  assert.match(source, /const\s+audioContextFactory\s*=\s*\(\)\s*=>/);
+  assert.match(
+    source,
+    /globalThis\.AudioContext\s*\?\?\s*globalThis\.webkitAudioContext/,
+  );
+  assert.match(
+    source,
+    /createStudentAppController\(\{[\s\S]*?playbackPort[\s\S]*?\}\)/,
+  );
+  assert.doesNotMatch(
+    source,
+    /canonicalEvents|Tone\.js|from\s+["']tone["']|https?:\/\/[^"'\s]+\.(?:wav|mp3|ogg)/i,
+  );
+});
