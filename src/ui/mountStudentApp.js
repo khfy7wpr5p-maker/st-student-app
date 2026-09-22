@@ -139,6 +139,7 @@ export function mountStudentApp({
   let lastPresentationKey = null;
   let domGeneration = 0;
   let activeNotationKey = null;
+  let persistentNotationRoot = null;
   let lifecycle = Promise.resolve();
   let destroyed = false;
 
@@ -160,31 +161,37 @@ export function mountStudentApp({
           ? focusedActionIdentity(root)
           : null;
 
-      const existingNotationRoot =
-        presentationKey === lastPresentationKey
-          ? root.querySelector?.("#st-score-root") ?? null
-          : null;
+      const previousPresentationKey = lastPresentationKey;
+      const liveNotationRoot = root.querySelector?.("#st-score-root") ?? null;
+
+      if (persistentNotationRoot === null && liveNotationRoot !== null) {
+        persistentNotationRoot = liveNotationRoot;
+      }
 
       root.innerHTML = markup;
 
-      const replacementNotationRoot =
-        existingNotationRoot !== null
-          ? root.querySelector?.("#st-score-root") ?? null
-          : null;
-      const preservedNotationRoot =
-        existingNotationRoot !== null &&
-        replacementNotationRoot !== null &&
-        replacementNotationRoot !== existingNotationRoot &&
-        typeof replacementNotationRoot.replaceWith === "function";
+      const replacementNotationRoot = root.querySelector?.("#st-score-root") ?? null;
 
-      if (preservedNotationRoot) {
-        replacementNotationRoot.replaceWith(existingNotationRoot);
+      if (replacementNotationRoot !== null) {
+        if (persistentNotationRoot === null) {
+          persistentNotationRoot = replacementNotationRoot;
+        } else if (replacementNotationRoot !== persistentNotationRoot) {
+          if (typeof replacementNotationRoot.replaceWith === "function") {
+            replacementNotationRoot.replaceWith(persistentNotationRoot);
+          } else if (typeof replacementNotationRoot.parentNode?.replaceChild === "function") {
+            replacementNotationRoot.parentNode.replaceChild(
+              persistentNotationRoot,
+              replacementNotationRoot,
+            );
+          }
+        }
       }
 
       restoreFocusedAction(root, focusIdentity);
       lastMarkup = markup;
       lastPresentationKey = presentationKey;
-      if (!preservedNotationRoot) {
+
+      if (presentationKey !== previousPresentationKey) {
         domGeneration += 1;
       }
     }
@@ -462,6 +469,7 @@ export function mountStudentApp({
         await disposeActiveNotation();
         lastMarkup = null;
         lastPresentationKey = null;
+        persistentNotationRoot = null;
       });
 
       return lifecycle;
