@@ -28,7 +28,7 @@ No pre-flight interface conflict found.
 ## Status
 
 - Setup: complete.
-- Task 1: pending.
+- Task 1: complete — RED `6e56767` / CI #273: 214 tests, 213 pass, 1 expected fail (`ERR_MODULE_NOT_FOUND`); GREEN `bd78e3e` / CI #274: 225/225 PASS.
 - Task 2: pending.
 - Task 3: pending.
 - Task 4: pending.
