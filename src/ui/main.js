@@ -1,12 +1,16 @@
 import { createDefaultOfflineInfrastructure } from "../offline/defaultOfflineInfrastructure.js";
 import { registerStudentAppServiceWorker } from "../offline/serviceWorkerRegistration.js";
 import { createStNotationAdapter } from "../practice/notationAdapter.js";
+import { createNotationRuntimeLoader } from "../practice/notationRuntimeLoader.js";
 import { createFirebaseBrowserRuntime } from "../providers/firebase/firebaseBrowserRuntime.js";
 import { createStudentAppController } from "./studentAppController.js";
 import { mountStudentApp } from "./mountStudentApp.js";
 
 const root = document.querySelector("#app");
-const notationAdapter = createStNotationAdapter();
+const notationRuntimeLoader = createNotationRuntimeLoader({
+  bootstrapUrl: "./vendor/st-score-runtime/browser-bootstrap.mjs",
+});
+const notationAdapter = createStNotationAdapter({ runtimeLoader: notationRuntimeLoader });
 const firebaseRuntime = createFirebaseBrowserRuntime();
 
 let initialSession = null;
