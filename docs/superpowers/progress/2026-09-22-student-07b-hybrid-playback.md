@@ -37,7 +37,7 @@ Task 3: Ruling: A direct 100,001 playable-note MusicXML fixture cannot fit under
 - Task 3: complete — meaningful RED `f843006` / CI #282: 246 tests, 237 pass, 9 expected semantic failures; GREEN `bd07738` / CI #283: 246/246 PASS.
 - Task 4: complete — RED `3eb2ec1` / CI #285: 247 tests, 246 pass, 1 expected fail (`ERR_MODULE_NOT_FOUND`); GREEN `5f1c904` / CI #286: 254/254 PASS.
 - Task 5: complete — RED `2ae558d` / CI #288: 258 tests, 254 pass, 4 expected missing-asset failures; GREEN `f4ab023` / CI #289: 258/258 PASS. Deterministic generated bank: 12 × 220,544-byte PCM16 WAV files (2,646,528 bytes total), no third-party audio.
-- Task 6: pending.
+- Task 6: complete — RED `5736f03` / CI #291: 255 tests, 254 pass, 1 expected module-not-found failure; GREEN `bcb7446` / CI #292: 263/263 PASS.
 - Task 7: pending.
 - Task 8: pending.
 - Task 9: pending.
