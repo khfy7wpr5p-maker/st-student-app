@@ -139,6 +139,7 @@ export function mountStudentApp({
   let lastPresentationKey = null;
   let domGeneration = 0;
   let activeNotationKey = null;
+  let persistentNotationRoot = null;
   let lifecycle = Promise.resolve();
   let destroyed = false;
 
@@ -160,7 +161,31 @@ export function mountStudentApp({
           ? focusedActionIdentity(root)
           : null;
 
+      const liveNotationRoot = root.querySelector?.("#st-score-root") ?? null;
+
+      if (persistentNotationRoot === null && liveNotationRoot !== null) {
+        persistentNotationRoot = liveNotationRoot;
+      }
+
       root.innerHTML = markup;
+
+      const replacementNotationRoot = root.querySelector?.("#st-score-root") ?? null;
+
+      if (replacementNotationRoot !== null) {
+        if (persistentNotationRoot === null) {
+          persistentNotationRoot = replacementNotationRoot;
+        } else if (replacementNotationRoot !== persistentNotationRoot) {
+          if (typeof replacementNotationRoot.replaceWith === "function") {
+            replacementNotationRoot.replaceWith(persistentNotationRoot);
+          } else if (typeof replacementNotationRoot.parentNode?.replaceChild === "function") {
+            replacementNotationRoot.parentNode.replaceChild(
+              persistentNotationRoot,
+              replacementNotationRoot,
+            );
+          }
+        }
+      }
+
       restoreFocusedAction(root, focusIdentity);
       lastMarkup = markup;
       lastPresentationKey = presentationKey;
@@ -242,7 +267,7 @@ export function mountStudentApp({
       return;
     }
 
-    const renderKey = `${state.practice.packageId}:${generation}`;
+    const renderKey = state.practice.packageId;
 
     if (activeNotationKey === renderKey) {
       return;
@@ -440,6 +465,7 @@ export function mountStudentApp({
         await disposeActiveNotation();
         lastMarkup = null;
         lastPresentationKey = null;
+        persistentNotationRoot = null;
       });
 
       return lifecycle;

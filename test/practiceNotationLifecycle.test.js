@@ -104,9 +104,10 @@ function makeController(initialState) {
 function makeRoot() {
   let clickListener = null;
   let tempoValue = "72";
+  let markup = "";
+  let notationRoot = null;
 
   return {
-    innerHTML: "",
     addEventListener(type, listener) {
       if (type === "click") clickListener = listener;
     },
@@ -120,7 +121,29 @@ function makeRoot() {
       if (selector === "[data-practice-tempo]") {
         return { value: tempoValue };
       }
+      if (selector === "#st-score-root") {
+        return notationRoot;
+      }
       return null;
+    },
+    querySelectorAll() {
+      return [];
+    },
+    get innerHTML() {
+      return markup;
+    },
+    set innerHTML(value) {
+      markup = value;
+      if (value.includes('id="st-score-root"')) {
+        const next = {
+          replaceWith(existing) {
+            notationRoot = existing;
+          },
+        };
+        notationRoot = next;
+      } else {
+        notationRoot = null;
+      }
     },
     setTempoValue(value) {
       tempoValue = value;
@@ -284,4 +307,141 @@ test("destroy removes listener and disposes active notation runtime", async () =
     () => root.click(makeAction("play-practice")),
     /click listener missing/,
   );
+});
+
+test("same Practice repaint preserves the renderer root DOM identity", async () => {
+  const fixture = makeController(makePracticeState("pkg-a"));
+  let markup = "";
+  let notationRoot = null;
+  let clickListener = null;
+  const root = {
+    addEventListener(type, listener) {
+      if (type === "click") clickListener = listener;
+    },
+    removeEventListener(type, listener) {
+      if (type === "click" && clickListener === listener) clickListener = null;
+    },
+    contains() {
+      return true;
+    },
+    querySelector(selector) {
+      if (selector === "#st-score-root") return notationRoot;
+      return null;
+    },
+    get innerHTML() {
+      return markup;
+    },
+    set innerHTML(value) {
+      markup = value;
+      if (value.includes('id="st-score-root"')) {
+        const next = {
+          replaceWith(existing) {
+            notationRoot = existing;
+          },
+        };
+        notationRoot = next;
+      } else {
+        notationRoot = null;
+      }
+    },
+  };
+  const { adapter, calls } = makeNotationAdapter();
+  const mounted = mountStudentApp({ root, controller: fixture.controller, notationAdapter: adapter });
+  await mounted.render();
+  const firstRoot = notationRoot;
+
+  const changed = makePracticeState("pkg-a");
+  changed.practice.practice.tempoBpm = 90;
+  fixture.setState(changed);
+  await mounted.render();
+
+  assert.equal(notationRoot, firstRoot);
+  assert.deepEqual(calls, [["render", "<score-partwise>pkg-a</score-partwise>"]]);
+});
+
+
+function makeNotationDomRoot() {
+  let markup = "";
+  let notationRoot = null;
+  let clickListener = null;
+
+  return {
+    addEventListener(type, listener) {
+      if (type === "click") clickListener = listener;
+    },
+    removeEventListener(type, listener) {
+      if (type === "click" && clickListener === listener) clickListener = null;
+    },
+    contains() {
+      return true;
+    },
+    querySelector(selector) {
+      if (selector === "#st-score-root") return notationRoot;
+      return null;
+    },
+    querySelectorAll() {
+      return [];
+    },
+    getNotationRoot() {
+      return notationRoot;
+    },
+    get innerHTML() {
+      return markup;
+    },
+    set innerHTML(value) {
+      markup = value;
+      if (value.includes('id="st-score-root"')) {
+        const next = {
+          replaceWith(existing) {
+            notationRoot = existing;
+          },
+        };
+        notationRoot = next;
+      } else {
+        notationRoot = null;
+      }
+    },
+  };
+}
+
+test("renderer root identity survives Practice package switches", async () => {
+  const fixture = makeController(makePracticeState("pkg-a"));
+  const root = makeNotationDomRoot();
+  const { adapter } = makeNotationAdapter();
+
+  const mounted = mountStudentApp({
+    root,
+    controller: fixture.controller,
+    notationAdapter: adapter,
+  });
+  await mounted.render();
+  const firstRoot = root.getNotationRoot();
+
+  fixture.setState(makePracticeState("pkg-b"));
+  await mounted.render();
+
+  assert.equal(root.getNotationRoot(), firstRoot);
+});
+
+test("renderer root identity survives leaving and reopening Practice", async () => {
+  const fixture = makeController(makePracticeState("pkg-a"));
+  const root = makeNotationDomRoot();
+  const { adapter } = makeNotationAdapter();
+
+  const mounted = mountStudentApp({
+    root,
+    controller: fixture.controller,
+    notationAdapter: adapter,
+  });
+  await mounted.render();
+  const firstRoot = root.getNotationRoot();
+
+  fixture.setState(makeHomeState());
+  await mounted.render();
+  assert.equal(root.getNotationRoot(), null);
+
+  fixture.setState(makePracticeState("pkg-a"));
+  await mounted.render();
+
+  assert.equal(root.getNotationRoot(), firstRoot);
 });

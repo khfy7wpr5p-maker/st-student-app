@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "rendererSourceRevision": "49dcb4737e802f956fc483ab2c8eac62a2508846",
+  "scoreRendererContractVersion": "0.2.0",
+  "packages": {
+    "contracts": "0.1.0",
+    "rendererCore": "0.1.0",
+    "osmdAdapter": "0.1.0",
+    "browserHost": "0.1.0"
+  },
+  "vendor": {
+    "opensheetmusicdisplay": {
+      "version": "2.1.2",
+      "license": "BSD-3-Clause",
+      "licenseFile": "licenses/opensheetmusicdisplay-BSD-3-Clause.txt"
+    }
+  },
+  "files": [
+    {
+      "path": "THIRD_PARTY_NOTICES.md",
+      "bytes": 407,
+      "sha256": "c5e8b9bf2ec0785ee371adc00ba51b1440ea466bbecf8a749a478ecb2324dd0f"
+    },
+    {
+      "path": "browser-bootstrap.mjs",
+      "bytes": 10924,
+      "sha256": "05f7f6b81916dc2d08f501eee5d95c6343ce5056d914816677cbeda8980855b7"
+    },
+    {
+      "path": "index.html",
+      "bytes": 1165,
+      "sha256": "e0f59d936d4fb46d792ac94b46e0103533f37eaca856906dc9b0055153aa8b9d"
+    },
+    {
+      "path": "licenses/opensheetmusicdisplay-BSD-3-Clause.txt",
+      "bytes": 1456,
+      "sha256": "261655f10cf6b90bd062fbe3c7fa4dd03e0324fdfc4b53a3c7d626e3aec694a8"
+    },
+    {
+      "path": "modules/adapter-osmd.js",
+      "bytes": 25670,
+      "sha256": "b3ed10000cc42053792914d6b1daa92e72f1f62fb87669b711b374400542feab"
+    },
+    {
+      "path": "modules/browser-host.js",
+      "bytes": 17184,
+      "sha256": "5631c3a089b4150a0f7c1274e372907ba1b0530959763dfaa4bac331ede60212"
+    },
+    {
+      "path": "modules/contracts.js",
+      "bytes": 89,
+      "sha256": "2eeb1025757b572d81202c9a99a3654e79499093d8f9e9b3077a7afe50ae750e"
+    },
+    {
+      "path": "modules/osmd-module-shim.mjs",
+      "bytes": 302,
+      "sha256": "2de17007639206f23d969885fc8419117a06548c92d161526ff25cb2841d1948"
+    },
+    {
+      "path": "modules/renderer-core.js",
+      "bytes": 1831,
+      "sha256": "88234abe68c4c5c2e32738fb9aebf58c23ec944957c978399eee35e714e14b7e"
+    },
+    {
+      "path": "vendor/opensheetmusicdisplay.min.js",
+      "bytes": 1321869,
+      "sha256": "888b744196665ab10dba7ee311784deea9e1c545cf60b6089d455afec6b50a3f"
+    }
+  ],
+  "runtimeTarget": "browser"
+}

@@ -35,7 +35,7 @@ test("service worker caches only explicit app-shell assets plus pinned Firebase 
     "utf8",
   );
 
-  assert.match(source, /st-student-shell-v2/);
+  assert.match(source, /st-student-shell-v3/);
   assert.match(source, /index\.html/);
   assert.match(source, /src\/ui\/main\.js/);
   assert.match(source, /request\.method\s*!==\s*["']GET["']/);
@@ -70,4 +70,21 @@ test("service worker explicitly caches only the Firebase browser modules used by
   assert.match(source, /firebasejs\/12\.19\.0\/firebase-firestore\.js/);
   assert.doesNotMatch(source, /firebase-analytics\.js|firebase-storage\.js/);
   assert.match(source, /FIREBASE_RUNTIME_URLS/);
+});
+
+test("service worker pins the local ST score runtime asset graph without private package data", async () => {
+  const source = await readFile(new URL("../service-worker.js", import.meta.url), "utf8");
+  for (const asset of [
+    "vendor/st-score-runtime/browser-bootstrap.mjs",
+    "vendor/st-score-runtime/runtime-manifest.json",
+    "vendor/st-score-runtime/modules/adapter-osmd.js",
+    "vendor/st-score-runtime/modules/browser-host.js",
+    "vendor/st-score-runtime/modules/contracts.js",
+    "vendor/st-score-runtime/modules/osmd-module-shim.mjs",
+    "vendor/st-score-runtime/modules/renderer-core.js",
+    "vendor/st-score-runtime/vendor/opensheetmusicdisplay.min.js",
+  ]) {
+    assert.equal(source.includes(asset), true);
+  }
+  assert.doesNotMatch(source, /practicePackages|accessToken|refreshToken/i);
 });

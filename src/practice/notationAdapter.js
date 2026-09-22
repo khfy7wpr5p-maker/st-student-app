@@ -4,6 +4,7 @@ export const ST_SCORE_RENDERER_CONTRACT_VERSION = "0.2.0";
 
 export function createStNotationAdapter({
   getRuntime = () => globalThis.__ST_SCORE_RENDER_HOST__,
+  runtimeLoader = null,
 } = {}) {
   let ticket = 0;
 
@@ -31,11 +32,28 @@ export function createStNotationAdapter({
 
   return Object.freeze({
     isAvailable() {
-      return runtimeOrNull() !== null;
+      if (runtimeOrNull() !== null) return true;
+      try {
+        return runtimeLoader?.isReady?.() === true || runtimeLoader?.isInstallable?.() === true;
+      } catch {
+        return false;
+      }
     },
 
     async render({ musicXml }) {
-      const runtime = runtimeOrNull();
+      let runtime = runtimeOrNull();
+
+      if (runtime === null && runtimeLoader?.ensureReady) {
+        try {
+          const readiness = await runtimeLoader.ensureReady();
+          if (readiness?.state === "ERROR") {
+            return Object.freeze({ capability: PRACTICE_CAPABILITY_STATES.ERROR });
+          }
+          runtime = runtimeOrNull();
+        } catch {
+          return Object.freeze({ capability: PRACTICE_CAPABILITY_STATES.ERROR });
+        }
+      }
 
       if (runtime === null) {
         return Object.freeze({
