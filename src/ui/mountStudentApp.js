@@ -455,6 +455,12 @@ export function mountStudentApp({
       root.removeEventListener("click", onClick);
 
       try {
+        controller.disposeActivePractice?.();
+      } catch {
+        // Playback teardown cannot block final Student App cleanup.
+      }
+
+      try {
         unsubscribeConnectivity();
       } catch {
         // Connectivity teardown cannot block Student App cleanup.
