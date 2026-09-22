@@ -1,7 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { createWebAudioPianoEngine } from "../src/playback/webAudioPianoEngine.js";\nimport { STUDENT_APP_SCREENS } from "../src/ui/studentAppController.js";\nimport { mountStudentApp } from "../src/ui/mountStudentApp.js";
+import { createWebAudioPianoEngine } from "../src/playback/webAudioPianoEngine.js";
+import { STUDENT_APP_SCREENS } from "../src/ui/studentAppController.js";
+import { mountStudentApp } from "../src/ui/mountStudentApp.js";
 
 function deferred() {
   let resolve;
