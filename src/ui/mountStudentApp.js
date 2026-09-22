@@ -80,6 +80,9 @@ function focusedActionIdentity(root) {
   return Object.freeze({
     action,
     publicationId: activeElement.dataset?.publicationId ?? null,
+    poolItemId: activeElement.dataset?.poolItemId ?? null,
+    assignmentId: activeElement.dataset?.assignmentId ?? null,
+    assignmentState: activeElement.dataset?.assignmentState ?? null,
   });
 }
 
@@ -97,7 +100,10 @@ function restoreFocusedAction(root, identity) {
   const match = [...controls].find(
     (control) =>
       control.dataset?.action === identity.action &&
-      (control.dataset?.publicationId ?? null) === identity.publicationId,
+      (control.dataset?.publicationId ?? null) === identity.publicationId &&
+      (control.dataset?.poolItemId ?? null) === identity.poolItemId &&
+      (control.dataset?.assignmentId ?? null) === identity.assignmentId &&
+      (control.dataset?.assignmentState ?? null) === identity.assignmentState,
   );
 
   if (typeof match?.focus !== "function") {
