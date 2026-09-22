@@ -196,7 +196,7 @@ The compiler supports:
 - `forward`;
 - duration encoded tuplets because the MusicXML `duration` value already expresses their performed length in divisions;
 - tie start/stop merging for the same sounding pitch/part/voice;
-- part transposition through `transpose/chromatic` and `transpose/octave-change`;
+- part transposition through `transpose/chromatic` and `transpose/octave-change`; sounding pitch is computed as `writtenMidi + chromatic + (12 * octaveChange)`;
 - numeric `sound tempo` tempo changes;
 - package `practice.tempoBpm` as the preferred initial/reference tempo when it is a positive finite value.
 
@@ -336,7 +336,7 @@ Tempo and measure-repeat controls remain visible only when their existing capabi
 
 - Web Audio is supported;
 - a validated FULL or APPROXIMATE plan exists;
-- the piano sample-bank configuration is installable/available as a trusted same-origin static runtime;
+- the piano sample-bank manifest/configuration is a trusted same-origin static runtime and has not entered a known failed state;
 - the plan contains at least one playable note.
 
 `canChangeTempoForPackage(pkg)` additionally requires `pkg.practice.allowTempoChange === true`.
@@ -393,8 +393,8 @@ Examples:
 - malformed/unsupported MusicXML -> playback `UNAVAILABLE`; notation unchanged;
 - invalid trusted plan -> playback `UNAVAILABLE` or operation `ERROR`, never silently relabeled FULL/APPROXIMATE;
 - no Web Audio -> playback `UNAVAILABLE`;
-- sample asset missing before capability admission -> playback `UNAVAILABLE`;
-- sample decoding fails after admission -> playback `ERROR`;
+- missing/untrusted sample manifest configuration -> playback `UNAVAILABLE`;
+- sample fetch/decode fails after admission -> playback `ERROR` and that sample-bank runtime enters a failed state until reload;
 - playback runtime exception -> bounded Student message only;
 - package switch during sample load -> stale load is ignored and cannot sound;
 - offline sample cache miss -> playback unavailable/error only, cached notation/work remains usable.
@@ -558,7 +558,7 @@ Acceptance requires:
 9. leaving Practice stops audio;
 10. sign-out stops audio;
 11. after online asset/package caching, Safari reload with network disabled can reopen the cached Practice and play it;
-12. VoiceOver can reach Dinle, Duraklat, Baştan, tempo and repeat controls with understandable labels;
+12. VoiceOver can reach Dinle, Duraklat, Baştan and, when teacher permission enables them, tempo and repeat controls with understandable labels;
 13. no raw XML/runtime/provider text is announced.
 
 Merge remains blocked until automated exact-head CI and this physical acceptance pass.
