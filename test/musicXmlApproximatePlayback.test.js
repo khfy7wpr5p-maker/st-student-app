@@ -203,7 +203,7 @@ test("canonicalEvents never influence approximate playback", () => {
 
 
 test("supports chord, backup, and forward polyphony without cursor invention", () => {
-  const xml = score(onePart(\`
+  const xml = score(onePart(`
     <measure number="1">
       <attributes><divisions>1</divisions></attributes>
       <note><pitch><step>C</step><octave>4</octave></pitch><duration>1</duration><voice>1</voice></note>
@@ -214,7 +214,7 @@ test("supports chord, backup, and forward polyphony without cursor invention", (
       <forward><duration>1</duration></forward>
       <note><pitch><step>A</step><octave>4</octave></pitch><duration>1</duration><voice>2</voice></note>
     </measure>
-  \`));
+  `));
 
   const plan = compileApproximateMusicXmlPlayback(pkg(xml), { parser });
 
@@ -236,13 +236,13 @@ test("supports chord, backup, and forward polyphony without cursor invention", (
 });
 
 test("backup cursor underflow fails closed", () => {
-  const xml = score(onePart(\`
+  const xml = score(onePart(`
     <measure number="1">
       <attributes><divisions>1</divisions></attributes>
       <backup><duration>1</duration></backup>
       <note><pitch><step>C</step><octave>4</octave></pitch><duration>1</duration></note>
     </measure>
-  \`));
+  `));
 
   assert.equal(
     compileApproximateMusicXmlPlayback(pkg(xml), { parser }),
@@ -251,14 +251,14 @@ test("backup cursor underflow fails closed", () => {
 });
 
 test("divisions changes are applied in document order", () => {
-  const xml = score(onePart(\`
+  const xml = score(onePart(`
     <measure number="1">
       <attributes><divisions>2</divisions></attributes>
       <note><pitch><step>C</step><octave>4</octave></pitch><duration>2</duration></note>
       <attributes><divisions>4</divisions></attributes>
       <note><pitch><step>D</step><octave>4</octave></pitch><duration>2</duration></note>
     </measure>
-  \`));
+  `));
 
   const plan = compileApproximateMusicXmlPlayback(pkg(xml), { parser });
   assert.deepEqual(
@@ -268,7 +268,7 @@ test("divisions changes are applied in document order", () => {
 });
 
 test("merges contiguous tie chains by part, voice, and sounding pitch", () => {
-  const xml = score(onePart(\`
+  const xml = score(onePart(`
     <measure number="1">
       <attributes><divisions>1</divisions></attributes>
       <note>
@@ -282,7 +282,7 @@ test("merges contiguous tie chains by part, voice, and sounding pitch", () => {
         <duration>1</duration><voice>1</voice><tie type="stop"/>
       </note>
     </measure>
-  \`));
+  `));
 
   const plan = compileApproximateMusicXmlPlayback(pkg(xml), { parser });
 
@@ -295,7 +295,7 @@ test("merges contiguous tie chains by part, voice, and sounding pitch", () => {
 });
 
 test("unmatched tie stop is a normal note and dangling start keeps explicit duration", () => {
-  const unmatched = score(onePart(\`
+  const unmatched = score(onePart(`
     <measure number="1">
       <attributes><divisions>1</divisions></attributes>
       <note>
@@ -303,8 +303,8 @@ test("unmatched tie stop is a normal note and dangling start keeps explicit dura
         <duration>1</duration><tie type="stop"/>
       </note>
     </measure>
-  \`));
-  const dangling = score(onePart(\`
+  `));
+  const dangling = score(onePart(`
     <measure number="1">
       <attributes><divisions>1</divisions></attributes>
       <note>
@@ -312,7 +312,7 @@ test("unmatched tie stop is a normal note and dangling start keeps explicit dura
         <duration>2</duration><tie type="start"/>
       </note>
     </measure>
-  \`));
+  `));
 
   assert.deepEqual(
     compileApproximateMusicXmlPlayback(pkg(unmatched), { parser }).notes
@@ -327,7 +327,7 @@ test("unmatched tie stop is a normal note and dangling start keeps explicit dura
 });
 
 test("applies chromatic and octave transposition to sounding MIDI", () => {
-  const xml = score(onePart(\`
+  const xml = score(onePart(`
     <measure number="1">
       <attributes>
         <divisions>1</divisions>
@@ -338,14 +338,14 @@ test("applies chromatic and octave transposition to sounding MIDI", () => {
       </attributes>
       <note><pitch><step>C</step><octave>4</octave></pitch><duration>1</duration></note>
     </measure>
-  \`));
+  `));
 
   const plan = compileApproximateMusicXmlPlayback(pkg(xml), { parser });
   assert.deepEqual(plan.notes.map(({ midi }) => midi), [74]);
 });
 
 test("teacher practice tempo scales supported MusicXML tempo map proportionally", () => {
-  const xml = score(onePart(\`
+  const xml = score(onePart(`
     <measure number="1">
       <attributes><divisions>1</divisions></attributes>
       <direction><sound tempo="100"/></direction>
@@ -353,7 +353,7 @@ test("teacher practice tempo scales supported MusicXML tempo map proportionally"
       <direction><sound tempo="150"/></direction>
       <note><pitch><step>D</step><octave>4</octave></pitch><duration>2</duration></note>
     </measure>
-  \`));
+  `));
 
   const plan = compileApproximateMusicXmlPlayback(
     {
@@ -371,13 +371,13 @@ test("teacher practice tempo scales supported MusicXML tempo map proportionally"
 });
 
 test("first supported MusicXML tempo is reference when teacher tempo is absent", () => {
-  const xml = score(onePart(\`
+  const xml = score(onePart(`
     <measure number="1">
       <attributes><divisions>1</divisions></attributes>
       <direction><sound tempo="90"/></direction>
       <note><pitch><step>C</step><octave>4</octave></pitch><duration>1</duration></note>
     </measure>
-  \`));
+  `));
 
   const plan = compileApproximateMusicXmlPlayback(pkg(xml), { parser });
   assert.equal(plan.referenceTempoBpm, 90);
@@ -385,7 +385,7 @@ test("first supported MusicXML tempo is reference when teacher tempo is absent",
 });
 
 test("invalid tempo metadata is ignored and duplicate beat uses last supported value", () => {
-  const xml = score(onePart(\`
+  const xml = score(onePart(`
     <measure number="1">
       <attributes><divisions>1</divisions></attributes>
       <direction><sound tempo="-1"/></direction>
@@ -393,7 +393,7 @@ test("invalid tempo metadata is ignored and duplicate beat uses last supported v
       <direction><sound tempo="110"/></direction>
       <note><pitch><step>C</step><octave>4</octave></pitch><duration>1</duration></note>
     </measure>
-  \`));
+  `));
 
   const plan = compileApproximateMusicXmlPlayback(pkg(xml), { parser });
   assert.equal(plan.referenceTempoBpm, 100);
@@ -401,7 +401,7 @@ test("invalid tempo metadata is ignored and duplicate beat uses last supported v
 });
 
 test("explicit duration/divisions preserves tuplet performed length", () => {
-  const xml = score(onePart(\`
+  const xml = score(onePart(`
     <measure number="1">
       <attributes><divisions>3</divisions></attributes>
       <note>
@@ -410,20 +410,20 @@ test("explicit duration/divisions preserves tuplet performed length", () => {
         <time-modification><actual-notes>3</actual-notes><normal-notes>2</normal-notes></time-modification>
       </note>
     </measure>
-  \`));
+  `));
 
   const plan = compileApproximateMusicXmlPlayback(pkg(xml), { parser });
   assert.equal(plan.notes[0].durationBeats, 1 / 3);
 });
 
 test("grace without explicit supported duration is ignored without invented time", () => {
-  const xml = score(onePart(\`
+  const xml = score(onePart(`
     <measure number="1">
       <attributes><divisions>1</divisions></attributes>
       <note><grace/><pitch><step>D</step><octave>4</octave></pitch></note>
       <note><pitch><step>C</step><octave>4</octave></pitch><duration>1</duration></note>
     </measure>
-  \`));
+  `));
 
   const plan = compileApproximateMusicXmlPlayback(pkg(xml), { parser });
   assert.deepEqual(
@@ -435,7 +435,7 @@ test("grace without explicit supported duration is ignored without invented time
 });
 
 test("ornament, pedal, and repeat metadata do not invent playback jumps", () => {
-  const xml = score(onePart(\`
+  const xml = score(onePart(`
     <measure number="1">
       <attributes><divisions>1</divisions></attributes>
       <direction><direction-type><pedal type="start"/></direction-type></direction>
@@ -445,7 +445,7 @@ test("ornament, pedal, and repeat metadata do not invent playback jumps", () => 
         <notations><ornaments><trill-mark/></ornaments></notations>
       </note>
     </measure>
-  \`));
+  `));
 
   const plan = compileApproximateMusicXmlPlayback(pkg(xml), { parser });
   assert.deepEqual(plan.notes.map(({ startBeat, midi }) => [startBeat, midi]), [
@@ -455,7 +455,7 @@ test("ornament, pedal, and repeat metadata do not invent playback jumps", () => 
 });
 
 test("measure count above hard limit fails closed", () => {
-  const measure = \`<measure><attributes><divisions>1</divisions></attributes><note><rest/><duration>1</duration></note></measure>\`;
+  const measure = `<measure><attributes><divisions>1</divisions></attributes><note><rest/><duration>1</duration></note></measure>`;
   const xml = score(onePart(measure.repeat(10_001)));
 
   assert.equal(
