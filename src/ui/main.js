@@ -9,6 +9,7 @@ import { mountStudentApp } from "./mountStudentApp.js";
 const root = document.querySelector("#app");
 const notationRuntimeLoader = createNotationRuntimeLoader({
   bootstrapUrl: "./vendor/st-score-runtime/browser-bootstrap.mjs",
+  vendorUrl: "./vendor/st-score-runtime/vendor/opensheetmusicdisplay.min.js",
 });
 const notationAdapter = createStNotationAdapter({ runtimeLoader: notationRuntimeLoader });
 const firebaseRuntime = createFirebaseBrowserRuntime();
