@@ -415,3 +415,20 @@ test("measure repeat cannot enable without validated measure ranges", async () =
     /measure repeat unavailable/,
   );
 });
+
+
+test("engine reports unsupported without creating AudioContext when constructor boundary is absent", () => {
+  let created = 0;
+  const engine = createWebAudioPianoEngine({
+    audioContextFactory() {
+      created += 1;
+      return makeAudioContext();
+    },
+    audioContextSupported: false,
+    sampleBank: makeSampleBank(),
+    clock: makeClock(),
+  });
+
+  assert.equal(engine.isSupported(), false);
+  assert.equal(created, 0);
+});
