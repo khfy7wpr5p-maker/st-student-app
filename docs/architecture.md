@@ -44,7 +44,7 @@ Grup, mesajlaşma, puanlama, sosyal profil ve ödeme sistemi v1 kapsamı dışı
 - Yeni revizyon yeniden onaylanmadan öğrenciye yayınlanamaz.
 - Student App paketi salt-okunur tüketir.
 - OMR çalışma verisi, editor state, debug çıktıları ve öğretmen kontrol alanları pakete girmez.
-- Canonical müzik olayları downstream nota/ritim/playback tüketicileri için ortak kaynak olarak taşınır.
+- Canonical müzik olayları downstream nota/ritim tüketicileri için ortak kaynak olarak taşınır. Practice Package v1 `canonicalEvents` alanı güvenilir onset/duration playback şeması tanımlamadığı için STUDENT-07B timing bu alandan türetilmez.
 - MusicXML öğrenciye dosya arayüzü olarak gösterilmez; score render girdisi olarak paket içinde bulunabilir.
 
 ## 6. Offline-first
@@ -282,7 +282,7 @@ STUDENT-04 aşamasında renderer runtime asset graph'ı henüz Student App'e ba�
 - load order: vendor OSMD global -> ST browser bootstrap -> `st-score-render-host-ready`
 - `#st-score-root`, runtime bootstrap yüklenmeden önce Practice DOM içinde mevcut olmalıdır.
 
-Student App doğrudan OSMD nesnelerini ürün sözleşmesi yapmaz. Runtime CDN'den alınmaz. Service Worker yalnız bu static runtime graph'ını app shell ile cache'ler; private Practice Package hiçbir zaman Cache Storage'a taşınmaz.
+Student App doğrudan OSMD nesnelerini ürün sözleşmesi yapmaz. Runtime CDN'den alınmaz. Service Worker v4 notation ve playback modül graph'ını app shell ile cache'ler; piano manifest/license/notices ve 12 yerel WAV asset'i ayrı best-effort static listede tutulur. Private Practice Package hiçbir zaman Cache Storage'a taşınmaz.
 
 ### Playback ve practice kontrolleri
 
@@ -356,17 +356,16 @@ Playback/practice port çağrısı hata verirse yalnız ilgili capability `ERROR
 
 Feature branch: `feat/student-07b-hybrid-playback`.
 
-- Task 1–9: doğrulanmış.
-- Son tamamen green checkpoint: `54b25d897ea1acec96f9855a660c5271a668c8fc`, CI #304, 284/284 PASS.
-- Current code checkpoint: `38f6039e0cbacab2b6629c1110707d9b1eee649c`.
-- Current CI #309: 297 test, 296 PASS, 1 FAIL.
-- Failing test: `APPROXIMATE playback renders bounded quality and teacher-gated controls`.
-
-Task 10'un safe state projection ve controller lifecycle değişiklikleri branch'te bulunmaktadır; current renderer hâlâ üç UI düzeltmesini tamamlamamıştır: `APPROXIMATE` için “Yaklaşık çalma” etiketi, tempo input `min=20/max=300`, repeat checkbox'ın `measureRepeatEnabled` state'ini `checked` olarak yansıtması. İlk assertion failure “Yaklaşık çalma” etiketidir; diğer iki renderer beklentisi aynı test içinde sonraki assertion'larda doğrulanacaktır.
-
-Task 11 tamamlanmadan default browser `main.js` playback port inject etmez ve Service Worker piano runtime graph'ını cache'lemez. Bu nedenle core playback modüllerinin varlığı browser ürününde playback'in hazır olduğu anlamına gelmez.
-
-Task 12–14 tamamlanmadan production-ready/merge-ready iddiası yapılmaz. Özellikle exact-head CI, independent verification ve fiziksel iPhone/Safari/VoiceOver + offline audio acceptance merge gate'idir.
+- Task 1–12: exact-head CI ile doğrulanmıştır.
+- Task 10 GREEN: `ceabfb1ec3a660166fd3260df7ce6a53db7893ac`, CI #311, 297/297 PASS.
+- Task 11 GREEN: `0613f4b5d3a10ca478e085620d0c4147f2d47fcd`, CI #322, 302/302 PASS.
+- Task 12 GREEN: `3a53ff08dbcd62ae0ccb0da063b4c88fbe319681`, CI #327, 307/307 PASS.
+- Default browser bootstrap resolver + local piano sample bank + lazy Web Audio engine + StudentPlaybackPort'u bağlar. AudioContext yalnız playback etkileşimi gerektiğinde oluşturulur.
+- Service Worker cache adı `st-student-shell-v4`'tür. Yedi playback modülü strict shell cache içindedir; piano manifest/license/notices ve 12 WAV best-effort static cache içindedir.
+- Package switch/navigation/session/sign-out ve mount destroy aktif playback ownership'ini bounded biçimde dispose eder.
+- Playback/sample/tempo/repeat hataları capability-local kalır; MusicXML, generated plan veya provider/sample hata detayı UI state/HTML'e taşınmaz.
+- Task 13 dokümantasyon + temiz ortam otomatik doğrulaması sürmektedir.
+- Task 14 fiziksel iPhone/Safari/VoiceOver, offline audio ve interaction acceptance henüz yapılmamıştır; bu kapı geçmeden merge-ready/production-ready iddiası yapılmaz.
 
 ### TAB ve keman
 
