@@ -1,6 +1,6 @@
 # STUDENT-07A progress — Production Notation Runtime Integration
 
-Status: REPOSITORY IMPLEMENTATION GREEN; PHYSICAL NOTATION ACCEPTANCE PENDING
+Status: REPOSITORY IMPLEMENTATION GREEN; PHYSICAL NOTATION ACCEPTANCE PASS (2026-09-22)
 
 Base:
 - `main`: `06bb110f084dffeb7b72ef93512c7c6db0ea23cf`
@@ -79,14 +79,21 @@ No change was made to:
 
 Playback remains STUDENT-07B work.
 
+## Physical iPhone / Safari notation acceptance
+
+Physical acceptance was completed on 2026-09-22 against the STUDENT-07A HTTPS preview.
+
+Evidence reported from the iPhone/Safari flow:
+1. Firebase-backed `Test Kişisel Çalışma` opened and the Nota region rendered visible score content — PASS.
+2. After 10–15 seconds, the notation remained visible and did not disappear — PASS.
+3. Portrait/landscape orientation change did not remove the notation — PASS.
+4. Ana Sayfa -> reopen the same Practice rendered the notation again — PASS.
+5. After the work had been cached online, network-off Safari reload/reopen succeeded and notation remained available offline — PASS.
+
+Temporary GitHub Pages preview deployment run `35704756141` completed successfully. The temporary preview workflow was removed from the feature branch after acceptance.
+
 ## Remaining merge gate
 
-Repository CI does not prove physical browser rendering. Before merge, STUDENT-07A still requires physical iPhone/Safari/VoiceOver notation acceptance:
+The automated repository checks and physical notation acceptance have passed. Playback remains separate STUDENT-07B scope and is not a STUDENT-07A blocker.
 
-1. authorized Practice shows visible notation;
-2. VoiceOver exposes the Nota region without raw provider/runtime detail;
-3. status/connectivity repaint and orientation/resize do not make the score disappear;
-4. leave/reopen or package change does not render into a detached root;
-5. after one successful online cache/install cycle, Safari reload can reopen an authorized cached Practice offline with notation available.
-
-PR #7 must remain unmerged until this physical gate passes and explicit human merge approval is given.
+PR #7 must remain unmerged until explicit human merge approval is given.
