@@ -152,3 +152,98 @@ test("configured sign-in renders bounded email and password fields", () => {
   assert.match(html, /autocomplete="current-password"/);
   assert.doesNotMatch(html, /value="[^"]+"/);
 });
+
+
+function playbackPracticeState({
+  quality = "APPROXIMATE",
+  repeat = false,
+} = {}) {
+  return {
+    screen: STUDENT_APP_SCREENS.PRACTICE,
+    session: { studentId: "student-a" },
+    items: [],
+    practice: {
+      publicationId: "pub-play",
+      packageId: "pkg-play",
+      title: "Playback Etüt",
+      playbackQuality: quality,
+      capabilities: {
+        notation: "AVAILABLE",
+        playback: "AVAILABLE",
+        tempoChange: "AVAILABLE",
+        measureRepeat: "AVAILABLE",
+        guitarTab: "UNAVAILABLE",
+        violin: "UNAVAILABLE",
+      },
+      practice: {
+        tempoBpm: 80,
+        measureRepeatEnabled: repeat,
+      },
+    },
+  };
+}
+
+test("APPROXIMATE playback renders bounded quality and teacher-gated controls", () => {
+  const html = renderStudentApp(playbackPracticeState({
+    quality: "APPROXIMATE",
+    repeat: true,
+  }));
+
+  assert.match(
+    html,
+    /<p class="practice-playback-quality">Yaklaşık çalma<\/p>/,
+  );
+  assert.match(html, /data-action="play-practice">Dinle/);
+  assert.match(html, /data-action="pause-practice">Duraklat/);
+  assert.match(html, /data-action="restart-practice">Baştan/);
+  assert.match(html, /min="20"/);
+  assert.match(html, /max="300"/);
+  assert.match(
+    html,
+    /type="checkbox" data-action="set-measure-repeat" checked/,
+  );
+});
+
+test("FULL playback does not render approximate quality claim", () => {
+  const html = renderStudentApp(playbackPracticeState({ quality: "FULL" }));
+
+  assert.doesNotMatch(html, /Yaklaşık çalma/);
+  assert.match(html, /<h2 id="playback-heading">Dinleme<\/h2>/);
+});
+
+test("playback renderer never exposes private plan or provider detail", () => {
+  const state = playbackPracticeState();
+  state.practice.playbackPlan = {
+    notes: [{ midi: 60 }],
+    providerSecret: "do-not-render",
+  };
+  state.practice.musicXml = "<score-partwise>private</score-partwise>";
+
+  const html = renderStudentApp(state);
+
+  assert.doesNotMatch(
+    html,
+    /playbackPlan|providerSecret|do-not-render|score-partwise|private/,
+  );
+});
+
+
+test("playback error presentation never exposes sample, XML, or generated plan detail", () => {
+  const state = playbackPracticeState();
+  state.practice.capabilities.playback = "ERROR";
+  state.practice.playbackError =
+    "piano sample load stale: ./vendor/st-piano/samples/C4.wav";
+  state.practice.playbackPlan = {
+    notes: [{ midi: 60, startBeat: 0, durationBeats: 1 }],
+  };
+  state.practice.musicXml =
+    "<score-partwise><note>private</note></score-partwise>";
+
+  const html = renderStudentApp(state);
+
+  assert.match(html, /Dinleme kullanılamadı/);
+  assert.doesNotMatch(
+    html,
+    /sample load stale|vendor\/st-piano|C4\.wav|score-partwise|startBeat|durationBeats|midi/,
+  );
+});

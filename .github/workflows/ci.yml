@@ -22,3 +22,9 @@ jobs:
         run: npm ci
       - name: Run contract tests
         run: npm test
+      - name: Verify deterministic piano bank
+        run: |
+          node scripts/generate-st-piano-bank.mjs
+          git diff --exit-code -- vendor/st-piano
+      - name: Check whitespace
+        run: git diff --check

@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "generator": "scripts/generate-st-piano-bank.mjs",
+  "format": "audio/wav; codecs=1",
+  "sampleRate": 44100,
+  "channels": 1,
+  "bitsPerSample": 16,
+  "durationFrames": 110250,
+  "samples": [
+    {
+      "midi": 60,
+      "file": "samples/C4.wav",
+      "bytes": 220544,
+      "sha256": "01ba6567457396c13379c8485db98cdbe2e38eaad776c670bc65b240c1d2e2f4"
+    },
+    {
+      "midi": 61,
+      "file": "samples/Cs4.wav",
+      "bytes": 220544,
+      "sha256": "3e0cc1c55133b1ee696e9e87cc4f0027841f26f5bd6d77c3c49e5a3f8d31976b"
+    },
+    {
+      "midi": 62,
+      "file": "samples/D4.wav",
+      "bytes": 220544,
+      "sha256": "bc77b9fd8cf51b928efaa67fb43357442ee82cf4f01ebf0d0e0c82dd0ba98aa1"
+    },
+    {
+      "midi": 63,
+      "file": "samples/Ds4.wav",
+      "bytes": 220544,
+      "sha256": "8476235df30636fbf378604f58fc40488bd4fddd061c480a37e60cf4f024daec"
+    },
+    {
+      "midi": 64,
+      "file": "samples/E4.wav",
+      "bytes": 220544,
+      "sha256": "5d6dd4ac82238fab1fbb49b56e81a75e12d73c4fee14a5fb48ef06a1add09053"
+    },
+    {
+      "midi": 65,
+      "file": "samples/F4.wav",
+      "bytes": 220544,
+      "sha256": "dc973b736b7a1a5e433425cbf00cd63ce8a418c731010f61e437b379dfa96d9b"
+    },
+    {
+      "midi": 66,
+      "file": "samples/Fs4.wav",
+      "bytes": 220544,
+      "sha256": "ca655271d38411c61e9d4ba680087da686a66dca448cbecb585ef4d7b90746c2"
+    },
+    {
+      "midi": 67,
+      "file": "samples/G4.wav",
+      "bytes": 220544,
+      "sha256": "44c87187259ad12dfad3e9578e49bf050c3163fd10879e52dd33215eab85dce9"
+    },
+    {
+      "midi": 68,
+      "file": "samples/Gs4.wav",
+      "bytes": 220544,
+      "sha256": "8c5c81332cef8c35f12d0f77eae32af91795503900346c5e9b3b699aa1b3df0c"
+    },
+    {
+      "midi": 69,
+      "file": "samples/A4.wav",
+      "bytes": 220544,
+      "sha256": "01b700a56db19e5414b1549335e336c122ba927d71a26074d4a7d9d1b138fbbb"
+    },
+    {
+      "midi": 70,
+      "file": "samples/As4.wav",
+      "bytes": 220544,
+      "sha256": "9eeb791e5b185e1a7dd04f6d249c75e48ebeb88149bd6f93fe989be389d4d6c6"
+    },
+    {
+      "midi": 71,
+      "file": "samples/B4.wav",
+      "bytes": 220544,
+      "sha256": "caf42defd453fca2a0a1b702cc7dcc8c8f62e75c454d6788d561c00af924408b"
+    }
+  ]
+}

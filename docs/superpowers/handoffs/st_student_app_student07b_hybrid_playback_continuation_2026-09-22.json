@@ -1,0 +1,224 @@
+{
+  "artifact": {
+    "type": "autonomous_developer_continuation_handoff",
+    "schema_version": "1.0",
+    "created_at": "2026-09-22",
+    "project": "ST Student App",
+    "stage": "STUDENT-07B Hybrid Playback Runtime",
+    "repository": "khfy7wpr5p-maker/st-student-app",
+    "branch": "feat/student-07b-hybrid-playback",
+    "code_checkpoint_sha": "38f6039e0cbacab2b6629c1110707d9b1eee649c",
+    "supersedes_for_next_work": "STUDENT-07 Runtime Integration handoff only for the current STUDENT-07B continuation"
+  },
+  "product_intent": {
+    "summary": "Keep ST Student App small, read-only, accessible and offline-capable for teacher-approved SesliTab practice packages. STUDENT-07B adds bounded student playback without moving teacher authority, OMR, editing or canonical-source mutation into the Student App.",
+    "authority_chain": [
+      "Teacher App",
+      "teacher_approved immutable revision",
+      "Sharing Layer",
+      "Practice Package v1",
+      "ST Student App",
+      "IndexedDB private offline Practice Package cache"
+    ],
+    "non_goals": [
+      "OMR",
+      "score editing",
+      "teacher approval creation",
+      "canonical-source mutation",
+      "social/gamification",
+      "microphone/MIDI recording",
+      "background playback",
+      "instrument-specific timbre in STUDENT-07B"
+    ]
+  },
+  "superpowers_execution": {
+    "required_skills": [
+      "superpowers:executing-plans",
+      "superpowers:test-driven-development",
+      "superpowers:systematic-debugging when any test or runtime behavior is unexpected",
+      "superpowers:verification-before-completion",
+      "superpowers:requesting-code-review before merge"
+    ],
+    "approved_plan": "docs/superpowers/plans/2026-09-22-student-07b-hybrid-playback.md",
+    "approved_spec": "docs/superpowers/specs/2026-09-22-student-07b-hybrid-playback-design.md",
+    "progress_ledger": "docs/superpowers/progress/2026-09-22-student-07b-hybrid-playback.md",
+    "method": "Native/TDD continuation on the existing feature branch; do not restart completed tasks."
+  },
+  "architecture_invariants": {
+    "canonical_events_timing": "Never infer playback timing from content.canonicalEvents.",
+    "qualities": {
+      "FULL": "Only a validated plan from an explicitly trusted timing provider may be labeled FULL.",
+      "APPROXIMATE": "Supported score-partwise MusicXML compiles to a bounded approximate PlaybackPlan. This is the default route."
+    },
+    "piano_bank": {
+      "meaning": "12 local samples represent the 12 chromatic pitch classes C through B, not a 12-voice polyphony limit.",
+      "files": "vendor/st-piano/samples/C4.wav through B4.wav",
+      "sample_rate_hz": 44100,
+      "duration_seconds_each": 2.5,
+      "encoding": "mono PCM16 WAV",
+      "total_wav_bytes": 2646528,
+      "third_party_audio": false,
+      "octave_mapping": "playbackRate = 2 ** ((midi - referenceMidi) / 12)",
+      "timbre_policy": "Every part/voice uses the same piano sound family for STUDENT-07B."
+    },
+    "playback_failure_isolation": "Playback, tempo and measure-repeat errors remain capability-local and must not disable notation or expose raw provider/XML detail.",
+    "storage": "Private Practice Packages remain IndexedDB-owned. Cache Storage is static shell/runtime only.",
+    "rendering_layer": "ST Score Rendering Layer remains notation presentation authority only; no cross-repo source change is authorized by this handoff."
+  },
+  "verified_completed_work": {
+    "task_1": {
+      "status": "complete",
+      "green_ci": "#274",
+      "tests": "225/225 PASS"
+    },
+    "task_2": {
+      "status": "complete",
+      "green_ci": "#279",
+      "tests": "233/233 PASS"
+    },
+    "task_3": {
+      "status": "complete",
+      "green_ci": "#283",
+      "tests": "246/246 PASS"
+    },
+    "task_4": {
+      "status": "complete",
+      "green_ci": "#286",
+      "tests": "254/254 PASS"
+    },
+    "task_5": {
+      "status": "complete",
+      "green_ci": "#289",
+      "tests": "258/258 PASS"
+    },
+    "task_6": {
+      "status": "complete",
+      "green_ci": "#292",
+      "tests": "263/263 PASS"
+    },
+    "task_7": {
+      "status": "complete",
+      "green_ci": "#296",
+      "tests": "270/270 PASS"
+    },
+    "task_8": {
+      "status": "complete",
+      "green_ci": "#300",
+      "tests": "276/276 PASS"
+    },
+    "task_9": {
+      "status": "complete",
+      "green_ci": "#303",
+      "tests": "284/284 PASS"
+    },
+    "last_fully_green_checkpoint": {
+      "sha": "54b25d897ea1acec96f9855a660c5271a668c8fc",
+      "ci_run": 35718048452,
+      "run_number": 304,
+      "tests": 284,
+      "pass": 284,
+      "fail": 0
+    }
+  },
+  "current_state": {
+    "task": "Task 10 — Practice Capability, Controller Lifecycle, and Safe UI Metadata",
+    "status": "IN_PROGRESS_NOT_GREEN",
+    "code_checkpoint_sha": "38f6039e0cbacab2b6629c1110707d9b1eee649c",
+    "current_ci": {
+      "run_id": 35718393456,
+      "run_number": 309,
+      "status": "completed",
+      "conclusion": "failure",
+      "tests": 297,
+      "pass": 296,
+      "fail": 1,
+      "failing_test": "APPROXIMATE playback renders bounded quality and teacher-gated controls"
+    },
+    "already_present": [
+      "safe playbackQuality/referenceTempo projection in src/practice/practiceWorkspace.js",
+      "frozen practice tempo and measureRepeatEnabled UI state helpers",
+      "controller best-effort playback dispose on navigation/session/sign-out/package replacement",
+      "controller tempo range validation 20..300 BPM",
+      "async tempo/repeat state updates only after successful delegation",
+      "Task 10 tests for data minimization and lifecycle"
+    ],
+    "exact_renderer_gaps": [
+      "Render <p class=\"practice-playback-quality\">Yaklaşık çalma</p> only when practice.playbackQuality === \"APPROXIMATE\".",
+      "Keep FULL playback free of the approximate-quality label.",
+      "Change Practice tempo input from min=\"1\" to min=\"20\" and add max=\"300\".",
+      "Render the measure-repeat checkbox with checked when practice.practice.measureRepeatEnabled === true, and unchecked otherwise.",
+      "Preserve existing bounded unavailable/error copy and never render playback plan, MusicXML or provider details."
+    ],
+    "caution": "The current single failure stops at the first missing approximate label assertion. The tempo min/max and checked-state assertions are in the same test and may surface only after the first assertion is fixed."
+  },
+  "continuation_sequence": [
+    {
+      "order": 1,
+      "task": "Finish Task 10 with strict TDD",
+      "steps": [
+        "Fresh-read current feature branch and approved Task 10 plan section.",
+        "Run/fetch the current RED evidence; do not rewrite the already-correct safe-state/controller work.",
+        "Modify only the minimum renderer/state code required for the existing RED assertions.",
+        "Run focused render/controller/workspace tests.",
+        "Run full npm test and require 0 failures.",
+        "Update the progress ledger with exact RED/GREEN SHA and CI run."
+      ],
+      "stop_condition": "Do not proceed to Task 11 until Task 10 exact-head CI is green."
+    },
+    {
+      "order": 2,
+      "task": "Task 11 — Browser bootstrap, mount destroy, and offline static cache",
+      "steps": [
+        "Wire createPlaybackPlanResolver + createPianoSampleBank + createWebAudioPianoEngine + createStudentPlaybackPort into src/ui/main.js.",
+        "Create AudioContext lazily only after explicit play interaction.",
+        "Add mount destroy playback teardown through the controller-owned clearActivePractice path.",
+        "Bump Service Worker static shell cache to v4 and explicitly cache playback modules, manifest, license/notices and exactly 12 WAV files.",
+        "Never cache private Practice Package payload in Cache Storage.",
+        "Write RED first, then GREEN, focused tests, full suite and exact-head CI."
+      ]
+    },
+    {
+      "order": 3,
+      "task": "Task 12 — Integrated failure behavior/security regression",
+      "steps": [
+        "Pin unsupported MusicXML -> playback UNAVAILABLE while notation stays AVAILABLE.",
+        "Pin sample decode/offline missing sample -> playback-only ERROR.",
+        "Pin tempo/repeat failure isolation.",
+        "Prove no raw XML/plan/provider text enters state or HTML.",
+        "Run full suite and grep for forbidden canonicalEvents timing inference, external audio URLs, Tone.js or alphaTab playback coupling."
+      ]
+    },
+    {
+      "order": 4,
+      "task": "Task 13 — Documentation and exact-head verification",
+      "steps": [
+        "Reconcile README.md and docs/architecture.md with shipped branch reality, removing temporary WIP wording only after implementation is actually complete.",
+        "Run npm ci, npm test, deterministic piano-bank regeneration/diff check and git diff --check.",
+        "Run independent Codex Engineering Guardrails/code-verification against the complete branch.",
+        "Create one bounded PR and require exact-head CI."
+      ]
+    },
+    {
+      "order": 5,
+      "task": "Task 14 — Physical iPhone/Safari/VoiceOver acceptance",
+      "steps": [
+        "Only after explicit human authorization, create temporary HTTPS preview if needed.",
+        "Test play/pause/resume/restart, tempo without pitch shift, captured-measure repeat, Home/sign-out teardown, orientation, offline cached playback and VoiceOver control traversal.",
+        "Record PASS/FAIL item-by-item; skipped is not PASS.",
+        "Remove temporary preview workflow/policy before merge.",
+        "Run fresh exact-head CI after cleanup.",
+        "STOP before merge and report exact SHA, CI counts, physical acceptance and independent verification."
+      ]
+    }
+  ],
+  "not_authorized_without_explicit_human_approval": [
+    "merge",
+    "production deploy or production/default cutover",
+    "GitHub Pages/environment policy mutation",
+    "Firebase Security Rules or live Firestore writes",
+    "billing/credential/secret changes",
+    "cross-repository source writes",
+    "force push or destructive history rewrite"
+  ],
+  "developer_prompt": "Continue STUDENT-07B on khfy7wpr5p-maker/st-student-app branch feat/student-07b-hybrid-playback from the fresh current head. Do not restart Tasks 1–9. Read the approved spec, plan, progress ledger, README and architecture first. The code checkpoint before this handoff is 38f6039e0cbacab2b6629c1110707d9b1eee649c. CI #309 is intentionally not green: 297 tests, 296 pass, 1 fail in `APPROXIMATE playback renders bounded quality and teacher-gated controls`. Finish Task 10 first using TDD. Inspect `src/ui/renderPracticeWorkspace.js` against `test/renderStudentApp.test.js`: add the approximate-quality label only for APPROXIMATE, set tempo input bounds to 20–300, and bind repeat checkbox checked-state from the safe view-model while preserving data minimization and failure isolation. Run focused tests, then the full suite; do not call Task 10 complete until exact-head CI is 0-fail. Then execute Tasks 11–14 exactly in the approved plan: browser playback bootstrap and static offline cache, integrated failure/security regression, final documentation/exact-head independent verification, then physical iPhone/Safari/VoiceOver acceptance. Never infer timing from canonicalEvents. The 12-file piano bank means 12 chromatic pitch-class samples, not a 12-voice limit. Do not merge, deploy, change Pages/environment/Firebase security, write another repository, or alter credentials/billing without explicit human approval. Maintain the progress ledger with exact RED/GREEN SHA and CI evidence. Stop before merge and hand back exact verification evidence."
+}

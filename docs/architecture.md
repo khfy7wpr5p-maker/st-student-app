@@ -44,7 +44,7 @@ Grup, mesajlaşma, puanlama, sosyal profil ve ödeme sistemi v1 kapsamı dışı
 - Yeni revizyon yeniden onaylanmadan öğrenciye yayınlanamaz.
 - Student App paketi salt-okunur tüketir.
 - OMR çalışma verisi, editor state, debug çıktıları ve öğretmen kontrol alanları pakete girmez.
-- Canonical müzik olayları downstream nota/ritim/playback tüketicileri için ortak kaynak olarak taşınır.
+- Canonical müzik olayları downstream nota/ritim tüketicileri için ortak kaynak olarak taşınır. Practice Package v1 `canonicalEvents` alanı güvenilir onset/duration playback şeması tanımlamadığı için STUDENT-07B timing bu alandan türetilmez.
 - MusicXML öğrenciye dosya arayüzü olarak gösterilmez; score render girdisi olarak paket içinde bulunabilir.
 
 ## 6. Offline-first
@@ -282,22 +282,55 @@ STUDENT-04 aşamasında renderer runtime asset graph'ı henüz Student App'e ba�
 - load order: vendor OSMD global -> ST browser bootstrap -> `st-score-render-host-ready`
 - `#st-score-root`, runtime bootstrap yüklenmeden önce Practice DOM içinde mevcut olmalıdır.
 
-Student App doğrudan OSMD nesnelerini ürün sözleşmesi yapmaz. Runtime CDN'den alınmaz. Service Worker yalnız bu static runtime graph'ını app shell ile cache'ler; private Practice Package hiçbir zaman Cache Storage'a taşınmaz.
+Student App doğrudan OSMD nesnelerini ürün sözleşmesi yapmaz. Runtime CDN'den alınmaz. Service Worker v4 notation ve playback modül graph'ını app shell ile cache'ler; piano manifest/license/notices ve 12 yerel WAV asset'i ayrı best-effort static listede tutulur. Private Practice Package hiçbir zaman Cache Storage'a taşınmaz.
 
 ### Playback ve practice kontrolleri
 
-ST Score Rendering Layer playback motoru değildir.
+ST Score Rendering Layer playback motoru değildir. STUDENT-07B playback authority'si Student App içindeki ayrı bir playback katmanıdır.
 
-Practice Package v1 şu anda `canonicalEvents: array<object>` taşır fakat güvenilir onset/duration playback şeması tanımlamaz. Student App bu veriden timing tahmin etmez.
+Practice Package v1 hâlâ `canonicalEvents: array<object>` taşır fakat güvenilir onset/duration playback şeması tanımlamaz. Student App bu alandan timing tahmin etmez. Playback timing yalnız iki kaynaktan gelebilir:
 
-Default bootstrap trusted playback port inject etmez; bu nedenle playback `UNAVAILABLE` olur.
+1. exact package kimliğine bağlı, doğrulanmış trusted `FULL PlaybackPlan`;
+2. desteklenen `score-partwise` MusicXML'den bounded derlenen `APPROXIMATE PlaybackPlan`.
 
-Bir gelecekteki trusted playback port playback'i ancak şu gerçek metodları sağladığında AVAILABLE yapabilir:
+Default STUDENT-07B route `APPROXIMATE`'tır. Trusted provider açıkça geçerli `FULL` plan döndürmedikçe `FULL` iddiası yapılmaz. Invalid/non-null trusted sonuç veya provider error fail-closed davranır; sessizce approximate'a düşülmez.
+
+STUDENT-07B feature branch'inde şu çekirdek katmanlar uygulanmıştır:
+
+- `src/playback/playbackPlan.js`: immutable plan sözleşmesi, quality, note/measure bounds.
+- `src/playback/musicXmlPlaybackDom.js`: namespace-agnostic MusicXML DOM yardımcıları.
+- `src/playback/musicXmlApproximatePlayback.js`: bounded approximate compiler.
+- `src/playback/playbackPlanResolver.js`: trusted FULL precedence + explicit-null approximate fallback.
+- `src/playback/pianoSampleBank.js`: same-origin 12-note chromatic piano bank manifest/loader.
+- `src/playback/webAudioPianoEngine.js`: Web Audio scheduler, pause/resume/restart, tempo ve current-measure repeat.
+- `src/playback/studentPlaybackPort.js`: Practice Workspace'in existing playback port yüzeyi üzerinde resolver + engine birleşimi.
+
+Approximate compiler mevcut kapsamda chord, `backup/forward` polifonisi, tie merge, divisions, part transposition, numeric tempo map ve multi-part global measure alignment davranışlarını bounded biçimde işler. `score-timewise`, oversized XML, malformed timing cursor veya unsupported/unsafe materyal fail-closed olur. D.C./D.S./volta/repeat navigation, percussion ve ornament execution için kesinlik iddiası yapılmaz.
+
+### Piyano ses bankası
+
+Playback asset'leri `vendor/st-piano/` altındadır. Banka:
+
+- 12 deterministik, repository-generated mono PCM16 WAV dosyası taşır;
+- C4–B4 arasındaki 12 kromatik perde sınıfını temsil eder;
+- 44.1 kHz, 2.5 saniye/sample'dır;
+- toplam WAV payload'u 2,646,528 byte'dır;
+- üçüncü taraf ses kaydı içermez;
+- SHA-256 ve byte-length provenance bilgilerini `runtime-manifest.json` içinde taşır.
+
+Bu mimari 12-note sample bank kullanır; polyphony'yi 12 simultaneous voice ile sınırlamaz. MIDI perde sınıfı C–B referans sample'ına eşlenir, oktav farkı `playbackRate = 2 ** ((midi - referenceMidi) / 12)` ile uygulanır. STUDENT-07B'de bütün part/voice'lar şimdilik aynı piyano sound family'sini kullanır.
+
+### Playback kontrol sözleşmesi
+
+Practice playback AVAILABLE olmak için validated plan + supported audio engine gerekir. Public Practice port yüzeyi:
 
 - `canPlayPackage`
 - `playPackage`
 - `pausePackage`
 - `restartPackage`
+- `getPlaybackQualityForPackage`
+- `getReferenceTempoForPackage`
+- `disposePackage`
 
 Tempo değişikliği ayrıca:
 
@@ -305,7 +338,7 @@ Tempo değişikliği ayrıca:
 - `canChangeTempoForPackage`,
 - `setTempoForPackage`
 
-gerektirir.
+gerektirir ve STUDENT-07B range'i 20–300 BPM'dir.
 
 Ölçü tekrarı ayrıca:
 
@@ -313,11 +346,26 @@ gerektirir.
 - `canRepeatMeasureForPackage`,
 - `setMeasureRepeatEnabledForPackage`
 
-gerektirir.
+gerektirir. Repeat current-measure domain'ini enable anında capture eder.
 
-Bu port package timing'inin gerçek otoritesidir; Student App canonicalEvents yapısını tahmin etmez.
+Package switch, Home/Public Pool/My Work navigation, session change ve sign-out eski playback ownership'ini best-effort dispose eder. Slow sample load completion generation token ile stale hale getirilir; eski package gecikmiş async completion'dan ses başlatamaz.
 
-Trusted playback/practice port çağrısı runtime sırasında hata verirse yalnız ilgili capability `ERROR` durumuna geçirilir: playback hatası notation'ı değiştirmez; tempo hatası playback'i değiştirmez; measure-repeat hatası playback'i değiştirmez. Raw backend exception state/HTML içine yazılmaz ve shell yalnız bounded öğrenci mesajı gösterir.
+Playback/practice port çağrısı hata verirse yalnız ilgili capability `ERROR` durumuna geçirilir: playback hatası notation'ı değiştirmez; tempo hatası playback'i değiştirmez; measure-repeat hatası playback'i değiştirmez. Raw backend exception state/HTML içine yazılmaz.
+
+### Mevcut STUDENT-07B checkpoint
+
+Feature branch: `feat/student-07b-hybrid-playback`.
+
+- Task 1–13: otomatik geliştirme ve verification kapsamı tamamlanmıştır.
+- Task 10 GREEN: `ceabfb1ec3a660166fd3260df7ce6a53db7893ac`, CI #311, 297/297 PASS.
+- Task 11 GREEN: `0613f4b5d3a10ca478e085620d0c4147f2d47fcd`, CI #322, 302/302 PASS.
+- Task 12 GREEN: `3a53ff08dbcd62ae0ccb0da063b4c88fbe319681`, CI #327, 307/307 PASS.
+- Default browser bootstrap resolver + local piano sample bank + lazy Web Audio engine + StudentPlaybackPort'u bağlar. AudioContext yalnız playback etkileşimi gerektiğinde oluşturulur.
+- Service Worker cache adı `st-student-shell-v4`'tür. Yedi playback modülü strict shell cache içindedir; piano manifest/license/notices ve 12 WAV best-effort static cache içindedir.
+- Package switch/navigation/session/sign-out ve mount destroy aktif playback ownership'ini bounded biçimde dispose eder.
+- Playback/sample/tempo/repeat hataları capability-local kalır; MusicXML, generated plan veya provider/sample hata detayı UI state/HTML'e taşınmaz.
+- Task 13 automated verification code head: `9d7efe310ae0109454261d5c1d69d4f619aa27ad`; CI #338, 312/312 PASS. CI ayrıca `npm ci`, deterministik piano-bank regeneration + zero diff ve `git diff --check` çalıştırmıştır. Bağımsız Codex Engineering Guardrails review; spec/plan uyumu, parser/timing bounds, Web Audio lifecycle/race davranışı, authority/data-minimization, offline asset seti ve generated-audio provenance sınırlarında yeni material defect bulmamıştır.
+- Task 14 fiziksel iPhone/Safari/VoiceOver, offline audio ve interaction acceptance henüz yapılmamıştır; bu kapı geçmeden merge-ready/production-ready iddiası yapılmaz.
 
 ### TAB ve keman
 

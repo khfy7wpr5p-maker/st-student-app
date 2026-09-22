@@ -1,4 +1,4 @@
-const CACHE_NAME = "st-student-shell-v3";
+const CACHE_NAME = "st-student-shell-v5";
 
 const FIREBASE_RUNTIME_ASSETS = Object.freeze([
   "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js",
@@ -25,6 +25,13 @@ const SHELL_ASSETS = Object.freeze([
   "./src/ui/escapeHtml.js",
   "./src/practice/notationAdapter.js",
   "./src/practice/notationRuntimeLoader.js",
+  "./src/playback/playbackPlan.js",
+  "./src/playback/musicXmlPlaybackDom.js",
+  "./src/playback/musicXmlApproximatePlayback.js",
+  "./src/playback/playbackPlanResolver.js",
+  "./src/playback/pianoSampleBank.js",
+  "./src/playback/webAudioPianoEngine.js",
+  "./src/playback/studentPlaybackPort.js",
   "./vendor/st-score-runtime/browser-bootstrap.mjs",
   "./vendor/st-score-runtime/runtime-manifest.json",
   "./vendor/st-score-runtime/THIRD_PARTY_NOTICES.md",
@@ -52,8 +59,32 @@ const SHELL_ASSETS = Object.freeze([
   "./src/offline/serviceWorkerRegistration.js",
 ]);
 
+const PLAYBACK_STATIC_ASSETS = Object.freeze([
+  "./vendor/st-piano/runtime-manifest.json",
+  "./vendor/st-piano/LICENSE.txt",
+  "./vendor/st-piano/THIRD_PARTY_NOTICES.md",
+  "./vendor/st-piano/samples/C4.wav",
+  "./vendor/st-piano/samples/Cs4.wav",
+  "./vendor/st-piano/samples/D4.wav",
+  "./vendor/st-piano/samples/Ds4.wav",
+  "./vendor/st-piano/samples/E4.wav",
+  "./vendor/st-piano/samples/F4.wav",
+  "./vendor/st-piano/samples/Fs4.wav",
+  "./vendor/st-piano/samples/G4.wav",
+  "./vendor/st-piano/samples/Gs4.wav",
+  "./vendor/st-piano/samples/A4.wav",
+  "./vendor/st-piano/samples/As4.wav",
+  "./vendor/st-piano/samples/B4.wav",
+]);
+
 const SHELL_ASSET_PATHS = new Set(
   SHELL_ASSETS.map(
+    (asset) => new URL(asset, self.registration.scope).pathname,
+  ),
+);
+
+const PLAYBACK_ASSET_PATHS = new Set(
+  PLAYBACK_STATIC_ASSETS.map(
     (asset) => new URL(asset, self.registration.scope).pathname,
   ),
 );
@@ -62,6 +93,15 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(async (cache) => {
       await cache.addAll(SHELL_ASSETS);
+
+      for (const asset of PLAYBACK_STATIC_ASSETS) {
+        try {
+          await cache.add(asset);
+        } catch {
+          // Playback assets are best-effort. A missing piano file must not
+          // prevent the required Student App shell from installing.
+        }
+      }
 
       await Promise.all(
         FIREBASE_RUNTIME_ASSETS.map(async (asset) => {
@@ -108,8 +148,11 @@ self.addEventListener("fetch", (event) => {
   const shellRequest =
     url.origin === self.location.origin &&
     SHELL_ASSET_PATHS.has(url.pathname);
+  const playbackStaticRequest =
+    url.origin === self.location.origin &&
+    PLAYBACK_ASSET_PATHS.has(url.pathname);
 
-  if (!shellRequest && !firebaseRuntimeRequest) {
+  if (!shellRequest && !playbackStaticRequest && !firebaseRuntimeRequest) {
     return;
   }
 

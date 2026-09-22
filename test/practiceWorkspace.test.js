@@ -8,6 +8,8 @@ import {
   createPracticeWorkspace,
   withNotationCapability,
   withPracticeCapability,
+  withPracticeMeasureRepeatEnabled,
+  withPracticeTempo,
 } from "../src/practice/practiceWorkspace.js";
 
 function makeDeliveryItem() {
@@ -183,4 +185,77 @@ test("generic capability update rejects unknown capability names", () => {
       ),
     /unsupported practice capability/,
   );
+});
+
+
+function makeWorkspacePlaybackPort({
+  playable = true,
+  quality = "APPROXIMATE",
+  referenceTempo = 96,
+} = {}) {
+  return {
+    canPlayPackage: () => playable,
+    playPackage() {},
+    pausePackage() {},
+    restartPackage() {},
+    canChangeTempoForPackage: () => playable,
+    setTempoForPackage() {},
+    canRepeatMeasureForPackage: () => playable,
+    setMeasureRepeatEnabledForPackage() {},
+    getPlaybackQualityForPackage: () => quality,
+    getReferenceTempoForPackage: () => referenceTempo,
+  };
+}
+
+test("workspace projects only safe playback quality, reference tempo, and repeat state", () => {
+  const result = createPracticeWorkspace({
+    deliveryItem: makeDeliveryItem(),
+    notationRuntimeAvailable: true,
+    playbackPort: makeWorkspacePlaybackPort(),
+  });
+
+  assert.equal(result.viewModel.playbackQuality, "APPROXIMATE");
+  assert.equal(result.viewModel.practice.tempoBpm, 96);
+  assert.equal(result.viewModel.practice.measureRepeatEnabled, false);
+  assert.equal(JSON.stringify(result.viewModel).includes("SAFE RENDER INPUT"), false);
+  assert.equal(JSON.stringify(result.viewModel).includes("canonicalEvents"), false);
+});
+
+test("workspace drops unknown playback quality and provider tempo when playback is unavailable", () => {
+  const unknown = createPracticeWorkspace({
+    deliveryItem: makeDeliveryItem(),
+    notationRuntimeAvailable: false,
+    playbackPort: makeWorkspacePlaybackPort({ quality: "CERTAIN" }),
+  });
+  assert.equal(unknown.viewModel.playbackQuality, null);
+
+  const unavailable = createPracticeWorkspace({
+    deliveryItem: makeDeliveryItem(),
+    notationRuntimeAvailable: false,
+    playbackPort: makeWorkspacePlaybackPort({
+      playable: false,
+      referenceTempo: 110,
+    }),
+  });
+  assert.equal(unavailable.viewModel.playbackQuality, null);
+  assert.equal(unavailable.viewModel.practice.tempoBpm, 80);
+});
+
+test("safe practice helpers update frozen UI state without mutating previous snapshot", () => {
+  const result = createPracticeWorkspace({
+    deliveryItem: makeDeliveryItem(),
+    notationRuntimeAvailable: true,
+    playbackPort: makeWorkspacePlaybackPort(),
+  });
+  const original = result.viewModel;
+
+  const tempo = withPracticeTempo(original, 60);
+  const repeat = withPracticeMeasureRepeatEnabled(tempo, true);
+
+  assert.equal(original.practice.tempoBpm, 96);
+  assert.equal(original.practice.measureRepeatEnabled, false);
+  assert.equal(tempo.practice.tempoBpm, 60);
+  assert.equal(repeat.practice.measureRepeatEnabled, true);
+  assert.equal(Object.isFrozen(repeat), true);
+  assert.equal(Object.isFrozen(repeat.practice), true);
 });

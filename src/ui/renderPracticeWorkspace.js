@@ -74,7 +74,8 @@ function renderPlayback(practice) {
             id="practice-tempo"
             data-practice-tempo
             type="number"
-            min="1"
+            min="20"
+            max="300"
             step="1"
             inputmode="numeric"
             value="${escapeHtml(tempoValue(practice))}"
@@ -84,20 +85,29 @@ function renderPlayback(practice) {
       `
       : "";
 
+  const repeatChecked =
+    practice?.practice?.measureRepeatEnabled === true ? " checked" : "";
+
   const repeat =
     capabilityOf(practice, "measureRepeat") ===
     PRACTICE_CAPABILITY_STATES.AVAILABLE
       ? `
         <label class="practice-repeat">
-          <input type="checkbox" data-action="set-measure-repeat">
+          <input type="checkbox" data-action="set-measure-repeat"${repeatChecked}>
           Ölçü tekrarını aç
         </label>
       `
       : "";
 
+  const quality =
+    practice?.playbackQuality === "APPROXIMATE"
+      ? '<p class="practice-playback-quality">Yaklaşık çalma</p>'
+      : "";
+
   return `
     <section aria-labelledby="playback-heading">
       <h2 id="playback-heading">Dinleme</h2>
+      ${quality}
       <div class="practice-playback-controls">
         <button type="button" data-action="play-practice">Dinle</button>
         <button type="button" data-action="pause-practice">Duraklat</button>
