@@ -301,3 +301,117 @@ test("note scheduling creates click-safe envelope and conservative master gain",
   assert.equal(noteGain.events.at(-1)[0], "ramp");
   assert.equal(noteGain.events.at(-1)[1], 0);
 });
+
+
+function makeRepeatPlan() {
+  return Object.freeze({
+    schemaVersion: 1,
+    quality: "APPROXIMATE",
+    packageId: "pkg-repeat",
+    referenceTempoBpm: 120,
+    tempoMap: Object.freeze([Object.freeze({ beat: 0, bpm: 120 })]),
+    measures: Object.freeze([
+      Object.freeze({ index: 0, startBeat: 0, endBeat: 2 }),
+      Object.freeze({ index: 1, startBeat: 2, endBeat: 4 }),
+      Object.freeze({ index: 2, startBeat: 4, endBeat: 6 }),
+    ]),
+    notes: Object.freeze([
+      Object.freeze({ startBeat: 0, durationBeats: 1, midi: 60, measureIndex: 0, partId: "P1", voice: "1" }),
+      Object.freeze({ startBeat: 2, durationBeats: 1, midi: 62, measureIndex: 1, partId: "P1", voice: "1" }),
+      Object.freeze({ startBeat: 4, durationBeats: 1, midi: 67, measureIndex: 2, partId: "P1", voice: "1" }),
+    ]),
+  });
+}
+
+test("measure repeat captures first measure before playback advances", async () => {
+  const context = makeAudioContext();
+  const engine = createWebAudioPianoEngine({
+    audioContextFactory: () => context,
+    sampleBank: makeSampleBank(),
+    clock: makeClock(),
+  });
+
+  await engine.play({ plan: makeRepeatPlan(), tempoBpm: 120 });
+  engine.setMeasureRepeatEnabled(true);
+
+  assert.equal(engine.getRepeatMeasureIndex(), 0);
+});
+
+test("measure repeat captures current measure, wraps, and restart uses captured start", async () => {
+  const context = makeAudioContext();
+  const clock = makeClock();
+  const engine = createWebAudioPianoEngine({
+    audioContextFactory: () => context,
+    sampleBank: makeSampleBank(),
+    clock,
+  });
+
+  await engine.play({ plan: makeRepeatPlan(), tempoBpm: 120 });
+  context.currentTime = 1.25;
+  engine.setMeasureRepeatEnabled(true);
+
+  assert.equal(engine.getRepeatMeasureIndex(), 1);
+  assert.ok(Math.abs(engine.getCurrentBeat() - 2.5) < 1e-9);
+
+  context.currentTime = 2;
+  clock.tick();
+
+  assert.ok(Math.abs(engine.getCurrentBeat() - 2) < 1e-9);
+  assert.equal(context.sources.at(-1).buffer.midi, 62);
+
+  context.currentTime = 2.4;
+  await engine.restart();
+
+  assert.equal(engine.getCurrentBeat(), 2);
+  assert.equal(context.sources.at(-1).buffer.midi, 62);
+  assert.equal(context.sources.at(-1).starts[0][0], 2.4);
+});
+
+test("disabling repeat after a wrap continues into following measure", async () => {
+  const context = makeAudioContext();
+  const clock = makeClock();
+  const engine = createWebAudioPianoEngine({
+    audioContextFactory: () => context,
+    sampleBank: makeSampleBank(),
+    clock,
+  });
+
+  await engine.play({ plan: makeRepeatPlan(), tempoBpm: 120 });
+  context.currentTime = 1.25;
+  engine.setMeasureRepeatEnabled(true);
+  context.currentTime = 2;
+  clock.tick();
+
+  context.currentTime = 2.25;
+  engine.setMeasureRepeatEnabled(false);
+  assert.equal(engine.getRepeatMeasureIndex(), null);
+
+  context.currentTime = 2.9;
+  clock.tick();
+
+  const nextMeasure = context.sources.find(
+    (source) => source.buffer.midi === 67,
+  );
+  assert.ok(nextMeasure);
+  assert.ok(Math.abs(nextMeasure.starts[0][0] - 3) < 1e-9);
+});
+
+test("measure repeat cannot enable without validated measure ranges", async () => {
+  const context = makeAudioContext();
+  const engine = createWebAudioPianoEngine({
+    audioContextFactory: () => context,
+    sampleBank: makeSampleBank(),
+    clock: makeClock(),
+  });
+  const plan = Object.freeze({
+    ...makeRepeatPlan(),
+    measures: Object.freeze([]),
+  });
+
+  await engine.play({ plan, tempoBpm: 120 });
+
+  assert.throws(
+    () => engine.setMeasureRepeatEnabled(true),
+    /measure repeat unavailable/,
+  );
+});
