@@ -160,11 +160,33 @@ export function mountStudentApp({
           ? focusedActionIdentity(root)
           : null;
 
+      const existingNotationRoot =
+        presentationKey === lastPresentationKey
+          ? root.querySelector?.("#st-score-root") ?? null
+          : null;
+
       root.innerHTML = markup;
+
+      const replacementNotationRoot =
+        existingNotationRoot !== null
+          ? root.querySelector?.("#st-score-root") ?? null
+          : null;
+      const preservedNotationRoot =
+        existingNotationRoot !== null &&
+        replacementNotationRoot !== null &&
+        replacementNotationRoot !== existingNotationRoot &&
+        typeof replacementNotationRoot.replaceWith === "function";
+
+      if (preservedNotationRoot) {
+        replacementNotationRoot.replaceWith(existingNotationRoot);
+      }
+
       restoreFocusedAction(root, focusIdentity);
       lastMarkup = markup;
       lastPresentationKey = presentationKey;
-      domGeneration += 1;
+      if (!preservedNotationRoot) {
+        domGeneration += 1;
+      }
     }
 
     return Object.freeze({
