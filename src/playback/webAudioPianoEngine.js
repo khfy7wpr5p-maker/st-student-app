@@ -127,6 +127,7 @@ function boundedError(message) {
 
 export function createWebAudioPianoEngine({
   audioContextFactory,
+  audioContextSupported = null,
   sampleBank,
   clock = globalThis,
 } = {}) {
@@ -145,7 +146,13 @@ export function createWebAudioPianoEngine({
   const activeSources = new Set();
 
   function isSupported() {
+    const audioBoundaryAvailable =
+      audioContextSupported === null
+        ? typeof audioContextFactory === "function"
+        : audioContextSupported === true;
+
     return (
+      audioBoundaryAvailable &&
       typeof audioContextFactory === "function" &&
       sampleBank?.isConfigured?.() === true
     );
