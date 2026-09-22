@@ -239,3 +239,22 @@ test("dispose clears active ownership and bounded errors do not leak provider de
   assert.throws(() => port.pausePackage(work), /playback package inactive/);
   assert.equal(engine.calls.at(-1)[0], "dispose");
 });
+
+
+test("missing local sample detail is bounded at the playback port", async () => {
+  const engine = makeEngine();
+  engine.play = async () => {
+    throw new Error(
+      "piano sample load failed: ./vendor/st-piano/samples/Fs4.wav",
+    );
+  };
+  const port = createStudentPlaybackPort({
+    playbackPlanResolver: { resolvePackage: () => plan() },
+    engine,
+  });
+
+  await assert.rejects(
+    () => port.playPackage(pkg()),
+    /^Error: playback operation failed$/,
+  );
+});
