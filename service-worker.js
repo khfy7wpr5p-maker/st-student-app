@@ -1,4 +1,4 @@
-const CACHE_NAME = "st-student-shell-v2";
+const CACHE_NAME = "st-student-shell-v3";
 
 const FIREBASE_RUNTIME_ASSETS = Object.freeze([
   "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js",
@@ -24,6 +24,17 @@ const SHELL_ASSETS = Object.freeze([
   "./src/ui/shellActions.js",
   "./src/ui/escapeHtml.js",
   "./src/practice/notationAdapter.js",
+  "./src/practice/notationRuntimeLoader.js",
+  "./vendor/st-score-runtime/browser-bootstrap.mjs",
+  "./vendor/st-score-runtime/runtime-manifest.json",
+  "./vendor/st-score-runtime/THIRD_PARTY_NOTICES.md",
+  "./vendor/st-score-runtime/licenses/opensheetmusicdisplay-BSD-3-Clause.txt",
+  "./vendor/st-score-runtime/modules/adapter-osmd.js",
+  "./vendor/st-score-runtime/modules/browser-host.js",
+  "./vendor/st-score-runtime/modules/contracts.js",
+  "./vendor/st-score-runtime/modules/osmd-module-shim.mjs",
+  "./vendor/st-score-runtime/modules/renderer-core.js",
+  "./vendor/st-score-runtime/vendor/opensheetmusicdisplay.min.js",
   "./src/practice/practiceCapabilities.js",
   "./src/practice/practiceWorkspace.js",
   "./src/auth/session.js",
