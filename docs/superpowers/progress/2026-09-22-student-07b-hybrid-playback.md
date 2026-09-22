@@ -47,7 +47,7 @@ Task 7: Ruling: The plan mentions restart-with-repeat in Task 7 although the rep
 - Task 9: complete — RED `6fd1fbd` / CI #302: 277 tests, 276 pass, 1 expected module-not-found failure; GREEN `29f24f7` / CI #303: 284/284 PASS.
 - Task 10: complete — RED/current failure confirmed at `2796752` / CI #310: 297 tests, 296 pass, 1 fail (`APPROXIMATE playback renders bounded quality and teacher-gated controls`); GREEN `ceabfb1` / CI #311: 297/297 PASS. Renderer now shows the bounded APPROXIMATE quality label only for APPROXIMATE playback, enforces tempo UI bounds 20..300, and binds repeat checked-state from the safe Practice view-model.
 - Task 11: complete — RED bootstrap `6350ca9` / CI #313 and offline-cache `7d8b180` / CI #315 exposed the expected missing browser playback wiring and static-cache contract. The first lifecycle RED attempt also contained an accidental literal `\\n` import separator and is not counted as semantic evidence; that test-fixture defect was corrected before final verification. GREEN `0613f4b` / CI #322: 302/302 PASS. Browser bootstrap now wires resolver + local piano bank + lazy Web Audio engine + playback port; mount destroy tears down active playback ownership; Service Worker v4 caches the seven playback modules strictly with the shell and the manifest/license/notices + exactly 12 local WAV files best-effort.
-- Task 12: pending.
+- Task 12: complete — integrated failure/data-minimization regressions added across controller, playback port, renderer, and offline cache. Existing implementation satisfied the new assertions without a production-code change. GREEN `3a53ff0` / CI #327: 307/307 PASS. Fresh HEAD scan of the playback/browser integration surfaces found no canonicalEvents timing inference, external audio URL, Tone.js, or alphaTab runtime coupling.
 - Task 13: pending.
 - Task 14: pending.
 
@@ -55,9 +55,9 @@ Task 7: Ruling: The plan mentions restart-with-repeat in Task 7 although the rep
 ## Current continuation checkpoint
 
 - Handoff code checkpoint: `38f6039e0cbacab2b6629c1110707d9b1eee649c`
-- Last fully green checkpoint: `0613f4b5d3a10ca478e085620d0c4147f2d47fcd`
-- Last fully green CI: #322 — 302/302 PASS
-- Tasks 10 and 11 are complete with exact-head CI evidence.
-- Do not restart STUDENT-07B from Task 1. Continue with Task 12 from the current branch state.
+- Last fully green checkpoint: `3a53ff08dbcd62ae0ccb0da063b4c88fbe319681`
+- Last fully green CI: #327 — 307/307 PASS
+- Tasks 10–12 are complete with exact-head CI evidence.
+- Do not restart STUDENT-07B from Task 1. Continue with Task 13 from the current branch state.
 - Tasks 11–14 remain pending and must follow the approved plan.
 - Merge, production deploy, Pages/environment policy change, Firebase Security Rules change, cross-repo write, credential/billing action remain human-gated.
