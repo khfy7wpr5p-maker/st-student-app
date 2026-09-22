@@ -18,6 +18,9 @@ jobs:
   deploy:
     if: github.ref == 'refs/heads/feat/student-07b-hybrid-playback'
     runs-on: ubuntu-latest
+    environment:
+      name: student-07b-preview
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout exact feature head
         uses: actions/checkout@v5
