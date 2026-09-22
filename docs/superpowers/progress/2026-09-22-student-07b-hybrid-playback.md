@@ -45,7 +45,7 @@ Task 7: Ruling: The plan mentions restart-with-repeat in Task 7 although the rep
 - Task 7: complete — RED `00d0d4e` / CI #294: 264 tests, 263 pass, 1 expected module-not-found failure; first GREEN attempt `1a1a15b` exposed one fake-clock test defect; corrected test `9107cb2` / CI #296: 270/270 PASS.
 - Task 8: complete — RED `7c6b0bb` / CI #299: 276 tests, 270 pass, 6 expected repeat/stale-lifecycle failures; GREEN `5280fa9` / CI #300: 276/276 PASS.
 - Task 9: complete — RED `6fd1fbd` / CI #302: 277 tests, 276 pass, 1 expected module-not-found failure; GREEN `29f24f7` / CI #303: 284/284 PASS.
-- Task 10: in progress — safe workspace playback metadata + controller lifecycle/state updates are present at code checkpoint `38f6039`; CI #309: 297 tests, 296 pass, 1 fail. Current failing test is `APPROXIMATE playback renders bounded quality and teacher-gated controls`; renderer still needs approximate-quality copy, tempo `min=20/max=300`, and repeat checked-state binding before Task 10 can be called GREEN.
+- Task 10: complete — RED/current failure confirmed at `2796752` / CI #310: 297 tests, 296 pass, 1 fail (`APPROXIMATE playback renders bounded quality and teacher-gated controls`); GREEN `ceabfb1` / CI #311: 297/297 PASS. Renderer now shows the bounded APPROXIMATE quality label only for APPROXIMATE playback, enforces tempo UI bounds 20..300, and binds repeat checked-state from the safe Practice view-model.
 - Task 11: pending.
 - Task 12: pending.
 - Task 13: pending.
@@ -55,11 +55,9 @@ Task 7: Ruling: The plan mentions restart-with-repeat in Task 7 although the rep
 ## Current continuation checkpoint
 
 - Handoff code checkpoint: `38f6039e0cbacab2b6629c1110707d9b1eee649c`
-- Last fully green checkpoint: `54b25d897ea1acec96f9855a660c5271a668c8fc`
-- Last fully green CI: #304 — 284/284 PASS
-- Current failing CI: #309 — 297 tests / 296 PASS / 1 FAIL
-- Do not restart STUDENT-07B from Task 1. Continue Task 10 from the current branch state.
-- First inspect `src/ui/renderPracticeWorkspace.js` against `test/renderStudentApp.test.js`.
-- Do not claim Task 10 complete until fresh exact-head `npm test` / CI is 0-fail.
+- Last fully green checkpoint: `ceabfb1ec3a660166fd3260df7ce6a53db7893ac`
+- Last fully green CI: #311 — 297/297 PASS
+- Task 10 is complete with exact-head CI evidence.
+- Do not restart STUDENT-07B from Task 1. Continue with Task 11 from the current branch state.
 - Tasks 11–14 remain pending and must follow the approved plan.
 - Merge, production deploy, Pages/environment policy change, Firebase Security Rules change, cross-repo write, credential/billing action remain human-gated.
