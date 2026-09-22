@@ -445,3 +445,91 @@ test("renderer root identity survives leaving and reopening Practice", async () 
 
   assert.equal(root.getNotationRoot(), firstRoot);
 });
+
+
+test("connectivity repaint preserves renderer content when attached nodes are destructively replaced", async () => {
+  const fixture = makeController(makePracticeState("pkg-a"));
+  const { adapter } = makeNotationAdapter();
+  let listener = null;
+  let connectivityState = "ONLINE";
+  let markup = "";
+  let notationRoot = null;
+
+  const connectivityPort = {
+    getState() {
+      return connectivityState;
+    },
+    subscribe(next) {
+      listener = next;
+      return () => {
+        listener = null;
+      };
+    },
+  };
+
+  function createRendererRoot() {
+    return {
+      attached: true,
+      contentIntact: true,
+      remove() {
+        this.attached = false;
+      },
+    };
+  }
+
+  const root = {
+    addEventListener() {},
+    removeEventListener() {},
+    contains() {
+      return true;
+    },
+    querySelector(selector) {
+      if (selector === "#st-score-root") return notationRoot;
+      return null;
+    },
+    querySelectorAll() {
+      return [];
+    },
+    get innerHTML() {
+      return markup;
+    },
+    set innerHTML(value) {
+      if (notationRoot?.attached === true) {
+        notationRoot.contentIntact = false;
+      }
+
+      markup = value;
+
+      if (value.includes('id="st-score-root"')) {
+        const replacement = {
+          attached: true,
+          replaceWith(existing) {
+            existing.attached = true;
+            notationRoot = existing;
+          },
+        };
+        notationRoot = replacement;
+      } else {
+        notationRoot = null;
+      }
+    },
+  };
+
+  const mounted = mountStudentApp({
+    root,
+    controller: fixture.controller,
+    notationAdapter: adapter,
+    connectivityPort,
+  });
+
+  await mounted.render();
+  notationRoot = createRendererRoot();
+
+  connectivityState = "OFFLINE";
+  listener?.("OFFLINE");
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  await mounted.render();
+
+  assert.equal(notationRoot.contentIntact, true);
+  await mounted.destroy();
+});
