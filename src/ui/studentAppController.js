@@ -4,6 +4,8 @@ import {
   createPracticeWorkspace,
   withNotationCapability,
   withPracticeCapability,
+  withPracticeMeasureRepeatEnabled,
+  withPracticeTempo,
 } from "../practice/practiceWorkspace.js";
 import { SYNC_STATES } from "../offline/syncCoordinator.js";
 
@@ -105,8 +107,17 @@ export function createStudentAppController({
   let sessionGeneration = 0;
 
   function clearActivePractice() {
+    const previous = activePracticePackage;
     activePracticeRenderSource = null;
     activePracticePackage = null;
+
+    if (previous !== null) {
+      try {
+        playbackPort?.disposePackage?.(previous);
+      } catch {
+        // Playback teardown cannot block navigation or authority changes.
+      }
+    }
   }
 
   function stateArgs(overrides = {}) {
@@ -304,6 +315,7 @@ export function createStudentAppController({
           playbackPort,
         });
 
+        clearActivePractice();
         activePracticeRenderSource = workspace.renderSource;
         activePracticePackage = item.package;
 
@@ -404,15 +416,40 @@ export function createStudentAppController({
     },
 
     setPracticeTempo(bpm) {
-      if (!Number.isFinite(bpm) || bpm <= 0) {
-        throw new TypeError("tempo must be a positive finite number");
+      if (
+        !Number.isFinite(bpm) ||
+        bpm < 20 ||
+        bpm > 300
+      ) {
+        throw new TypeError("tempo must be between 20 and 300 BPM");
       }
 
       const pkg = requirePracticeCapability("tempoChange");
-      return runPracticeOperation(
+      const packageId = pkg.packageId;
+      const result = runPracticeOperation(
         "tempoChange",
         () => playbackPort.setTempoForPackage(pkg, bpm),
       );
+
+      const applyTempo = () => {
+        if (
+          state.screen === STUDENT_APP_SCREENS.PRACTICE &&
+          state.practice?.packageId === packageId
+        ) {
+          state = freezeState(
+            stateArgs({
+              practice: withPracticeTempo(state.practice, bpm),
+            }),
+          );
+        }
+        return state;
+      };
+
+      if (result !== null && typeof result?.then === "function") {
+        return Promise.resolve(result).then(applyTempo);
+      }
+
+      return applyTempo();
     },
 
     setMeasureRepeatEnabled(enabled) {
@@ -421,7 +458,8 @@ export function createStudentAppController({
       }
 
       const pkg = requirePracticeCapability("measureRepeat");
-      return runPracticeOperation(
+      const packageId = pkg.packageId;
+      const result = runPracticeOperation(
         "measureRepeat",
         () =>
           playbackPort.setMeasureRepeatEnabledForPackage(
@@ -429,6 +467,29 @@ export function createStudentAppController({
             enabled,
           ),
       );
+
+      const applyRepeat = () => {
+        if (
+          state.screen === STUDENT_APP_SCREENS.PRACTICE &&
+          state.practice?.packageId === packageId
+        ) {
+          state = freezeState(
+            stateArgs({
+              practice: withPracticeMeasureRepeatEnabled(
+                state.practice,
+                enabled,
+              ),
+            }),
+          );
+        }
+        return state;
+      };
+
+      if (result !== null && typeof result?.then === "function") {
+        return Promise.resolve(result).then(applyRepeat);
+      }
+
+      return applyRepeat();
     },
 
     signOut() {
