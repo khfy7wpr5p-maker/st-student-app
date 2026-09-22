@@ -1176,7 +1176,7 @@ const CACHE_NAME = "st-student-shell-v4";
 ```
 
 Require:
-- all six `src/playback/*.js` modules in required `SHELL_ASSETS`, because `main.js` imports them;
+- all seven required playback modules in `SHELL_ASSETS`: `playbackPlan.js`, `musicXmlPlaybackDom.js`, `musicXmlApproximatePlayback.js`, `playbackPlanResolver.js`, `pianoSampleBank.js`, `webAudioPianoEngine.js`, and `studentPlaybackPort.js`, because the browser module graph imports them;
 - a separate `PLAYBACK_STATIC_ASSETS` list containing `vendor/st-piano/runtime-manifest.json`, license/notices, and exactly 12 WAVs;
 - `PLAYBACK_ASSET_PATHS` included in fetch handling.
 
