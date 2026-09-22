@@ -356,7 +356,7 @@ Playback/practice port çağrısı hata verirse yalnız ilgili capability `ERROR
 
 Feature branch: `feat/student-07b-hybrid-playback`.
 
-- Task 1–12: exact-head CI ile doğrulanmıştır.
+- Task 1–13: otomatik geliştirme ve verification kapsamı tamamlanmıştır.
 - Task 10 GREEN: `ceabfb1ec3a660166fd3260df7ce6a53db7893ac`, CI #311, 297/297 PASS.
 - Task 11 GREEN: `0613f4b5d3a10ca478e085620d0c4147f2d47fcd`, CI #322, 302/302 PASS.
 - Task 12 GREEN: `3a53ff08dbcd62ae0ccb0da063b4c88fbe319681`, CI #327, 307/307 PASS.
@@ -364,7 +364,7 @@ Feature branch: `feat/student-07b-hybrid-playback`.
 - Service Worker cache adı `st-student-shell-v4`'tür. Yedi playback modülü strict shell cache içindedir; piano manifest/license/notices ve 12 WAV best-effort static cache içindedir.
 - Package switch/navigation/session/sign-out ve mount destroy aktif playback ownership'ini bounded biçimde dispose eder.
 - Playback/sample/tempo/repeat hataları capability-local kalır; MusicXML, generated plan veya provider/sample hata detayı UI state/HTML'e taşınmaz.
-- Task 13 dokümantasyon + temiz ortam otomatik doğrulaması sürmektedir.
+- Task 13 automated verification code head: `9d7efe310ae0109454261d5c1d69d4f619aa27ad`; CI #338, 312/312 PASS. CI ayrıca `npm ci`, deterministik piano-bank regeneration + zero diff ve `git diff --check` çalıştırmıştır. Bağımsız Codex Engineering Guardrails review; spec/plan uyumu, parser/timing bounds, Web Audio lifecycle/race davranışı, authority/data-minimization, offline asset seti ve generated-audio provenance sınırlarında yeni material defect bulmamıştır.
 - Task 14 fiziksel iPhone/Safari/VoiceOver, offline audio ve interaction acceptance henüz yapılmamıştır; bu kapı geçmeden merge-ready/production-ready iddiası yapılmaz.
 
 ### TAB ve keman
