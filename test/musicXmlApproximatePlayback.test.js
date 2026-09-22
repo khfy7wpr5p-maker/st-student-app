@@ -105,7 +105,7 @@ test("aligns parts to one global measure boundary using max part duration", () =
 
   assert.deepEqual(
     plan.notes.map(({ startBeat, midi }) => [startBeat, midi]),
-    [[0, 55], [0, 60], [4, 57], [4, 62]],
+    [[0, 60], [0, 55], [4, 62], [4, 57]],
   );
   assert.deepEqual(plan.measures, [
     { index: 0, startBeat: 0, endBeat: 4 },
