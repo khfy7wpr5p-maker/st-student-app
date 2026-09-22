@@ -25,12 +25,16 @@ Ruling: The generated piano bank will contain deterministic repository-generated
 
 No pre-flight interface conflict found.\n\nTask 2: Ruling: The first multi-part test expected same-onset notes sorted by MIDI, but the approved plan explicitly requires deterministic `startBeat -> partId -> voice -> midi` ordering. The test was corrected to the plan contract; production ordering was not changed. Cost if wrong: consumers would observe a different deterministic note order, but sounding simultaneity is unchanged.
 
+Task 3: Ruling: The first Task 3 RED commit `6b48439` failed at JavaScript parse time because connector-generated fixture text preserved escaped template-literal delimiters. The fixture was corrected without production changes, and `f843006` became the meaningful RED run with nine semantic failures. Cost if wrong: none to product behavior; this ruling only identifies which CI run is valid TDD evidence.
+
+Task 3: Ruling: A direct 100,001 playable-note MusicXML fixture cannot fit under the approved 4 MiB playback XML admission cap using ordinary valid MusicXML note syntax. The compiler still contains the 100,000 raw/playable-note guard, while automated resource-bound evidence directly covers the stronger 4 MiB source cap and 10,000-measure cap. Cost if wrong: a future more compact MusicXML representation could make the note-count guard reachable without a dedicated regression fixture; final verification must inspect the guard.
+
 ## Status
 
 - Setup: complete.
 - Task 1: complete — RED `6e56767` / CI #273: 214 tests, 213 pass, 1 expected fail (`ERR_MODULE_NOT_FOUND`); GREEN `bd78e3e` / CI #274: 225/225 PASS.
 - Task 2: complete — RED `ba3c768` / CI #276: 226 tests, 225 pass, 1 expected fail (`ERR_MODULE_NOT_FOUND`); GREEN `db4cbfe` / CI #279: 233/233 PASS.
-- Task 3: pending.
+- Task 3: complete — meaningful RED `f843006` / CI #282: 246 tests, 237 pass, 9 expected semantic failures; GREEN `bd07738` / CI #283: 246/246 PASS.
 - Task 4: pending.
 - Task 5: pending.
 - Task 6: pending.
