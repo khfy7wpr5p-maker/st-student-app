@@ -129,6 +129,8 @@ function makePlaybackPort() {
       setMeasureRepeatEnabledForPackage(pkg, enabled) {
         calls.push(["repeat", pkg.packageId, enabled]);
       },
+      getPlaybackQualityForPackage: () => "APPROXIMATE",
+      getReferenceTempoForPackage: () => 80,
     },
   };
 }
@@ -350,10 +352,17 @@ test("practice controls validate tempo and repeat values before delegation", () 
 
   controller.openPractice("pub-public");
 
-  for (const value of [0, -1, Number.NaN, Number.POSITIVE_INFINITY]) {
+  for (const value of [
+    0,
+    -1,
+    19,
+    301,
+    Number.NaN,
+    Number.POSITIVE_INFINITY,
+  ]) {
     assert.throws(
       () => controller.setPracticeTempo(value),
-      /positive finite number/,
+      /between 20 and 300/,
     );
   }
   assert.throws(
@@ -538,6 +547,10 @@ test("measure repeat runtime failure changes only repeat capability to ERROR", (
     PRACTICE_CAPABILITY_STATES.ERROR,
   );
   assert.equal(
+    controller.getState().practice.practice.measureRepeatEnabled,
+    false,
+  );
+  assert.equal(
     controller.getState().practice.capabilities.playback,
     PRACTICE_CAPABILITY_STATES.AVAILABLE,
   );
@@ -608,4 +621,193 @@ test("async list read cannot restore a previous student after sign out", async (
 
   assert.equal(controller.getState().screen, STUDENT_APP_SCREENS.SIGN_IN);
   assert.equal(controller.getState().session, null);
+});
+
+
+test("Practice authority boundaries dispose active playback best-effort", () => {
+  for (const action of [
+    "showHome",
+    "showPublicPool",
+    "showMyWork",
+    "attachSession",
+    "signOut",
+  ]) {
+    const { port, calls } = makePlaybackPort();
+    port.disposePackage = (value) => {
+      calls.push(["dispose", value.packageId]);
+    };
+    const controller = createStudentAppController({
+      sharingService: makeSharingService(),
+      initialSession: student,
+      playbackPort: port,
+    });
+
+    controller.openPractice("pub-public");
+
+    if (action === "attachSession") {
+      controller.attachSession(student);
+    } else {
+      controller[action]();
+    }
+
+    assert.deepEqual(
+      calls.filter(([name]) => name === "dispose"),
+      [["dispose", "pkg-public"]],
+      action,
+    );
+  }
+});
+
+test("opening a second Practice disposes the previous playback package", () => {
+  const { port, calls } = makePlaybackPort();
+  port.disposePackage = (value) => {
+    calls.push(["dispose", value.packageId]);
+  };
+  const sharing = {
+    ...makeSharingService(),
+    getPracticeItem({ publicationId }) {
+      const packageId = publicationId === "pub-b" ? "pkg-b" : "pkg-a";
+      const work = makeApprovedPracticePackage();
+      work.packageId = packageId;
+      work.workId = "work-" + packageId;
+      work.title = packageId;
+      return {
+        publication: {
+          publicationId,
+          packageId,
+          scope: "public_pool",
+        },
+        package: work,
+      };
+    },
+  };
+  const controller = createStudentAppController({
+    sharingService: sharing,
+    initialSession: student,
+    playbackPort: port,
+  });
+
+  controller.openPractice("pub-a");
+  controller.openPractice("pub-b");
+
+  assert.deepEqual(
+    calls.filter(([name]) => name === "dispose"),
+    [["dispose", "pkg-a"]],
+  );
+  assert.equal(controller.getState().practice.packageId, "pkg-b");
+});
+
+test("playback dispose failure cannot block navigation", () => {
+  const { port } = makePlaybackPort();
+  port.disposePackage = () => {
+    throw new Error("secret teardown failure");
+  };
+  const controller = createStudentAppController({
+    sharingService: makeSharingService(),
+    initialSession: student,
+    playbackPort: port,
+  });
+
+  controller.openPractice("pub-public");
+
+  assert.doesNotThrow(() => controller.showHome());
+  assert.equal(controller.getState().screen, STUDENT_APP_SCREENS.HOME);
+});
+
+test("successful tempo update changes only safe UI tempo", () => {
+  const sourcePackage = makeApprovedPracticePackage();
+  const { port } = makePlaybackPort();
+  const sharing = {
+    ...makeSharingService(),
+    getPracticeItem({ publicationId }) {
+      return {
+        publication: {
+          publicationId,
+          packageId: sourcePackage.packageId,
+          scope: "public_pool",
+        },
+        package: sourcePackage,
+      };
+    },
+  };
+  const controller = createStudentAppController({
+    sharingService: sharing,
+    initialSession: student,
+    playbackPort: port,
+  });
+
+  controller.openPractice("pub-public");
+  controller.setPracticeTempo(60);
+
+  assert.equal(controller.getState().practice.practice.tempoBpm, 60);
+  assert.equal(sourcePackage.practice.tempoBpm, 80);
+});
+
+test("async tempo update changes UI only after successful delegation", async () => {
+  let resolveTempo;
+  const pending = new Promise((resolve) => {
+    resolveTempo = resolve;
+  });
+  const { port } = makePlaybackPort();
+  port.setTempoForPackage = () => pending;
+  const controller = createStudentAppController({
+    sharingService: makeSharingService(),
+    initialSession: student,
+    playbackPort: port,
+  });
+
+  controller.openPractice("pub-public");
+  const operation = controller.setPracticeTempo(60);
+
+  assert.equal(controller.getState().practice.practice.tempoBpm, 80);
+  resolveTempo();
+  await operation;
+  assert.equal(controller.getState().practice.practice.tempoBpm, 60);
+});
+
+test("failed async tempo update preserves prior safe UI tempo", async () => {
+  const { port } = makePlaybackPort();
+  port.setTempoForPackage = async () => {
+    throw new Error("private tempo provider detail");
+  };
+  const controller = createStudentAppController({
+    sharingService: makeSharingService(),
+    initialSession: student,
+    playbackPort: port,
+  });
+
+  controller.openPractice("pub-public");
+
+  await assert.rejects(() => controller.setPracticeTempo(60));
+  assert.equal(controller.getState().practice.practice.tempoBpm, 80);
+  assert.equal(
+    controller.getState().practice.capabilities.tempoChange,
+    PRACTICE_CAPABILITY_STATES.ERROR,
+  );
+  assert.equal(
+    JSON.stringify(controller.getState()).includes("private tempo provider"),
+    false,
+  );
+});
+
+test("successful repeat update changes only safe UI repeat state", () => {
+  const { port } = makePlaybackPort();
+  const controller = createStudentAppController({
+    sharingService: makeSharingService(),
+    initialSession: student,
+    playbackPort: port,
+  });
+
+  controller.openPractice("pub-public");
+  assert.equal(
+    controller.getState().practice.practice.measureRepeatEnabled,
+    false,
+  );
+
+  controller.setMeasureRepeatEnabled(true);
+
+  assert.equal(
+    controller.getState().practice.practice.measureRepeatEnabled,
+    true,
+  );
 });
