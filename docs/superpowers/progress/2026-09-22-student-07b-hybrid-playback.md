@@ -49,18 +49,18 @@ Task 7: Ruling: The plan mentions restart-with-repeat in Task 7 although the rep
 - Task 11: complete — RED bootstrap `6350ca9` / CI #313 and offline-cache `7d8b180` / CI #315 exposed the expected missing browser playback wiring and static-cache contract. The first lifecycle RED attempt also contained an accidental literal `\\n` import separator and is not counted as semantic evidence; that test-fixture defect was corrected before final verification. GREEN `0613f4b` / CI #322: 302/302 PASS. Browser bootstrap now wires resolver + local piano bank + lazy Web Audio engine + playback port; mount destroy tears down active playback ownership; Service Worker v4 caches the seven playback modules strictly with the shell and the manifest/license/notices + exactly 12 local WAV files best-effort.
 - Task 12: complete — integrated failure/data-minimization regressions added across controller, playback port, renderer, and offline cache. Existing implementation satisfied the new assertions without a production-code change. GREEN `3a53ff0` / CI #327: 307/307 PASS. Fresh HEAD scan of the playback/browser integration surfaces found no canonicalEvents timing inference, external audio URL, Tone.js, or alphaTab runtime coupling.
 - Task 13: complete — documentation reconciled to shipped branch behavior; CI workflow verifies `npm ci`, full `npm test`, deterministic piano-bank regeneration with zero vendor diff, and `git diff --check`. Automated code head `9d7efe3` / CI #338: 312/312 PASS, 0 fail. Independent Codex Engineering Guardrails read-only verification re-checked spec/plan compliance, parser/timing safety, async audio lifecycle/races, authority/data-minimization boundaries, offline asset completeness, generated-audio licensing/provenance, and exact-head CI evidence; no new material defect remained in the automated scope. Overall release readiness remains PARTIAL until Task 14 physical acceptance.
-- Task 14: physical acceptance complete — 16/16 iPhone/Safari/VoiceOver acceptance items were user-reported PASS on the temporary HTTPS Pages preview. This includes notation, explicit-tap playback, Pause/resume/Restart, tempo with stable pitch, measure repeat enable/disable, rotation, Home/sign-out teardown, no-autoplay reopen, visible APPROXIMATE label, offline notation + audio, VoiceOver reachability for playback controls, and no raw XML/runtime/provider/plan text exposed or announced. Temporary preview infrastructure must be removed and exact-head CI must pass before merge readiness.
+- Task 14: complete for physical acceptance — 16/16 iPhone/Safari/VoiceOver acceptance items were user-reported PASS. During Task 14, an offline Safari connectivity-repaint defect was reproduced with a RED regression, fixed in `mountStudentApp`, and the Service Worker shell cache was bumped to v5 so the corrected browser code replaces stale cache. Temporary STUDENT-07B preview workflow was removed after testing. Post-cleanup CI #376 passed on cleanup head `99735a8819064ec4f5d441cf01cf7f50abc2c689`. Merge remains explicitly human-gated.
 
 
 ## Current continuation checkpoint
 
 - Handoff code checkpoint: `38f6039e0cbacab2b6629c1110707d9b1eee649c`
-- Last fully green automated code checkpoint: `9d7efe310ae0109454261d5c1d69d4f619aa27ad`
-- Last fully green automated code CI: #338 — 312/312 PASS
+- Last pre-physical-review automated code checkpoint: `9d7efe310ae0109454261d5c1d69d4f619aa27ad` / CI #338 — 312/312 PASS.
+- Task 14 fix verification: Safari connectivity repaint regression RED at CI #363; GREEN after renderer-root preservation fix; Service Worker v5 cache refresh verified; cleanup head `99735a8819064ec4f5d441cf01cf7f50abc2c689` / CI #376 PASS.
 - Tasks 10–13 are complete for the automated development/verification scope.
-- Do not restart STUDENT-07B from Task 1. The only remaining stage is Task 14 physical iPhone/Safari/VoiceOver + offline-audio acceptance.
-- Task 14 is not passed until every physical acceptance item is recorded PASS; skipped/unverified is not PASS.
-- Merge, production deploy, Pages/environment policy change, Firebase Security Rules change, cross-repo write, credential/billing action remain human-gated.
+- Do not restart STUDENT-07B from Task 1. Tasks 1–14 are complete for implementation plus physical acceptance.
+- Task 14 physical acceptance is 16/16 PASS. No skipped or unverified physical item remains.
+- Merge remains explicitly human-gated. Production deploy, Firebase Security Rules change, cross-repo write, credential/billing action remain out of scope. The temporary STUDENT-07B preview workflow has been removed; any repository-level Pages source restoration remains an external Settings cleanup step because the GitHub connector has no repository administration write authority.
 
 
 ## Task 14 physical acceptance — partial evidence (2026-09-22)
@@ -89,6 +89,21 @@ User-reported physical results:
 16. VoiceOver/UI does not expose or announce raw XML/runtime/provider/plan details — PASS.
 
 Skipped or unreported checks remain PENDING and are not counted as PASS.
+
+## Task 14 closure summary
+
+- Physical acceptance: 16/16 PASS from the user's iPhone/Safari/VoiceOver session.
+- Offline defect found during acceptance: playback audio continued but notation disappeared on network-state repaint.
+- Root cause: active renderer root could be destructively replaced by Safari during `innerHTML` repaint triggered by connectivity state change.
+- Regression evidence: dedicated connectivity-repaint test failed RED at CI #363 with renderer content loss.
+- Fix: detach the live notation root before repaint and reattach the same node afterward; preserve notation/playback failure isolation.
+- Cache delivery fix: Service Worker shell cache revision increased from v4 to v5 so iPhone Safari receives the corrected browser modules rather than stale cached `main.js`.
+- Physical retest: offline Practice notation and piano playback both remained available after Wi-Fi/cellular disable and reload — PASS.
+- VoiceOver: Play/Pause/Restart/tempo/repeat controls reachable — PASS.
+- Data minimization: no raw MusicXML/runtime/provider/PlaybackPlan/debug text exposed or announced — PASS.
+- Temporary branch-only preview workflow: removed after physical acceptance.
+- Cleanup verification: CI #376 PASS on cleanup head `99735a8819064ec4f5d441cf01cf7f50abc2c689`.
+- Merge: not performed; requires explicit human merge command after repository-level Pages Settings cleanup is confirmed.
 
 ## Task 13 independent verification matrix
 
