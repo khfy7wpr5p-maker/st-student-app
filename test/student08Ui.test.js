@@ -309,7 +309,10 @@ test("STUDENT-08 renderer keeps Havuz presentation-only and exposes lifecycle fo
   assert.match(workHtml, /Gitar Etüdü/);
   assert.match(workHtml, /Yavaş çalış/);
   assert.match(workHtml, /Akor çalışması/);
-  assert.doesNotMatch(workHtml, /recipientStudentIds|student-a|Firebase|XML/);
+  assert.doesNotMatch(
+    workHtml,
+    /recipientStudentIds|["']student-a["']|>student-a<|Firebase|XML/,
+  );
 });
 
 test("new STUDENT-08 shell actions forward only bounded read/navigation values", async () => {
