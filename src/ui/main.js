@@ -23,6 +23,9 @@ const sampleBank = createPianoSampleBank({
 
 await sampleBank.initialize().catch(() => false);
 
+const audioContextSupported =
+  typeof (globalThis.AudioContext ?? globalThis.webkitAudioContext) === "function";
+
 const audioContextFactory = () => {
   const AudioContextCtor =
     globalThis.AudioContext ?? globalThis.webkitAudioContext;
@@ -34,6 +37,7 @@ const audioContextFactory = () => {
 
 const playbackEngine = createWebAudioPianoEngine({
   audioContextFactory,
+  audioContextSupported,
   sampleBank,
 });
 const playbackPort = createStudentPlaybackPort({
