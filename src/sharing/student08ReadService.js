@@ -62,9 +62,15 @@ function validateStateFilter(state) {
   }
 }
 
-function studentAssignmentView(assignment) {
+function studentAssignmentView(assignment, title = null) {
   const view = {
     assignmentId: assignment.assignmentId,
+    title:
+      hasText(title)
+        ? title.trim()
+        : assignment.practiceType === PRACTICE_TYPES.CHORD_BOARD
+          ? assignment.snapshot.displaySymbol
+          : "Nota çalışması",
     practiceType: assignment.practiceType,
     teacherNote: assignment.teacherNote,
     state: assignment.state,
@@ -78,6 +84,25 @@ function studentAssignmentView(assignment) {
   }
 
   return Object.freeze(view);
+}
+
+function scoreTitleMap(items) {
+  if (!Array.isArray(items)) {
+    throw new TypeError("score work list must be an array");
+  }
+
+  const titles = new Map();
+
+  for (const item of items) {
+    const publicationId = item?.publication?.publicationId;
+    const title = item?.package?.title;
+
+    if (hasText(publicationId) && hasText(title)) {
+      titles.set(publicationId, title.trim());
+    }
+  }
+
+  return titles;
 }
 
 export function createStudent08ReadService({
@@ -171,8 +196,8 @@ export function createStudent08ReadService({
       validateStateFilter(state);
       const result = assignmentRepository.listForStudent(studentId);
 
-      return maybeResolve(result, (records) =>
-        normalizeAssignmentList(records)
+      return maybeResolve(result, (records) => {
+        const assignments = normalizeAssignmentList(records)
           .map((assignment) => {
             if (assignment.studentId !== studentId) {
               throw new Error("forbidden");
@@ -184,9 +209,36 @@ export function createStudent08ReadService({
           .filter(
             (assignment) =>
               state === undefined || assignment.state === state,
-          )
-          .map(studentAssignmentView),
-      );
+          );
+
+        const buildViews = (scoreItems = []) => {
+          const titles = scoreTitleMap(scoreItems);
+
+          return assignments.map((assignment) =>
+            studentAssignmentView(
+              assignment,
+              assignment.practiceType === PRACTICE_TYPES.SCORE
+                ? titles.get(assignment.sourceRef.publicationId) ?? null
+                : assignment.snapshot.displaySymbol,
+            ),
+          );
+        };
+
+        if (
+          assignments.some(
+            (assignment) =>
+              assignment.practiceType === PRACTICE_TYPES.SCORE,
+          ) &&
+          typeof scoreSharingService?.listMyWork === "function"
+        ) {
+          return maybeResolve(
+            scoreSharingService.listMyWork({ session }),
+            buildViews,
+          );
+        }
+
+        return buildViews();
+      });
     },
 
     getAssignment({ session, assignmentId }) {
