@@ -278,3 +278,42 @@ test("STUDENT-06 seed CLI is dry-run by default and refuses apply without a toke
     /FIRESTORE_ACCESS_TOKEN.*required/i,
   );
 });
+
+
+test("STUDENT-06 seed packages include pitched MusicXML for STUDENT-07B physical playback acceptance", async () => {
+  const { buildStudent06SeedPlan } = await loadSeedModule();
+  const plan = buildStudent06SeedPlan({
+    projectId: "st-student-app-test",
+    studentId: "uid-student-a",
+    publishedAt: "2026-09-22T00:00:00Z",
+  });
+
+  const privatePath =
+    "/students/uid-student-a/publications/pub-test-private";
+  const privateManifest = plan.writes.find((write) =>
+    write.update.name.endsWith(privatePath),
+  );
+  const privateChunk = plan.writes.find((write) =>
+    write.update.name.endsWith(`${privatePath}/chunks/0`),
+  );
+
+  const fields = privateManifest.update.fields;
+  const pkg = decodeFirestorePackage({
+    manifest: {
+      representationVersion: fields.representationVersion.stringValue,
+      encoding: fields.encoding.stringValue,
+      chunkCount: Number(fields.chunkCount.integerValue),
+      totalBytes: Number(fields.totalBytes.integerValue),
+    },
+    chunks: [
+      {
+        index: Number(fieldValue(privateChunk, "index").integerValue),
+        data: utf8BytesFromWrite(privateChunk),
+      },
+    ],
+  });
+
+  assert.match(pkg.content.score.data, /<pitch>/);
+  assert.match(pkg.content.score.data, /<step>C<\/step>/);
+  assert.match(pkg.content.score.data, /<step>G<\/step>/);
+});
