@@ -145,3 +145,20 @@ test("default bootstrap wires lazy local playback runtime", async () => {
     /canonicalEvents|Tone\.js|from\s+["']tone["']|https?:\/\/[^"'\s]+\.(?:wav|mp3|ogg)/i,
   );
 });
+
+
+test("browser bootstrap passes Web Audio constructor availability without instantiating context", async () => {
+  const source = await readFile(
+    new URL("../src/ui/main.js", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(
+    source,
+    /const\s+audioContextSupported\s*=\s*typeof\s*\(globalThis\.AudioContext\s*\?\?\s*globalThis\.webkitAudioContext\)\s*===\s*["']function["']/,
+  );
+  assert.match(
+    source,
+    /createWebAudioPianoEngine\(\{[\s\S]*?audioContextFactory,[\s\S]*?audioContextSupported,[\s\S]*?sampleBank/,
+  );
+});
