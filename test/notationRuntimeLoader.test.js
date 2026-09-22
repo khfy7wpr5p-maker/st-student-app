@@ -6,6 +6,9 @@ import {
   createNotationRuntimeLoader,
 } from "../src/practice/notationRuntimeLoader.js";
 
+const BOOTSTRAP_URL = "./vendor/st-score-runtime/browser-bootstrap.mjs";
+const VENDOR_URL = "./vendor/st-score-runtime/vendor/opensheetmusicdisplay.min.js";
+
 function compatibleRuntime() {
   return {
     async renderMusicXml() {},
@@ -28,12 +31,27 @@ function makeWindow() {
   };
 }
 
-test("missing bootstrap configuration is unavailable", async () => {
+function makeScriptNode() {
+  const listeners = new Map();
+  return {
+    type: "",
+    src: "",
+    addEventListener(type, listener) {
+      listeners.set(type, listener);
+    },
+    emit(type, value) {
+      listeners.get(type)?.(value);
+    },
+  };
+}
+
+test("missing local runtime configuration is unavailable", async () => {
   const loader = createNotationRuntimeLoader({
     getRuntime: () => undefined,
     documentObject: {},
     windowObject: makeWindow(),
     bootstrapUrl: null,
+    vendorUrl: null,
   });
   assert.equal(loader.isInstallable(), false);
   assert.equal(loader.isReady(), false);
@@ -51,123 +69,162 @@ test("compatible existing runtime is already ready", async () => {
   });
 });
 
-test("trusted local module installs after renderer ready event", async () => {
+test("trusted local runtime loads vendor before bootstrap then waits for renderer ready event", async () => {
   let runtime;
+  let vendorRuntime;
   const windowObject = makeWindow();
   const appended = [];
   const documentObject = {
     baseURI: "https://student.example/app/",
     createElement(tag) {
       assert.equal(tag, "script");
-      return { type: "", src: "", addEventListener() {} };
+      return makeScriptNode();
     },
     head: {
       append(node) {
         appended.push(node);
-        runtime = compatibleRuntime();
-        windowObject.dispatch("st-score-render-host-ready", { contractVersion: "0.2.0" });
       },
     },
   };
   const loader = createNotationRuntimeLoader({
     getRuntime: () => runtime,
+    getVendorRuntime: () => vendorRuntime,
     documentObject,
     windowObject,
-    bootstrapUrl: "./vendor/st-score-runtime/browser-bootstrap.mjs",
+    bootstrapUrl: BOOTSTRAP_URL,
+    vendorUrl: VENDOR_URL,
   });
+
+  const resultPromise = loader.ensureReady();
+
   assert.equal(loader.isInstallable(), true);
-  assert.deepEqual(await loader.ensureReady(), {
+  assert.equal(appended.length, 1);
+  assert.equal(appended[0].src, VENDOR_URL);
+  assert.notEqual(appended[0].type, "module");
+
+  vendorRuntime = function OpenSheetMusicDisplay() {};
+  appended[0].emit("load");
+
+  await Promise.resolve();
+  assert.equal(appended.length, 2);
+  assert.equal(appended[1].src, BOOTSTRAP_URL);
+  assert.equal(appended[1].type, "module");
+
+  runtime = compatibleRuntime();
+  windowObject.dispatch("st-score-render-host-ready", { contractVersion: "0.2.0" });
+
+  assert.deepEqual(await resultPromise, {
     state: NOTATION_RUNTIME_STATES.READY,
   });
-  assert.equal(appended.length, 1);
-  assert.equal(appended[0].type, "module");
 });
 
 test("ready event contract mismatch fails closed", async () => {
   let runtime;
+  let vendorRuntime;
   const windowObject = makeWindow();
+  const appended = [];
   const documentObject = {
     baseURI: "https://student.example/app/",
     createElement() {
-      return { addEventListener() {} };
+      return makeScriptNode();
     },
     head: {
-      append() {
-        runtime = compatibleRuntime();
-        windowObject.dispatch("st-score-render-host-ready", { contractVersion: "9.9.9" });
+      append(node) {
+        appended.push(node);
       },
     },
   };
   const loader = createNotationRuntimeLoader({
     getRuntime: () => runtime,
+    getVendorRuntime: () => vendorRuntime,
     documentObject,
     windowObject,
-    bootstrapUrl: "./vendor/st-score-runtime/browser-bootstrap.mjs",
+    bootstrapUrl: BOOTSTRAP_URL,
+    vendorUrl: VENDOR_URL,
   });
-  assert.deepEqual(await loader.ensureReady(), {
+
+  const resultPromise = loader.ensureReady();
+  vendorRuntime = function OpenSheetMusicDisplay() {};
+  appended[0].emit("load");
+  await Promise.resolve();
+
+  runtime = compatibleRuntime();
+  windowObject.dispatch("st-score-render-host-ready", { contractVersion: "9.9.9" });
+
+  assert.deepEqual(await resultPromise, {
     state: NOTATION_RUNTIME_STATES.ERROR,
   });
 });
 
-test("script load failure becomes bounded ERROR", async () => {
+test("vendor load failure becomes bounded ERROR", async () => {
   const windowObject = makeWindow();
-  const listeners = {};
+  const appended = [];
   const documentObject = {
     baseURI: "https://student.example/app/",
     createElement() {
-      return {
-        addEventListener(type, listener) {
-          listeners[type] = listener;
-        },
-      };
+      return makeScriptNode();
     },
     head: {
-      append() {
-        listeners.error(new Error("private browser detail"));
+      append(node) {
+        appended.push(node);
       },
     },
   };
   const loader = createNotationRuntimeLoader({
     getRuntime: () => undefined,
+    getVendorRuntime: () => undefined,
     documentObject,
     windowObject,
-    bootstrapUrl: "./vendor/st-score-runtime/browser-bootstrap.mjs",
+    bootstrapUrl: BOOTSTRAP_URL,
+    vendorUrl: VENDOR_URL,
   });
-  const result = await loader.ensureReady();
+
+  const resultPromise = loader.ensureReady();
+  appended[0].emit("error", new Error("private browser detail"));
+  const result = await resultPromise;
+
   assert.deepEqual(result, { state: NOTATION_RUNTIME_STATES.ERROR });
   assert.equal(JSON.stringify(result).includes("private browser detail"), false);
 });
 
-test("concurrent ensureReady calls share one installation", async () => {
+test("concurrent ensureReady calls share one vendor and one bootstrap installation", async () => {
   let runtime;
-  let release;
-  let appendCount = 0;
+  let vendorRuntime;
   const windowObject = makeWindow();
+  const appended = [];
   const documentObject = {
     baseURI: "https://student.example/app/",
     createElement() {
-      return { addEventListener() {} };
+      return makeScriptNode();
     },
     head: {
-      append() {
-        appendCount += 1;
-        release = () => {
-          runtime = compatibleRuntime();
-          windowObject.dispatch("st-score-render-host-ready", { contractVersion: "0.2.0" });
-        };
+      append(node) {
+        appended.push(node);
       },
     },
   };
   const loader = createNotationRuntimeLoader({
     getRuntime: () => runtime,
+    getVendorRuntime: () => vendorRuntime,
     documentObject,
     windowObject,
-    bootstrapUrl: "./vendor/st-score-runtime/browser-bootstrap.mjs",
+    bootstrapUrl: BOOTSTRAP_URL,
+    vendorUrl: VENDOR_URL,
   });
+
   const first = loader.ensureReady();
   const second = loader.ensureReady();
-  assert.equal(appendCount, 1);
-  release();
+
+  assert.equal(appended.length, 1);
+  vendorRuntime = function OpenSheetMusicDisplay() {};
+  appended[0].emit("load");
+  await Promise.resolve();
+
+  assert.equal(appended.length, 2);
+  runtime = compatibleRuntime();
+  windowObject.dispatch("st-score-render-host-ready", { contractVersion: "0.2.0" });
+
   assert.deepEqual(await first, { state: NOTATION_RUNTIME_STATES.READY });
   assert.deepEqual(await second, { state: NOTATION_RUNTIME_STATES.READY });
+  assert.deepEqual(appended.map((node) => node.src), [VENDOR_URL, BOOTSTRAP_URL]);
 });
