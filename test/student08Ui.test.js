@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 
 import { createStudentSession } from "../src/auth/session.js";
 import {
@@ -350,4 +351,22 @@ test("new STUDENT-08 shell actions forward only bounded read/navigation values",
     ["showMyWork", ASSIGNMENT_STATES.REPERTOIRE],
     ["openAssignment", "assignment-score"],
   ]);
+});
+
+
+test("static shell provides wide 25/75 layout and narrow responsive fallback", async () => {
+  const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
+
+  assert.match(
+    html,
+    /\.student-shell\s*\{[^}]*grid-template-columns:\s*minmax\([^)]*\)\s+minmax\(0,\s*1fr\)/s,
+  );
+  assert.match(
+    html,
+    /@media\s*\(max-width:\s*640px\)[\s\S]*?\.student-shell\s*\{[^}]*grid-template-columns:\s*1fr/s,
+  );
+  assert.match(
+    html,
+    /\.student-navigation\s+button\s*\{[^}]*width:\s*100%/s,
+  );
 });
