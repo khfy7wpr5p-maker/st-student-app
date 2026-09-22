@@ -29,6 +29,10 @@ Task 3: Ruling: The first Task 3 RED commit `6b48439` failed at JavaScript parse
 
 Task 3: Ruling: A direct 100,001 playable-note MusicXML fixture cannot fit under the approved 4 MiB playback XML admission cap using ordinary valid MusicXML note syntax. The compiler still contains the 100,000 raw/playable-note guard, while automated resource-bound evidence directly covers the stronger 4 MiB source cap and 10,000-measure cap. Cost if wrong: a future more compact MusicXML representation could make the note-count guard reachable without a dedicated regression fixture; final verification must inspect the guard.
 
+Task 7: Ruling: The selected-tempo fake-clock test jumped from 1.8 s directly to 7.8 s, so it never invoked the scheduler around the 4.0 s onset. The test was corrected to tick at 3.8 s before 7.8 s; production scheduling was unchanged. Cost if wrong: only test fidelity; real runtime ticks every 50 ms.
+
+Task 7: Ruling: The plan mentions restart-with-repeat in Task 7 although the repeat interface is explicitly produced by Task 8. Repeat-aware restart is therefore verified in Task 8 rather than adding an unplanned early interface. Cost if wrong: no shipped behavior gap if Task 8 passes its repeat restart test.
+
 ## Status
 
 - Setup: complete.
@@ -38,7 +42,7 @@ Task 3: Ruling: A direct 100,001 playable-note MusicXML fixture cannot fit under
 - Task 4: complete — RED `3eb2ec1` / CI #285: 247 tests, 246 pass, 1 expected fail (`ERR_MODULE_NOT_FOUND`); GREEN `5f1c904` / CI #286: 254/254 PASS.
 - Task 5: complete — RED `2ae558d` / CI #288: 258 tests, 254 pass, 4 expected missing-asset failures; GREEN `f4ab023` / CI #289: 258/258 PASS. Deterministic generated bank: 12 × 220,544-byte PCM16 WAV files (2,646,528 bytes total), no third-party audio.
 - Task 6: complete — RED `5736f03` / CI #291: 255 tests, 254 pass, 1 expected module-not-found failure; GREEN `bcb7446` / CI #292: 263/263 PASS.
-- Task 7: pending.
+- Task 7: complete — RED `00d0d4e` / CI #294: 264 tests, 263 pass, 1 expected module-not-found failure; first GREEN attempt `1a1a15b` exposed one fake-clock test defect; corrected test `9107cb2` / CI #296: 270/270 PASS.
 - Task 8: pending.
 - Task 9: pending.
 - Task 10: pending.
