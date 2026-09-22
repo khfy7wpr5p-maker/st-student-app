@@ -333,7 +333,7 @@ MusicXML içinde renderer'ın desteklediği tablature varsa bu notation renderin
 - Internal exception metinleri öğrenciye gösterilmez.
 - Notation region accessible label taşır.
 - Unavailable kontroller sahte aktif button olarak gösterilmez.
-- STUDENT-06 genel iPhone/Safari/VoiceOver acceptance tamamlanmıştır. STUDENT-07A'nın yeni notation runtime davranışı için renderer-specific fiziksel acceptance merge öncesi tekrar yapılmalıdır.
+- STUDENT-06 genel iPhone/Safari/VoiceOver acceptance tamamlanmıştır. STUDENT-07A'nın yeni notation runtime davranışı fiziksel iPhone/Safari üzerinde doğrulanmıştır: ilk render, 10–15 saniye stabil kalma, orientation change, Practice'ten çıkıp yeniden açma ve offline reload/reopen PASS.
 - Offline cache/sync STUDENT-05 kapsamındadır.
 
 
