@@ -17,9 +17,13 @@
 
       #app {
         box-sizing: border-box;
-        width: min(100%, 80rem);
+        width: min(100%, 44rem);
         margin: 0 auto;
         padding: 1.5rem;
+      }
+
+      #app:has(.student-shell) {
+        width: min(100%, 80rem);
       }
 
       .student-shell {
