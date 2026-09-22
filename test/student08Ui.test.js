@@ -400,3 +400,17 @@ test("STUDENT-08 Practice keeps only the persistent shell navigation", () => {
   assert.match(html, /data-action="sign-out">Çıkış/);
   assert.doesNotMatch(html, /data-action="go-home">Ana Sayfa/);
 });
+
+
+test("legacy shell width stays bounded while STUDENT-08 alone may use wide layout", async () => {
+  const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
+
+  assert.match(
+    html,
+    /#app\s*\{[^}]*width:\s*min\(100%,\s*44rem\)/s,
+  );
+  assert.match(
+    html,
+    /#app:has\(\.student-shell\)\s*\{[^}]*width:\s*min\(100%,\s*80rem\)/s,
+  );
+});
