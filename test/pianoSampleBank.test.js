@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readdir, readFile, stat } from "node:fs/promises";
 
+import { createPianoSampleBank } from "../src/playback/pianoSampleBank.js";
+
 const bankRoot = new URL("../vendor/st-piano/", import.meta.url);
 const samplesRoot = new URL("./samples/", bankRoot);
 
@@ -104,4 +106,181 @@ test("piano provenance contains no third-party audio dependency", async () => {
   assert.match(notices, /no third-party audio/i);
   assert.match(notices, /generate-st-piano-bank\.mjs/);
   assert.doesNotMatch(notices, /https?:\/\/|cdn/i);
+});
+
+
+function makeRuntimeManifest(overrides = {}) {
+  const samples = expectedFiles.map((file, index) => ({
+    midi: 60 + index,
+    file: "samples/" + file,
+    bytes: 220_544,
+    sha256: "0".repeat(64),
+  }));
+
+  return {
+    schemaVersion: 1,
+    generator: "scripts/generate-st-piano-bank.mjs",
+    format: "audio/wav; codecs=1",
+    sampleRate: 44_100,
+    channels: 1,
+    bitsPerSample: 16,
+    durationFrames: 110_250,
+    samples,
+    ...overrides,
+  };
+}
+
+function responseJson(value, { ok = true } = {}) {
+  return {
+    ok,
+    async json() {
+      return value;
+    },
+  };
+}
+
+function responseArrayBuffer(byte = 1, { ok = true } = {}) {
+  return {
+    ok,
+    async arrayBuffer() {
+      return Uint8Array.of(byte, byte + 1, byte + 2).buffer;
+    },
+  };
+}
+
+test("sample bank initialize validates manifest without decoding audio", async () => {
+  const calls = [];
+  const bank = createPianoSampleBank({
+    fetchImpl: async (url) => {
+      calls.push(url);
+      return responseJson(makeRuntimeManifest());
+    },
+  });
+
+  assert.equal(bank.isConfigured(), false);
+  assert.equal(await bank.initialize(), true);
+  assert.equal(bank.isConfigured(), true);
+  assert.deepEqual(calls, ["./vendor/st-piano/runtime-manifest.json"]);
+});
+
+test("sample bank rejects invalid or cross-origin manifest graphs", async () => {
+  for (const invalid of [
+    makeRuntimeManifest({ samples: [] }),
+    makeRuntimeManifest({
+      samples: makeRuntimeManifest().samples.map((sample, index) =>
+        index === 0
+          ? { ...sample, file: "https://cdn.example/C4.wav" }
+          : sample,
+      ),
+    }),
+    makeRuntimeManifest({
+      samples: makeRuntimeManifest().samples.map((sample, index) =>
+        index === 0 ? { ...sample, midi: 61 } : sample,
+      ),
+    }),
+  ]) {
+    const bank = createPianoSampleBank({
+      fetchImpl: async () => responseJson(invalid),
+    });
+
+    assert.equal(await bank.initialize(), false);
+    assert.equal(bank.isConfigured(), false);
+  }
+});
+
+test("sample bank loads 12 samples once and resolves MIDI by pitch class", async () => {
+  const fetchCalls = [];
+  const decoded = [];
+  const bank = createPianoSampleBank({
+    fetchImpl: async (url) => {
+      fetchCalls.push(url);
+      if (url.endsWith("runtime-manifest.json")) {
+        return responseJson(makeRuntimeManifest());
+      }
+      return responseArrayBuffer(fetchCalls.length);
+    },
+  });
+  const context = {
+    async decodeAudioData(buffer) {
+      const value = { id: decoded.length, bytes: buffer.byteLength };
+      decoded.push(value);
+      return value;
+    },
+  };
+
+  assert.equal(await bank.initialize(), true);
+  await Promise.all([bank.load(context), bank.load(context)]);
+  await bank.load(context);
+
+  assert.equal(fetchCalls.length, 13);
+  assert.equal(decoded.length, 12);
+
+  assert.deepEqual(bank.resolveMidi(48), {
+    buffer: decoded[0],
+    playbackRate: 0.5,
+    referenceMidi: 60,
+  });
+  assert.deepEqual(bank.resolveMidi(60), {
+    buffer: decoded[0],
+    playbackRate: 1,
+    referenceMidi: 60,
+  });
+  assert.deepEqual(bank.resolveMidi(72), {
+    buffer: decoded[0],
+    playbackRate: 2,
+    referenceMidi: 60,
+  });
+  assert.deepEqual(bank.resolveMidi(61), {
+    buffer: decoded[1],
+    playbackRate: 1,
+    referenceMidi: 61,
+  });
+});
+
+test("sample bank load failure enters a bounded failed state", async () => {
+  const bank = createPianoSampleBank({
+    fetchImpl: async (url) =>
+      url.endsWith("runtime-manifest.json")
+        ? responseJson(makeRuntimeManifest())
+        : responseArrayBuffer(1),
+  });
+  const context = {
+    async decodeAudioData() {
+      throw new Error("provider decode secret");
+    },
+  };
+
+  assert.equal(await bank.initialize(), true);
+  await assert.rejects(() => bank.load(context), /piano sample load failed/);
+  assert.equal(bank.isConfigured(), false);
+  await assert.rejects(() => bank.load(context), /piano sample bank unavailable/);
+  assert.throws(() => bank.resolveMidi(60), /piano sample bank unavailable/);
+});
+
+test("dispose invalidates slow sample load completion", async () => {
+  let releaseDecode;
+  const decodeGate = new Promise((resolve) => {
+    releaseDecode = resolve;
+  });
+  const bank = createPianoSampleBank({
+    fetchImpl: async (url) =>
+      url.endsWith("runtime-manifest.json")
+        ? responseJson(makeRuntimeManifest())
+        : responseArrayBuffer(1),
+  });
+  const context = {
+    async decodeAudioData() {
+      await decodeGate;
+      return { decoded: true };
+    },
+  };
+
+  assert.equal(await bank.initialize(), true);
+  const pending = bank.load(context);
+  bank.dispose();
+  releaseDecode();
+
+  await assert.rejects(() => pending, /piano sample load stale/);
+  assert.equal(bank.isConfigured(), false);
+  assert.throws(() => bank.resolveMidi(60), /piano sample bank unavailable/);
 });
