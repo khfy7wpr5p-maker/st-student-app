@@ -258,3 +258,62 @@ test("missing local sample detail is bounded at the playback port", async () => 
     /^Error: playback operation failed$/,
   );
 });
+
+
+test("failed active tempo change does not commit a hidden tempo selection", async () => {
+  const engine = makeEngine();
+  const work = pkg("pkg-a", { allowTempoChange: true });
+  const port = createStudentPlaybackPort({
+    playbackPlanResolver: { resolvePackage: () => plan() },
+    engine,
+  });
+
+  port.setTempoForPackage(work, 90);
+  await port.playPackage(work);
+
+  engine.setTempo = () => {
+    throw new Error("tempo engine failure");
+  };
+
+  assert.throws(
+    () => port.setTempoForPackage(work, 80),
+    /^Error: tempo operation failed$/,
+  );
+
+  engine.setTempo = (value) => {
+    engine.calls.push(["tempo", value]);
+  };
+  await port.playPackage(work);
+
+  const playCalls = engine.calls.filter(([name]) => name === "play");
+  assert.equal(playCalls.at(-1)[1].tempoBpm, 90);
+});
+
+test("failed active repeat change does not commit hidden repeat state", async () => {
+  const engine = makeEngine();
+  const work = pkg("pkg-a", { allowMeasureRepeat: true });
+  const port = createStudentPlaybackPort({
+    playbackPlanResolver: { resolvePackage: () => plan() },
+    engine,
+  });
+
+  await port.playPackage(work);
+  engine.setMeasureRepeatEnabled = () => {
+    throw new Error("repeat engine failure");
+  };
+
+  assert.throws(
+    () => port.setMeasureRepeatEnabledForPackage(work, true),
+    /^Error: measure repeat operation failed$/,
+  );
+
+  engine.setMeasureRepeatEnabled = (value) => {
+    engine.calls.push(["repeat", value]);
+  };
+  await port.playPackage(work);
+
+  assert.equal(
+    engine.calls.some(([name, value]) => name === "repeat" && value === true),
+    false,
+  );
+});
