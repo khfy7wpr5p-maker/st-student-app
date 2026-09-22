@@ -2,9 +2,11 @@
 
 ST Student App, SesliTab öğretmen uygulamasında hazırlanıp **öğretmen tarafından onaylanan** çalışmaların öğrenci tarafından erişilebilir ve salt-okunur biçimde kullanılacağı uygulamadır.
 
-## MVP akışı
+## Mevcut ürün akışı
 
-Giriş -> Havuz / Benim Çalışmalarım -> Çalışmayı Aç -> Nota / Ritim / Dinle / varsa TAB veya Keman -> çevrimdışı çalışma
+Giriş -> Havuz / Benim Çalışmalarım -> Çalışmayı Aç -> Nota / Dinle -> çevrimdışı çalışma
+
+Mevcut `main`, STUDENT-07B playback baseline'ını içerir. Bir sonraki ürün mimarisi ayrıca tasarlanmıştır; aşağıdaki STUDENT-08/09 bölümü henüz uygulanmış davranış iddiası değildir.
 
 ## Değişmez sınırlar
 
@@ -63,13 +65,13 @@ Practice Package içindeki MusicXML yalnız private render girdisidir; öğrenci
 
 Practice Package v1 içindeki `canonicalEvents` nesne dizisi güvenilir onset/duration playback şeması değildir ve Student App bunu hiçbir zaman timing kaynağı olarak tahmin etmez. STUDENT-07B feature branch'inin default browser bootstrap'ı artık ayrı Student App-owned playback portunu inject eder. Güvenilir bir trusted timing provider yoksa desteklenen `score-partwise` MusicXML bounded biçimde `APPROXIMATE` playback planına derlenir; unsupported/unsafe MusicXML playback'i `UNAVAILABLE` bırakır ve notation bağımsız kalır.
 
-STUDENT-07B Task 1–13 otomatik doğrulama kapsamı tamamlanmıştır. Son otomatik code head `9d7efe310ae0109454261d5c1d69d4f619aa27ad` üzerinde CI #338, 312/312 PASS vermiş; `npm ci`, deterministik piano-bank regeneration/diff ve `git diff --check` kapıları da geçmiştir. Bağımsız Codex Engineering Guardrails incelemesinde otomatik kapsam içinde material defect kalmamıştır. Task 14 fiziksel iPhone/Safari/VoiceOver + offline audio kabulü henüz yapılmadığı için feature branch merge-ready veya production-ready olarak sunulmaz.
+STUDENT-07B PR #8 ile `main` dalına merge edilmiştir. Feature head `5de1575e05f1822b1ee79ff113b4795c077a2a0b`, merge commit `a5ede988f198c49b70021d621554b55e6b961502`'dir. Post-merge CI #380 **314/314 PASS** vermiş; deterministic piano-bank regeneration/zero-diff ve `git diff --check` kapıları da geçmiştir. Fiziksel iPhone/Safari/VoiceOver Task 14 **16/16 PASS** olarak tamamlanmıştır. Offline kabul sırasında bulunan notation-root connectivity repaint hatası TDD ile düzeltilmiş ve Service Worker cache'i v5'e yükseltilmiştir.
 
 STUDENT-07B çekirdeği iki kalite kullanır: güvenilir dış timing provider'dan doğrulanmış plan varsa `FULL`; aksi halde desteklenen MusicXML'den bounded derlenen `APPROXIMATE`. Default route `APPROXIMATE`'tır. Ses motoru aynı-origin Web Audio + deterministik yerel piyano bankası kullanır. Banka bir oktavdaki 12 kromatik perde sınıfını (C–B) temsil eden 12 PCM16 WAV örneğidir; bu ifade “aynı anda yalnız 12 ses” anlamına gelmez. Farklı oktavlar `playbackRate` ile eşlenir ve çok sesli MusicXML aynı anda birden fazla note event çalabilir.
 
 `content.guitarTab` ve `content.violin` nesnelerinin iç sözleşmesi henüz tanımlı değildir; yalnız nesnenin varlığı bu capability'leri açmaz. MusicXML'in kendi içinde bulunan tablature, ST renderer tarafından notation sunumunun parçası olarak gösterilebilir.
 
-STUDENT-07A durumunda default bootstrap yalnız Practice ekranında ihtiyaç olduğunda same-origin runtime loader'ı çalıştırır. Pin: Rendering Layer `49dcb4737e802f956fc483ab2c8eac62a2508846`, renderer contract `0.2.0`, OSMD `2.1.2`. Runtime önce vendor OSMD varlığını, sonra ST browser bootstrap'ını yükler; contract/asset hatası notation capability'sini bounded `ERROR`/`UNAVAILABLE` durumuna düşürür ve diğer Practice capability'lerini kilitlemez. Service Worker v4 notation runtime modülleriyle birlikte playback modüllerini de static shell'e alır; piano manifest/license/notices ve 12 WAV dosyası best-effort static playback cache'ine girer. Private Practice Package verisi yalnız IndexedDB'de kalır ve Cache Storage'a taşınmaz. STUDENT-07A renderer-specific fiziksel iPhone/Safari kabul testi tamamlanmıştır: nota ilk render, 10–15 saniye stabil kalma, yön değişimi, Ana Sayfa'dan yeniden açma ve offline reload/reopen akışları PASS.
+STUDENT-07A durumunda default bootstrap yalnız Practice ekranında ihtiyaç olduğunda same-origin runtime loader'ı çalıştırır. Pin: Rendering Layer `49dcb4737e802f956fc483ab2c8eac62a2508846`, renderer contract `0.2.0`, OSMD `2.1.2`. Runtime önce vendor OSMD varlığını, sonra ST browser bootstrap'ını yükler; contract/asset hatası notation capability'sini bounded `ERROR`/`UNAVAILABLE` durumuna düşürür ve diğer Practice capability'lerini kilitlemez. Service Worker v5 notation runtime modülleriyle birlikte playback modüllerini de static shell'e alır; piano manifest/license/notices ve 12 WAV dosyası best-effort static playback cache'ine girer. Private Practice Package verisi yalnız IndexedDB'de kalır ve Cache Storage'a taşınmaz. STUDENT-07A renderer-specific fiziksel iPhone/Safari kabul testi tamamlanmıştır: nota ilk render, 10–15 saniye stabil kalma, yön değişimi, Ana Sayfa'dan yeniden açma ve offline reload/reopen akışları PASS.
 
 
 ## STUDENT-05 durumu
@@ -90,4 +92,27 @@ Offline cache ve foreground sync katmanı production provider kararıyla tanıml
 - Firebase Cloud Storage, Background Sync API ve push notification STUDENT-05 kapsamında kullanılmaz.
 - Firebase project provisioning, production config ve credential değerleri repository'ye commit edilmemiştir.
 
-STUDENT-06 fiziksel iPhone / Safari / VoiceOver kabul testi tamamlanmıştır. STUDENT-07A'nın yeni renderer runtime davranışı için notation-specific fiziksel tekrar doğrulaması ayrıca gereklidir.
+STUDENT-06 fiziksel iPhone / Safari / VoiceOver kabul testi tamamlanmıştır. STUDENT-07A notation runtime fiziksel doğrulaması ve STUDENT-07B playback/offline/VoiceOver Task 14 kabulü de tamamlanmıştır.
+
+
+## STUDENT-08/09 tasarım yönü
+
+Bu bölüm **design-only** durumdadır; henüz mevcut ürün davranışı değildir.
+
+Hedef öğrenci arayüzü mümkün olduğunca sade tutulur:
+
+- sol navigasyon: Havuz / Benim Çalışmalarım / Çıkış;
+- iki-pane kullanılabilen ekranda yaklaşık %25 navigasyon, %75 içerik;
+- Havuz yalnız repertuar ve duyuru kart/detayıdır; nota ekranı yoktur;
+- Havuz varsayılan herkese açık, istenirse çoklu seçilen öğrencilere görünür;
+- Benim Çalışmalarım: Aktif / Bitmiş / Repertuarım;
+- completion ve repertuara alma yalnız öğretmen authority'sidir; öğrenci "Hazırım" butonu yoktur;
+- aynı çalışma birden fazla öğrenciye atanabilir, fakat her öğrenci için ayrı private assignment ve ayrı öğretmen notu tutulur;
+- çalışma tipleri: `SCORE` ve `CHORD_BOARD`;
+- Chord Board ödevi MusicXML'e dönüştürülmez; öğretmenin seçtiği exact voicing snapshot'ı korunur;
+- score practice'te öğrenci nota seçmez; ölçüye dokunmak o ölçünün bir kez dinlenmesini hedefler;
+- playback cursor ve aktif nota/akor highlight otomatik geri bildirimdir.
+
+Tasarım belgesi: `docs/superpowers/specs/2026-09-22-student-08-09-simple-sharing-interactive-practice-design.md`.
+
+Rendering Layer ve Chord Board bu tasarımda read-only architectural dependencies/references olarak değerlendirilmiştir. Bu dokümantasyon değişikliği cross-repository runtime veya source write yetkisi vermez.
