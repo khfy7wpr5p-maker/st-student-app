@@ -1,0 +1,48 @@
+name: STUDENT-07B Temporary Pages Preview
+
+on:
+  push:
+    branches:
+      - feat/student-07b-hybrid-playback
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: student-07b-pages-preview
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/feat/student-07b-hybrid-playback'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout exact feature head
+        uses: actions/checkout@v5
+
+      - name: Prepare static preview
+        run: |
+          mkdir -p _site
+          cp index.html service-worker.js _site/
+          cp -R src vendor _site/
+          printf '%s\n' "$GITHUB_SHA" > _site/preview-head.txt
+          touch _site/.nojekyll
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Upload preview artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy preview
+        id: deployment
+        uses: actions/deploy-pages@v4
