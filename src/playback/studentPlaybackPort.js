@@ -223,15 +223,26 @@ export function createStudentPlaybackPort({
 
       const plan = requirePlayable(pkg);
       const packageId = plan.packageId;
-      selectedTempo.set(packageId, bpm);
 
       if (activePackageId === packageId) {
-        return wrapFailure(
+        const result = wrapFailure(
           "tempo operation failed",
           () => engine.setTempo(bpm),
         );
+
+        if (result !== null && typeof result?.then === "function") {
+          return Promise.resolve(result).then(() => {
+            if (activePackageId === packageId) {
+              selectedTempo.set(packageId, bpm);
+            }
+          });
+        }
+
+        selectedTempo.set(packageId, bpm);
+        return result;
       }
 
+      selectedTempo.set(packageId, bpm);
       return undefined;
     },
 
@@ -251,15 +262,26 @@ export function createStudentPlaybackPort({
       }
 
       const packageId = plan.packageId;
-      repeatEnabled.set(packageId, enabled);
 
       if (activePackageId === packageId) {
-        return wrapFailure(
+        const result = wrapFailure(
           "measure repeat operation failed",
           () => engine.setMeasureRepeatEnabled(enabled),
         );
+
+        if (result !== null && typeof result?.then === "function") {
+          return Promise.resolve(result).then(() => {
+            if (activePackageId === packageId) {
+              repeatEnabled.set(packageId, enabled);
+            }
+          });
+        }
+
+        repeatEnabled.set(packageId, enabled);
+        return result;
       }
 
+      repeatEnabled.set(packageId, enabled);
       return undefined;
     },
 
