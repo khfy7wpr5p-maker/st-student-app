@@ -59,7 +59,7 @@ STUDENT-05 ile production provider kararı **Firebase Authentication + Cloud Fir
 
 Firebase Authentication kullanıcı `uid` değeri ilk production adapter için kararlı `studentId` olarak kullanılır. E-posta, display name veya nickname yetkilendirme kimliği yerine geçmez.
 
-Firebase project provisioning, production config ve credential değerleri repository'ye commit edilmemiştir. Default bootstrap sahte kullanıcı veya gömülü Firebase credential üretmez.
+STUDENT-06 ile browser production Firebase wiring'i repository'ye bağlanmıştır. Browser client project config değeri yetkilendirme otoritesi değildir; admin credential, servis hesabı ve secret authority repository'ye commit edilmez. Default bootstrap sahte kullanıcı üretmez ve authenticated Firebase `uid` olmadan öğrenci oturumu oluşturmaz.
 
 Sunucu/servis katmanının minimum sorumlulukları:
 
@@ -259,7 +259,7 @@ Mimari doğrulamada referans alınan ST Score Rendering Layer revision:
 
 `13c32eefccd5bf2c227e815aa27aae4a0583801d`
 
-Runtime'ın `renderMusicXml` ve `dispose` metodları birlikte yoksa notation `UNAVAILABLE` olur. Runtime render hatası bounded biçimde notation `ERROR` durumuna çevrilir; ham exception öğrenciye çıkmaz.
+Runtime'ın `renderMusicXml` ve `dispose` metodları birlikte yoksa ve güvenilir same-origin runtime kurulabilir değilse notation `UNAVAILABLE` olur. STUDENT-07A ile installable pinned runtime da capability discovery'ye dahildir. Runtime yükleme/render hatası bounded biçimde notation `ERROR` durumuna çevrilir; ham exception öğrenciye çıkmaz.
 
 Practice HTML, notation AVAILABLE olduğunda renderer-owned DOM hedefi olarak:
 
@@ -271,11 +271,18 @@ Mount katmanı notation lifecycle'ını serialize eder. Aynı immutable package 
 
 ### Runtime asset gerçekliği
 
-Default Student App bootstrap, Student App-owned notation adapter'ını inject eder fakat renderer runtime asset graph'ını, OSMD'yi veya CDN URL'sini bundle etmez.
+STUDENT-04 aşamasında renderer runtime asset graph'ı henüz Student App'e bağlanmamıştı. STUDENT-07A ile bu eksik production entegrasyonu same-origin ve pinned biçimde tamamlanır:
 
-Bu nedenle doğrulanmış `__ST_SCORE_RENDER_HOST__` runtime aynı browser context'te mevcut değilse notation dürüstçe `UNAVAILABLE` kalır.
+- Rendering Layer source revision: `49dcb4737e802f956fc483ab2c8eac62a2508846`
+- renderer contract: `0.2.0`
+- OSMD vendor pin: `2.1.2`
+- asset root: `vendor/st-score-runtime/`
+- provenance/integrity authority: `runtime-manifest.json`
+- bare module specifier çözümü: Student App static import map
+- load order: vendor OSMD global -> ST browser bootstrap -> `st-score-render-host-ready`
+- `#st-score-root`, runtime bootstrap yüklenmeden önce Practice DOM içinde mevcut olmalıdır.
 
-Production deployment/integration, ST Score Rendering Layer'ın manifest/integrity kurallarını koruyan doğrulanmış runtime/adapter bağlantısını ayrıca sağlamalıdır. STUDENT-04 bu deployment işlemini tamamlanmış saymaz.
+Student App doğrudan OSMD nesnelerini ürün sözleşmesi yapmaz. Runtime CDN'den alınmaz. Service Worker yalnız bu static runtime graph'ını app shell ile cache'ler; private Practice Package hiçbir zaman Cache Storage'a taşınmaz.
 
 ### Playback ve practice kontrolleri
 
@@ -326,7 +333,7 @@ MusicXML içinde renderer'ın desteklediği tablature varsa bu notation renderin
 - Internal exception metinleri öğrenciye gösterilmez.
 - Notation region accessible label taşır.
 - Unavailable kontroller sahte aktif button olarak gösterilmez.
-- Gerçek iPhone/Safari/VoiceOver acceptance STUDENT-06 kapsamındadır.
+- STUDENT-06 genel iPhone/Safari/VoiceOver acceptance tamamlanmıştır. STUDENT-07A'nın yeni notation runtime davranışı için renderer-specific fiziksel acceptance merge öncesi tekrar yapılmalıdır.
 - Offline cache/sync STUDENT-05 kapsamındadır.
 
 
@@ -393,3 +400,23 @@ STUDENT-05 aşağıdakileri eklemez:
 - Teacher App contract değişikliği
 
 Fiziksel iPhone / Safari / VoiceOver acceptance ve gerçek cihaz offline akış testi STUDENT-06'ya bırakılmıştır.
+
+
+## 14. STUDENT-07A — Production Notation Runtime Integration
+
+STUDENT-07A'nın amacı authorized Practice Package MusicXML'ini mevcut `Nota` bölgesinde ST-owned Rendering Layer browser runtime üzerinden göstermek; teacher authority, private offline package storage ve bağımsız capability modelini değiştirmemektir.
+
+Runtime yalnız notation presentation authority'sine sahiptir. Student App:
+
+- `vendor/st-score-runtime/` altındaki manifest-doğrulanmış same-origin export'u kullanır;
+- Practice ekranı açılmadan renderer bootstrap'ını çalıştırmaz;
+- OSMD vendor global'ını bootstrap'tan önce yükler;
+- static import map ile yalnız pinned local ST module yollarını çözer;
+- aynı Practice içindeki repaint sırasında aktif `#st-score-root` DOM kimliğini korur;
+- package değişimi, Practice'ten çıkış, sign-out veya mount destroy durumunda aktif renderer lifecycle'ını dispose eder;
+- runtime/contract/render hatasını yalnız notation capability'sine sınırlar;
+- raw MusicXML, runtime exception veya provider detail'i öğrenci HTML/status yüzeyine taşımaz;
+- offline notation için static renderer asset graph'ını Service Worker cache'ine ekler;
+- private Practice Package'ı IndexedDB dışına taşımaz.
+
+STUDENT-07A playback authority eklemez. Playback, tempo ve measure-repeat için güvenilir timing/playback port keşfi ayrı STUDENT-07B kapsamındadır.
