@@ -192,6 +192,11 @@ test("selected tempo scales timing without changing sample playbackRate", async 
   assert.equal(context.sources.length, 2);
   assert.equal(context.sources[1].starts[0][0], 2);
 
+  context.currentTime = 3.8;
+  clock.tick();
+  assert.equal(context.sources.length, 3);
+  assert.equal(context.sources[2].starts[0][0], 4);
+
   context.currentTime = 7.8;
   clock.tick();
   assert.equal(context.sources.length, 4);
