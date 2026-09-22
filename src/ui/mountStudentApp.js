@@ -163,6 +163,7 @@ export function mountStudentApp({
 
       const previousPresentationKey = lastPresentationKey;
       const liveNotationRoot = root.querySelector?.("#st-score-root") ?? null;
+      const notationRootWasPresent = liveNotationRoot !== null;
 
       if (persistentNotationRoot === null && liveNotationRoot !== null) {
         persistentNotationRoot = liveNotationRoot;
@@ -187,11 +188,18 @@ export function mountStudentApp({
         }
       }
 
+      const notationRootIsPresent =
+        persistentNotationRoot !== null &&
+        root.querySelector?.("#st-score-root") === persistentNotationRoot;
+
       restoreFocusedAction(root, focusIdentity);
       lastMarkup = markup;
       lastPresentationKey = presentationKey;
 
-      if (presentationKey !== previousPresentationKey) {
+      if (
+        presentationKey !== previousPresentationKey ||
+        notationRootWasPresent !== notationRootIsPresent
+      ) {
         domGeneration += 1;
       }
     }
