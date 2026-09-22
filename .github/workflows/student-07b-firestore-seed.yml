@@ -1,0 +1,37 @@
+name: STUDENT-07B Temporary Firestore Playback Seed
+
+on:
+  push:
+    branches:
+      - feat/student-07b-hybrid-playback
+    paths:
+      - .github/workflows/student-07b-firestore-seed.yml
+
+permissions:
+  contents: read
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact feature head
+        uses: actions/checkout@v5
+
+      - name: Verify temporary Firestore access token
+        env:
+          FIRESTORE_ACCESS_TOKEN: ${{ secrets.FIRESTORE_ACCESS_TOKEN }}
+        run: |
+          if [ -z "$FIRESTORE_ACCESS_TOKEN" ]; then
+            echo "::error::FIRESTORE_ACCESS_TOKEN repository secret is not configured"
+            exit 1
+          fi
+
+      - name: Apply bounded STUDENT-07B playback fixture
+        env:
+          FIRESTORE_ACCESS_TOKEN: ${{ secrets.FIRESTORE_ACCESS_TOKEN }}
+        run: |
+          node scripts/seed-student06-firestore.mjs \
+            --project st-student-app-85cde \
+            --student V2FRODboGdVHruCXhGrZEmelXEC2 \
+            --published-at 2026-09-22T13:22:00Z \
+            --apply
