@@ -23,13 +23,13 @@ Ruling: The generated piano bank will contain deterministic repository-generated
 - Task 9 -> Tasks 10/11: existing playbackPort methods plus quality/reference-tempo/dispose methods match Practice/controller/bootstrap integration.
 - Tasks 10/11 -> Tasks 12–14: safe UI state, lifecycle, and static-cache seams match integrated verification and device acceptance.
 
-No pre-flight interface conflict found.
+No pre-flight interface conflict found.\n\nTask 2: Ruling: The first multi-part test expected same-onset notes sorted by MIDI, but the approved plan explicitly requires deterministic `startBeat -> partId -> voice -> midi` ordering. The test was corrected to the plan contract; production ordering was not changed. Cost if wrong: consumers would observe a different deterministic note order, but sounding simultaneity is unchanged.
 
 ## Status
 
 - Setup: complete.
 - Task 1: complete — RED `6e56767` / CI #273: 214 tests, 213 pass, 1 expected fail (`ERR_MODULE_NOT_FOUND`); GREEN `bd78e3e` / CI #274: 225/225 PASS.
-- Task 2: pending.
+- Task 2: complete — RED `ba3c768` / CI #276: 226 tests, 225 pass, 1 expected fail (`ERR_MODULE_NOT_FOUND`); GREEN `db4cbfe` / CI #279: 233/233 PASS.
 - Task 3: pending.
 - Task 4: pending.
 - Task 5: pending.
