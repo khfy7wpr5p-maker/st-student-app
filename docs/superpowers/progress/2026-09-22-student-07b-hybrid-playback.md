@@ -49,7 +49,7 @@ Task 7: Ruling: The plan mentions restart-with-repeat in Task 7 although the rep
 - Task 11: complete — RED bootstrap `6350ca9` / CI #313 and offline-cache `7d8b180` / CI #315 exposed the expected missing browser playback wiring and static-cache contract. The first lifecycle RED attempt also contained an accidental literal `\\n` import separator and is not counted as semantic evidence; that test-fixture defect was corrected before final verification. GREEN `0613f4b` / CI #322: 302/302 PASS. Browser bootstrap now wires resolver + local piano bank + lazy Web Audio engine + playback port; mount destroy tears down active playback ownership; Service Worker v4 caches the seven playback modules strictly with the shell and the manifest/license/notices + exactly 12 local WAV files best-effort.
 - Task 12: complete — integrated failure/data-minimization regressions added across controller, playback port, renderer, and offline cache. Existing implementation satisfied the new assertions without a production-code change. GREEN `3a53ff0` / CI #327: 307/307 PASS. Fresh HEAD scan of the playback/browser integration surfaces found no canonicalEvents timing inference, external audio URL, Tone.js, or alphaTab runtime coupling.
 - Task 13: complete — documentation reconciled to shipped branch behavior; CI workflow verifies `npm ci`, full `npm test`, deterministic piano-bank regeneration with zero vendor diff, and `git diff --check`. Automated code head `9d7efe3` / CI #338: 312/312 PASS, 0 fail. Independent Codex Engineering Guardrails read-only verification re-checked spec/plan compliance, parser/timing safety, async audio lifecycle/races, authority/data-minimization boundaries, offline asset completeness, generated-audio licensing/provenance, and exact-head CI evidence; no new material defect remained in the automated scope. Overall release readiness remains PARTIAL until Task 14 physical acceptance.
-- Task 14: pending.
+- Task 14: in progress — physical iPhone/Safari acceptance has started on the temporary HTTPS Pages preview. The playable 4-measure Firestore fixture was committed with the bounded seed tool. User-reported PASS so far: notation remains visible; audible Play after explicit tap; Pause; resume from paused position; Restart; tempo control changes speed with stable pitch; measure repeat enable/disable; portrait/landscape rotation without playback/notation breakage; Home stops playback; reopening Practice does not autoplay. Remaining unverified: APPROXIMATE quality label, sign-out teardown, offline cached playback, VoiceOver control reachability, and no raw runtime/XML/provider text announced.
 
 
 ## Current continuation checkpoint
@@ -62,6 +62,33 @@ Task 7: Ruling: The plan mentions restart-with-repeat in Task 7 although the rep
 - Task 14 is not passed until every physical acceptance item is recorded PASS; skipped/unverified is not PASS.
 - Merge, production deploy, Pages/environment policy change, Firebase Security Rules change, cross-repo write, credential/billing action remain human-gated.
 
+
+## Task 14 physical acceptance — partial evidence (2026-09-22)
+
+Temporary HTTPS preview:
+- Pages preview run #12 deployed branch head `50c5ba5b7a038f71c25c91aca9608d1a048677c7` successfully before the current documentation-only continuation.
+- The original STUDENT-06 rest-only fixture correctly produced playback UNAVAILABLE. For STUDENT-07B physical acceptance, the bounded test fixture was changed to a 4-measure pitched MusicXML score and re-seeded to the same four fixed Firestore test documents; Cloud Shell reported `COMMITTED: 4 bounded writes`.
+- On iPhone Safari, stale STUDENT-07A Service Worker v3 initially left the old browser bootstrap active even while new Firestore notation data was visible. Closing/reopening Safari allowed Service Worker v4 / STUDENT-07B bootstrap to become active. This was treated as test-environment cache state, not a physical PASS until playback controls actually appeared and were exercised.
+
+User-reported physical results:
+1. Authorized Practice notation visible with the 4-measure score — PASS.
+2. `Dinle` starts audible piano only after user tap — PASS.
+3. `Duraklat` stops playback — PASS.
+4. `Dinle` resumes from the paused musical position — PASS.
+5. `Baştan` restarts from score start with repeat off — PASS.
+6. Tempo control changes playback speed while pitch remains stable — PASS.
+7. Enabling measure repeat during playback loops the captured measure — PASS.
+8. Disabling measure repeat exits back to normal flow — PASS.
+9. Default MusicXML route visibly shows the bounded APPROXIMATE quality label — PENDING / not yet explicitly reported.
+10. Portrait/landscape rotation does not duplicate/restart playback or break notation — PASS.
+11. Going Home during playback stops audio immediately — PASS.
+12. Reopening Practice does not autoplay; a new explicit tap is required — PASS.
+13. Signing out during playback stops audio immediately — PENDING.
+14. After online cache warm-up, disabling Wi-Fi/cellular and reloading still allows cached Practice piano playback — PENDING.
+15. VoiceOver reaches Play, Pause, Restart, tempo, and repeat controls when exposed — PENDING.
+16. VoiceOver/UI does not expose or announce raw XML/runtime/provider/plan details — PENDING.
+
+Skipped or unreported checks remain PENDING and are not counted as PASS.
 
 ## Task 13 independent verification matrix
 
