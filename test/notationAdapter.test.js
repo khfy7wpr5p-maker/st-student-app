@@ -157,3 +157,49 @@ test("throwing runtime getter degrades to unavailable instead of escaping", asyn
   );
   await assert.doesNotReject(() => adapter.dispose());
 });
+
+test("installable local runtime makes notation available and is awaited before render", async () => {
+  const calls = [];
+  let runtime;
+  const loader = {
+    isReady: () => Boolean(runtime),
+    isInstallable: () => true,
+    async ensureReady() {
+      runtime = {
+        async renderMusicXml(payload) {
+          calls.push(payload);
+        },
+        async dispose() {},
+      };
+      return { state: "READY" };
+    },
+  };
+  const adapter = createStNotationAdapter({
+    getRuntime: () => runtime,
+    runtimeLoader: loader,
+  });
+
+  assert.equal(adapter.isAvailable(), true);
+  assert.deepEqual(await adapter.render({ musicXml: "<score-partwise/>" }), {
+    capability: PRACTICE_CAPABILITY_STATES.AVAILABLE,
+  });
+  assert.equal(calls.length, 1);
+});
+
+test("runtime loader failure affects notation only with bounded capability", async () => {
+  const adapter = createStNotationAdapter({
+    getRuntime: () => undefined,
+    runtimeLoader: {
+      isReady: () => false,
+      isInstallable: () => true,
+      async ensureReady() {
+        return { state: "ERROR" };
+      },
+    },
+  });
+
+  assert.equal(adapter.isAvailable(), true);
+  assert.deepEqual(await adapter.render({ musicXml: "<score-partwise>SECRET</score-partwise>" }), {
+    capability: PRACTICE_CAPABILITY_STATES.ERROR,
+  });
+});
