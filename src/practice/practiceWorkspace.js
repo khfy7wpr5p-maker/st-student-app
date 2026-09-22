@@ -8,6 +8,35 @@ function positiveFinite(value) {
   return Number.isFinite(value) && value > 0 ? value : null;
 }
 
+function safePlaybackQuality(playbackPort, pkg, playbackAvailable) {
+  if (!playbackAvailable) {
+    return null;
+  }
+
+  try {
+    const value = playbackPort?.getPlaybackQualityForPackage?.(pkg);
+    return value === "FULL" || value === "APPROXIMATE"
+      ? value
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function safeReferenceTempo(playbackPort, pkg, playbackAvailable) {
+  if (!playbackAvailable) {
+    return null;
+  }
+
+  try {
+    return positiveFinite(
+      playbackPort?.getReferenceTempoForPackage?.(pkg),
+    );
+  } catch {
+    return null;
+  }
+}
+
 function requireDeliveryItem(deliveryItem) {
   if (
     deliveryItem === null ||
@@ -38,13 +67,30 @@ export function createPracticeWorkspace({
     playbackPort,
   });
 
+  const playbackAvailable =
+    capabilities.playback === PRACTICE_CAPABILITY_STATES.AVAILABLE;
+  const playbackQuality = safePlaybackQuality(
+    playbackPort,
+    pkg,
+    playbackAvailable,
+  );
+  const referenceTempo = safeReferenceTempo(
+    playbackPort,
+    pkg,
+    playbackAvailable,
+  );
+
   const viewModel = Object.freeze({
     publicationId: item.publication.publicationId,
     packageId: pkg.packageId,
     title: pkg.title,
+    playbackQuality,
     capabilities,
     practice: Object.freeze({
-      tempoBpm: positiveFinite(pkg.practice?.tempoBpm),
+      tempoBpm:
+        referenceTempo ??
+        positiveFinite(pkg.practice?.tempoBpm),
+      measureRepeatEnabled: false,
     }),
   });
 
@@ -89,4 +135,33 @@ export function withPracticeCapability(viewModel, name, capability) {
 
 export function withNotationCapability(viewModel, capability) {
   return withPracticeCapability(viewModel, "notation", capability);
+}
+
+
+export function withPracticeTempo(viewModel, bpm) {
+  if (!Number.isFinite(bpm) || bpm <= 0) {
+    throw new TypeError("tempo must be a positive finite number");
+  }
+
+  return Object.freeze({
+    ...viewModel,
+    practice: Object.freeze({
+      ...viewModel.practice,
+      tempoBpm: bpm,
+    }),
+  });
+}
+
+export function withPracticeMeasureRepeatEnabled(viewModel, enabled) {
+  if (typeof enabled !== "boolean") {
+    throw new TypeError("repeat enabled must be boolean");
+  }
+
+  return Object.freeze({
+    ...viewModel,
+    practice: Object.freeze({
+      ...viewModel.practice,
+      measureRepeatEnabled: enabled,
+    }),
+  });
 }
