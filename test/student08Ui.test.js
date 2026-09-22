@@ -370,3 +370,33 @@ test("static shell provides wide 25/75 layout and narrow responsive fallback", a
     /\.student-navigation\s+button\s*\{[^}]*width:\s*100%/s,
   );
 });
+
+
+test("STUDENT-08 Practice keeps only the persistent shell navigation", () => {
+  const html = renderStudentApp({
+    student08: true,
+    screen: STUDENT_APP_SCREENS.PRACTICE,
+    session: { studentId: "student-a" },
+    items: [],
+    practice: {
+      publicationId: "pub-score",
+      packageId: "pkg-score",
+      title: "Gitar Etüdü",
+      capabilities: {
+        notation: "UNAVAILABLE",
+        playback: "UNAVAILABLE",
+        tempoChange: "UNAVAILABLE",
+        measureRepeat: "UNAVAILABLE",
+        guitarTab: "UNAVAILABLE",
+        violin: "UNAVAILABLE",
+      },
+      practice: { tempoBpm: 80 },
+    },
+  });
+
+  assert.match(html, /class="student-shell"/);
+  assert.match(html, /data-action="show-public-pool">Havuz/);
+  assert.match(html, /data-action="show-my-work">Benim Çalışmalarım/);
+  assert.match(html, /data-action="sign-out">Çıkış/);
+  assert.doesNotMatch(html, /data-action="go-home">Ana Sayfa/);
+});
