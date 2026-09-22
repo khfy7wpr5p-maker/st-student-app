@@ -235,3 +235,60 @@ test("Student read service exposes no teacher lifecycle writes", () => {
     assert.equal(name in service, false, name);
   }
 });
+
+
+test("assignment list derives safe display titles without exposing score internals", () => {
+  const service = buildService({
+    assignments: [
+      assignment({
+        id: "a-score",
+        studentId: "student-a",
+        publicationId: "pub-private-a",
+      }),
+      createPrivateAssignment({
+        assignmentId: "a-chord",
+        studentId: "student-a",
+        practiceType: PRACTICE_TYPES.CHORD_BOARD,
+        teacherNote: "",
+        state: ASSIGNMENT_STATES.ACTIVE,
+        assignedAt: "2026-09-22T16:10:00Z",
+        revokedAt: null,
+        snapshot: {
+          displaySymbol: "Am",
+          canonicalSymbol: "A:min",
+          frets: [-1, 0, 2, 2, 1, 0],
+        },
+      }),
+    ],
+    scoreSharingService: {
+      listMyWork() {
+        return [
+          {
+            publication: {
+              publicationId: "pub-private-a",
+              packageId: "pkg-a",
+              scope: "student_private",
+              recipientStudentId: "student-a",
+            },
+            package: {
+              packageId: "pkg-a",
+              title: "Gitar Etüdü",
+            },
+          },
+        ];
+      },
+    },
+  });
+
+  const items = service.listAssignments({ session: studentA });
+
+  assert.deepEqual(
+    items.map((item) => [item.assignmentId, item.title]),
+    [
+      ["a-score", "Gitar Etüdü"],
+      ["a-chord", "Am"],
+    ],
+  );
+  assert.equal(JSON.stringify(items).includes("recipientStudentId"), false);
+  assert.equal(JSON.stringify(items).includes("packageId"), false);
+});
