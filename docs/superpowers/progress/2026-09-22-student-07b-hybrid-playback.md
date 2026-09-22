@@ -48,16 +48,29 @@ Task 7: Ruling: The plan mentions restart-with-repeat in Task 7 although the rep
 - Task 10: complete — RED/current failure confirmed at `2796752` / CI #310: 297 tests, 296 pass, 1 fail (`APPROXIMATE playback renders bounded quality and teacher-gated controls`); GREEN `ceabfb1` / CI #311: 297/297 PASS. Renderer now shows the bounded APPROXIMATE quality label only for APPROXIMATE playback, enforces tempo UI bounds 20..300, and binds repeat checked-state from the safe Practice view-model.
 - Task 11: complete — RED bootstrap `6350ca9` / CI #313 and offline-cache `7d8b180` / CI #315 exposed the expected missing browser playback wiring and static-cache contract. The first lifecycle RED attempt also contained an accidental literal `\\n` import separator and is not counted as semantic evidence; that test-fixture defect was corrected before final verification. GREEN `0613f4b` / CI #322: 302/302 PASS. Browser bootstrap now wires resolver + local piano bank + lazy Web Audio engine + playback port; mount destroy tears down active playback ownership; Service Worker v4 caches the seven playback modules strictly with the shell and the manifest/license/notices + exactly 12 local WAV files best-effort.
 - Task 12: complete — integrated failure/data-minimization regressions added across controller, playback port, renderer, and offline cache. Existing implementation satisfied the new assertions without a production-code change. GREEN `3a53ff0` / CI #327: 307/307 PASS. Fresh HEAD scan of the playback/browser integration surfaces found no canonicalEvents timing inference, external audio URL, Tone.js, or alphaTab runtime coupling.
-- Task 13: pending.
+- Task 13: complete — documentation reconciled to shipped branch behavior; CI workflow verifies `npm ci`, full `npm test`, deterministic piano-bank regeneration with zero vendor diff, and `git diff --check`. Automated code head `9d7efe3` / CI #338: 312/312 PASS, 0 fail. Independent Codex Engineering Guardrails read-only verification re-checked spec/plan compliance, parser/timing safety, async audio lifecycle/races, authority/data-minimization boundaries, offline asset completeness, generated-audio licensing/provenance, and exact-head CI evidence; no new material defect remained in the automated scope. Overall release readiness remains PARTIAL until Task 14 physical acceptance.
 - Task 14: pending.
 
 
 ## Current continuation checkpoint
 
 - Handoff code checkpoint: `38f6039e0cbacab2b6629c1110707d9b1eee649c`
-- Last fully green checkpoint: `3a53ff08dbcd62ae0ccb0da063b4c88fbe319681`
-- Last fully green CI: #327 — 307/307 PASS
-- Tasks 10–12 are complete with exact-head CI evidence.
-- Do not restart STUDENT-07B from Task 1. Continue with Task 13 from the current branch state.
-- Tasks 11–14 remain pending and must follow the approved plan.
+- Last fully green automated code checkpoint: `9d7efe310ae0109454261d5c1d69d4f619aa27ad`
+- Last fully green automated code CI: #338 — 312/312 PASS
+- Tasks 10–13 are complete for the automated development/verification scope.
+- Do not restart STUDENT-07B from Task 1. The only remaining stage is Task 14 physical iPhone/Safari/VoiceOver + offline-audio acceptance.
+- Task 14 is not passed until every physical acceptance item is recorded PASS; skipped/unverified is not PASS.
 - Merge, production deploy, Pages/environment policy change, Firebase Security Rules change, cross-repo write, credential/billing action remain human-gated.
+
+
+## Task 13 independent verification matrix
+
+- Spec/plan compliance -> reviewed complete branch against STUDENT-07B plan/spec -> PASS for automated scope.
+- Timing authority -> production playback path does not read `content.canonicalEvents`; FULL requires validated trusted plan; default supported MusicXML is APPROXIMATE -> PASS.
+- Parser/resource bounds -> 4 MiB XML admission, 100,000-note and 10,000-measure plan bounds, backup-underflow fail-closed tests -> PASS.
+- Audio lifecycle/races -> generation invalidation, package disposal, async tempo/repeat stale-success guards, Web Audio constructor capability fail-closed -> PASS.
+- Data minimization -> raw MusicXML/plan/provider/sample errors remain outside safe UI/HTML -> PASS.
+- Offline assets -> Service Worker v4 strict playback module graph + best-effort manifest/license/notices/exact 12 WAV set; private Practice Packages remain IndexedDB-owned -> PASS.
+- Audio provenance -> repository-generated deterministic PCM16 bank, no third-party recordings, explicit license/notices and manifest hashes -> PASS.
+- Exact-head automated evidence -> code head `9d7efe310ae0109454261d5c1d69d4f619aa27ad`, CI #338, 312/312 PASS plus deterministic regeneration/diff and whitespace check -> PASS.
+- Physical iPhone/Safari/VoiceOver/offline-audio acceptance -> not executed in this automated verification -> PENDING / Task 14.
