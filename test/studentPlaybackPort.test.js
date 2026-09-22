@@ -317,3 +317,33 @@ test("failed active repeat change does not commit hidden repeat state", async ()
     false,
   );
 });
+
+
+test("late async tempo success cannot restore disposed package selection", async () => {
+  const engine = makeEngine();
+  const work = pkg("pkg-a", { allowTempoChange: true });
+  let resolveTempo;
+  const tempoGate = new Promise((resolve) => {
+    resolveTempo = resolve;
+  });
+  const port = createStudentPlaybackPort({
+    playbackPlanResolver: { resolvePackage: () => plan() },
+    engine,
+  });
+
+  await port.playPackage(work);
+  engine.setTempo = () => tempoGate;
+
+  const pending = port.setTempoForPackage(work, 80);
+  port.disposePackage(work);
+  resolveTempo();
+  await pending;
+
+  engine.setTempo = (value) => {
+    engine.calls.push(["tempo", value]);
+  };
+  await port.playPackage(work);
+
+  const playCalls = engine.calls.filter(([name]) => name === "play");
+  assert.equal(playCalls.at(-1)[1].tempoBpm, 120);
+});
