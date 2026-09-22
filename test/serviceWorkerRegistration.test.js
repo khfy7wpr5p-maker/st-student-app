@@ -29,13 +29,13 @@ test("registration failure is bounded and does not expose provider error", async
   );
 });
 
-test("service worker caches only explicit app-shell assets plus pinned Firebase runtime", async () => {
+test("service worker caches explicit app-shell and playback assets plus pinned Firebase runtime", async () => {
   const source = await readFile(
     new URL("../service-worker.js", import.meta.url),
     "utf8",
   );
 
-  assert.match(source, /st-student-shell-v3/);
+  assert.match(source, /st-student-shell-v4/);
   assert.match(source, /index\.html/);
   assert.match(source, /src\/ui\/main\.js/);
   assert.match(source, /request\.method\s*!==\s*["']GET["']/);
