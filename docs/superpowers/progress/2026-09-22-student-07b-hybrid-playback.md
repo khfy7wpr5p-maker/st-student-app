@@ -49,7 +49,7 @@ Task 7: Ruling: The plan mentions restart-with-repeat in Task 7 although the rep
 - Task 11: complete — RED bootstrap `6350ca9` / CI #313 and offline-cache `7d8b180` / CI #315 exposed the expected missing browser playback wiring and static-cache contract. The first lifecycle RED attempt also contained an accidental literal `\\n` import separator and is not counted as semantic evidence; that test-fixture defect was corrected before final verification. GREEN `0613f4b` / CI #322: 302/302 PASS. Browser bootstrap now wires resolver + local piano bank + lazy Web Audio engine + playback port; mount destroy tears down active playback ownership; Service Worker v4 caches the seven playback modules strictly with the shell and the manifest/license/notices + exactly 12 local WAV files best-effort.
 - Task 12: complete — integrated failure/data-minimization regressions added across controller, playback port, renderer, and offline cache. Existing implementation satisfied the new assertions without a production-code change. GREEN `3a53ff0` / CI #327: 307/307 PASS. Fresh HEAD scan of the playback/browser integration surfaces found no canonicalEvents timing inference, external audio URL, Tone.js, or alphaTab runtime coupling.
 - Task 13: complete — documentation reconciled to shipped branch behavior; CI workflow verifies `npm ci`, full `npm test`, deterministic piano-bank regeneration with zero vendor diff, and `git diff --check`. Automated code head `9d7efe3` / CI #338: 312/312 PASS, 0 fail. Independent Codex Engineering Guardrails read-only verification re-checked spec/plan compliance, parser/timing safety, async audio lifecycle/races, authority/data-minimization boundaries, offline asset completeness, generated-audio licensing/provenance, and exact-head CI evidence; no new material defect remained in the automated scope. Overall release readiness remains PARTIAL until Task 14 physical acceptance.
-- Task 14: in progress — physical iPhone/Safari acceptance continues on the temporary HTTPS Pages preview. The playable 4-measure Firestore fixture was committed with the bounded seed tool. User-reported PASS now covers notation visibility, explicit-tap Play, Pause/resume/Restart, tempo speed change with stable pitch, measure repeat enable/disable, portrait/landscape rotation, Home teardown, no-autoplay reopen, visible APPROXIMATE label, sign-out teardown, and offline cached Practice playback with notation + audio after the Safari connectivity-repaint fix. Remaining unverified: VoiceOver control reachability and no raw runtime/XML/provider text announced.
+- Task 14: physical acceptance complete — 16/16 iPhone/Safari/VoiceOver acceptance items were user-reported PASS on the temporary HTTPS Pages preview. This includes notation, explicit-tap playback, Pause/resume/Restart, tempo with stable pitch, measure repeat enable/disable, rotation, Home/sign-out teardown, no-autoplay reopen, visible APPROXIMATE label, offline notation + audio, VoiceOver reachability for playback controls, and no raw XML/runtime/provider/plan text exposed or announced. Temporary preview infrastructure must be removed and exact-head CI must pass before merge readiness.
 
 
 ## Current continuation checkpoint
@@ -85,8 +85,8 @@ User-reported physical results:
 12. Reopening Practice does not autoplay; a new explicit tap is required — PASS.
 13. Signing out during playback stops audio immediately — PASS.
 14. After online cache warm-up, disabling Wi-Fi/cellular and reloading still allows cached Practice notation and piano playback — PASS. Initial attempt exposed Safari notation-root loss while audio continued; fixed and physically revalidated.
-15. VoiceOver reaches Play, Pause, Restart, tempo, and repeat controls when exposed — PENDING.
-16. VoiceOver/UI does not expose or announce raw XML/runtime/provider/plan details — PENDING.
+15. VoiceOver reaches Play, Pause, Restart, tempo, and repeat controls when exposed — PASS.
+16. VoiceOver/UI does not expose or announce raw XML/runtime/provider/plan details — PASS.
 
 Skipped or unreported checks remain PENDING and are not counted as PASS.
 
@@ -100,4 +100,4 @@ Skipped or unreported checks remain PENDING and are not counted as PASS.
 - Offline assets -> Service Worker v5 strict playback module graph + best-effort manifest/license/notices/exact 12 WAV set; private Practice Packages remain IndexedDB-owned -> PASS.
 - Audio provenance -> repository-generated deterministic PCM16 bank, no third-party recordings, explicit license/notices and manifest hashes -> PASS.
 - Exact-head automated evidence -> code head `9d7efe310ae0109454261d5c1d69d4f619aa27ad`, CI #338, 312/312 PASS plus deterministic regeneration/diff and whitespace check -> PASS.
-- Physical iPhone/Safari/VoiceOver/offline-audio acceptance -> not executed in this automated verification -> PENDING / Task 14.
+- Physical iPhone/Safari/VoiceOver/offline-audio acceptance -> 16/16 user-reported PASS on 2026-09-22; merge remains gated on temporary preview cleanup and final exact-head CI.
