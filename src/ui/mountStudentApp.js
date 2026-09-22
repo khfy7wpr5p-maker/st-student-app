@@ -372,6 +372,9 @@ export function mountStudentApp({
 
     const action = actionElement.dataset.action;
     const publicationId = actionElement.dataset.publicationId;
+    const poolItemId = actionElement.dataset.poolItemId;
+    const assignmentId = actionElement.dataset.assignmentId;
+    const assignmentState = actionElement.dataset.assignmentState;
 
     const tempoBpm =
       action === "set-practice-tempo"
@@ -398,6 +401,9 @@ export function mountStudentApp({
       await dispatchStudentAppAction({
         action,
         publicationId,
+        poolItemId,
+        assignmentId,
+        assignmentState,
         tempoBpm,
         repeatEnabled,
         credentials,
