@@ -104,9 +104,10 @@ function makeController(initialState) {
 function makeRoot() {
   let clickListener = null;
   let tempoValue = "72";
+  let markup = "";
+  let notationRoot = null;
 
   return {
-    innerHTML: "",
     addEventListener(type, listener) {
       if (type === "click") clickListener = listener;
     },
@@ -120,7 +121,29 @@ function makeRoot() {
       if (selector === "[data-practice-tempo]") {
         return { value: tempoValue };
       }
+      if (selector === "#st-score-root") {
+        return notationRoot;
+      }
       return null;
+    },
+    querySelectorAll() {
+      return [];
+    },
+    get innerHTML() {
+      return markup;
+    },
+    set innerHTML(value) {
+      markup = value;
+      if (value.includes('id="st-score-root"')) {
+        const next = {
+          replaceWith(existing) {
+            notationRoot = existing;
+          },
+        };
+        notationRoot = next;
+      } else {
+        notationRoot = null;
+      }
     },
     setTempoValue(value) {
       tempoValue = value;
