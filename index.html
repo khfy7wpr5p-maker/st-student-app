@@ -58,6 +58,17 @@
   </head>
   <body>
     <div id="app"></div>
+    <script type="importmap">
+    {
+      "imports": {
+        "@st/score-renderer-contracts": "./vendor/st-score-runtime/modules/contracts.js",
+        "@st/score-renderer-core": "./vendor/st-score-runtime/modules/renderer-core.js",
+        "@st/score-renderer-osmd": "./vendor/st-score-runtime/modules/adapter-osmd.js",
+        "@st/score-renderer-browser-host": "./vendor/st-score-runtime/modules/browser-host.js",
+        "opensheetmusicdisplay": "./vendor/st-score-runtime/modules/osmd-module-shim.mjs"
+      }
+    }
+    </script>
     <script type="module" src="./src/ui/main.js"></script>
   </body>
 </html>
