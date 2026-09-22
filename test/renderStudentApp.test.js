@@ -226,3 +226,24 @@ test("playback renderer never exposes private plan or provider detail", () => {
     /playbackPlan|providerSecret|do-not-render|score-partwise|private/,
   );
 });
+
+
+test("playback error presentation never exposes sample, XML, or generated plan detail", () => {
+  const state = playbackPracticeState();
+  state.practice.capabilities.playback = "ERROR";
+  state.practice.playbackError =
+    "piano sample load stale: ./vendor/st-piano/samples/C4.wav";
+  state.practice.playbackPlan = {
+    notes: [{ midi: 60, startBeat: 0, durationBeats: 1 }],
+  };
+  state.practice.musicXml =
+    "<score-partwise><note>private</note></score-partwise>";
+
+  const html = renderStudentApp(state);
+
+  assert.match(html, /Dinleme kullanılamadı/);
+  assert.doesNotMatch(
+    html,
+    /sample load stale|vendor\/st-piano|C4\.wav|score-partwise|startBeat|durationBeats|midi/,
+  );
+});
