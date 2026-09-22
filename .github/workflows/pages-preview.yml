@@ -41,8 +41,11 @@ jobs:
       - name: Upload preview artifact
         uses: actions/upload-pages-artifact@v3
         with:
+          name: student-07b-pages-${{ github.run_id }}
           path: _site
 
       - name: Deploy preview
         id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          artifact_name: student-07b-pages-${{ github.run_id }}
