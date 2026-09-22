@@ -161,9 +161,7 @@ export function mountStudentApp({
           ? focusedActionIdentity(root)
           : null;
 
-      const previousPresentationKey = lastPresentationKey;
       const liveNotationRoot = root.querySelector?.("#st-score-root") ?? null;
-      const notationRootWasPresent = liveNotationRoot !== null;
 
       if (persistentNotationRoot === null && liveNotationRoot !== null) {
         persistentNotationRoot = liveNotationRoot;
@@ -188,20 +186,10 @@ export function mountStudentApp({
         }
       }
 
-      const notationRootIsPresent =
-        persistentNotationRoot !== null &&
-        root.querySelector?.("#st-score-root") === persistentNotationRoot;
-
       restoreFocusedAction(root, focusIdentity);
       lastMarkup = markup;
       lastPresentationKey = presentationKey;
-
-      if (
-        presentationKey !== previousPresentationKey ||
-        notationRootWasPresent !== notationRootIsPresent
-      ) {
-        domGeneration += 1;
-      }
+      domGeneration += 1;
     }
 
     return Object.freeze({
@@ -279,7 +267,7 @@ export function mountStudentApp({
       return;
     }
 
-    const renderKey = `${state.practice.packageId}:${generation}`;
+    const renderKey = state.practice.packageId;
 
     if (activeNotationKey === renderKey) {
       return;
