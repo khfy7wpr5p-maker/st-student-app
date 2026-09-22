@@ -4,6 +4,9 @@ const hasText = (value) =>
 export async function dispatchStudentAppAction({
   action,
   publicationId,
+  poolItemId,
+  assignmentId,
+  assignmentState,
   tempoBpm,
   repeatEnabled,
   credentials,
@@ -17,6 +20,24 @@ export async function dispatchStudentAppAction({
 
     case "show-my-work":
       return controller.showMyWork();
+
+    case "show-work-folder":
+      if (!hasText(assignmentState)) {
+        throw new Error("assignment state required");
+      }
+      return controller.showMyWork(assignmentState);
+
+    case "open-pool-item":
+      if (!hasText(poolItemId)) {
+        throw new Error("pool item id required");
+      }
+      return controller.openPoolItem(poolItemId);
+
+    case "open-assignment":
+      if (!hasText(assignmentId)) {
+        throw new Error("assignment id required");
+      }
+      return controller.openAssignment(assignmentId);
 
     case "go-home":
       return controller.showHome();
