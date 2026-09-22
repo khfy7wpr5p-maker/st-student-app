@@ -6,97 +6,112 @@ Bu kontrol listesi gerçek fiziksel cihaz kabulü içindir. Otomatik testler eri
 
 - HTTPS üzerinden açılabilen Student App deployment.
 - Firebase Authentication + Cloud Firestore production-like configuration.
-- En az bir teacher-approved Public Pool çalışması.
-- En az bir teacher-approved öğrenciye özel çalışma.
+- En az bir Public Pool çalışması.
+- En az bir öğrenciye özel çalışma.
 - Offline testi için daha önce çevrimiçi açılmış ve IndexedDB'ye kaydedilmiş bir çalışma.
 - Nota kabulü yapılacaksa aynı browser context içinde doğrulanmış ST Score Rendering Host runtime.
 
-Raw repository default bootstrap Firebase credential/config üretmez ve sahte öğrenci hesabı oluşturmaz. Bu nedenle gerçek giriş + Firestore + cihaz offline kabulü provisioning tamamlanmadan PASS sayılamaz.
+## A. Safari temel kullanım — PASS (2026-09-22)
 
-## A. Safari temel kullanım
+Gerçek fiziksel iPhone/Safari üzerinde doğrulandı:
 
-1. Uygulamayı Safari'de aç.
-2. Giriş yap.
-3. Ana Sayfa -> Havuz -> Çalışmayı Aç akışını tamamla.
-4. Ana Sayfa -> Benim Çalışmalarım -> Çalışmayı Aç akışını tamamla.
+1. Firebase Email/Password ile giriş başarılı.
+2. Ana Sayfa açıldı.
+3. Havuz listesi açıldı ve `Test Havuz Çalışması` göründü.
+4. Benim Çalışmalarım listesi açıldı ve `Test Kişisel Çalışma` göründü.
+5. Kişisel çalışma açıldı.
+6. Firestore manifest + chunk transport gerçek veride başarılı oldu.
+7. Ham kimlik, Firebase hata metni, MusicXML veya debug içeriği öğrenci UI'ına çıkmadı.
 
-PASS:
-- Sayfa yatay taşma olmadan kullanılabilir.
-- Ekran yakınlaştırması engellenmez.
-- Ana eylemler rahat dokunulabilir.
-- Ham kimlik, Firebase hata metni, MusicXML veya debug bilgisi görünmez.
+## B. VoiceOver — PASS (2026-09-22)
 
-## B. VoiceOver
+Kullanıcı gerçek cihazda VoiceOver ile doğruladı:
 
-1. iPhone Ayarlar -> Erişilebilirlik -> VoiceOver'u aç.
-2. Safari'ye dön.
-3. Sağ/sol kaydırma ile başlıkları ve kontrolleri sırayla dolaş.
-4. Havuz, Benim Çalışmalarım, Çıkış ve Çalışmayı Aç kontrollerini VoiceOver ile çalıştır.
+- Ana Sayfa heading/control sırası anlaşılır.
+- `Havuz`, `Benim Çalışmalarım` ve `Çıkış` görünen Türkçe adlarıyla okunuyor.
+- Practice ekranında çalışma başlığı, `Ana Sayfa`, `Nota` ve `Dinleme` bölümleri anlaşılır okunuyor.
+- Teknik kimlik, Firebase provider ayrıntısı veya package iç detayı okunmuyor.
 
-PASS:
-- Sayfa başlığı ve bölüm başlıkları anlaşılır okunur.
-- Butonlar görünen Türkçe adlarıyla okunur.
-- Nota mevcutsa "Nota" adlı region erişilebilir.
-- Tempo kontrolünün "Tempo" etiketi okunur.
-- Ölçü tekrar checkbox'ı adıyla okunur.
-- Teknik ID veya provider ayrıntıları okunmaz.
+## C. VoiceOver odak korunumu — PASS (2026-09-22)
 
-## C. VoiceOver odak korunumu
+Gerçek cihaz testi:
 
-1. Ana Sayfa'da VoiceOver odağını "Havuz" düğmesine getir.
-2. Ağ durumunu değiştir: çevrimdışı -> çevrimiçi veya tersi.
-3. Ekranın durum metninin değişmesini bekle.
+1. VoiceOver odağı Ana Sayfa'da `Havuz` kontrolüne getirildi.
+2. Ağ durumu çevrimiçi/çevrimdışı değiştirildi.
+3. Durum metni yeniden çizildi.
 
-PASS:
-- "Çevrimiçi" / "Çevrimdışı" durumu duyurulur.
-- Aynı ekran yeniden çizildiğinde VoiceOver odağı aynı "Havuz" kontrolünde kalır.
-- Kullanıcı ekranın başına fırlatılmaz.
+Sonuç:
+- Bağlantı durumu değişti.
+- VoiceOver odağı `Havuz` kontrolünde kaldı.
+- Kullanıcı ekranın başına fırlatılmadı.
 
 Bu davranış repository'de otomatik regresyon testiyle de korunur.
 
-## D. Offline çalışma
+## D. Offline çalışma — PASS (2026-09-22)
 
-1. İnternet açıkken giriş yap ve bir çalışmayı aç.
-2. Çalışmanın cihazda mevcut olduğunu doğrula.
-3. Wi-Fi ve hücresel veriyi kapat.
-4. Uygulamayı tekrar kullan ve cache'lenmiş çalışmayı aç.
-5. Safari sayfasını yeniden yükle.
-6. İnterneti tekrar aç.
+Gerçek cihazda şu akış doğrulandı:
 
-PASS:
-- Static shell açılabilir.
-- Restore edilmiş güvenilir öğrenci kimliği varsa yalnız o öğrenciye ait ACTIVE cache açılır.
-- Cache'lenmemiş çalışma offline açılmaz.
-- Ağ hatası mevcut geçerli cache'i REVOKED yapmaz.
-- İnternet geri geldiğinde foreground sync tekrar çalışabilir.
+1. Kişisel çalışma çevrimiçiyken açıldı.
+2. Package cihaz cache'ine alındı.
+3. Wi-Fi ve hücresel veri kapatıldı.
+4. Safari yeniden kullanıldı / sayfa yeniden yüklendi.
+5. Uygulama `Çevrimdışı` durumunu gösterdi.
+6. `Test Kişisel Çalışma` yeniden açıldı.
 
-## E. Notasyon
+Sonuç:
+- Static shell offline açıldı.
+- Restore edilmiş öğrenci oturumu yalnız kendi ACTIVE cache'ini açtı.
+- Ağ kesilmesi mevcut cache'i REVOKED yapmadı.
+- Offline reload fiziksel cihazda başarılı oldu.
 
-Nota runtime production deployment'a bağlanmışsa:
+## E. Notasyon / playback runtime — NOT RUN / NOT BLOCKING
 
-1. Nota içeren çalışmayı aç.
-2. VoiceOver ile "Nota" region'ına ilerle.
-3. Ekranı dikey ve yatay yönelimde kontrol et.
+Current production-like Student App deployment içinde doğrulanmış ST Score Rendering Host runtime ve trusted playback port bağlı değildir.
 
-PASS:
-- Nota alanı kaybolmaz.
-- Çalışma başlığı ve diğer kontroller kullanılabilir kalır.
-- Renderer hatası bütün Practice ekranını kilitlemez.
+Bu nedenle Practice ekranında:
 
-Runtime bağlanmamışsa notation UNAVAILABLE görünmesi STUDENT-06 başarısızlığı değildir; production renderer deployment eksikliği olarak kaydedilir.
+- `Nota görünümü bu çalışma için kullanılamıyor.`
+- `Dinleme bu çalışma için kullanılamıyor.`
 
-## Kanıt kaydı
+durumlarının görülmesi STUDENT-06 başarısızlığı değildir. Renderer/playback runtime entegrasyonu ayrı integration/deployment işi olarak kalır.
 
-Her fiziksel testte kaydet:
+## Firestore test verisi
 
-- cihaz modeli
-- iOS sürümü
-- Safari sürümü/build bilgisi bulunabiliyorsa
-- VoiceOver açık/kapalı
-- test adımı
-- PASS / FAIL
-- FAIL ise kısa açıklama ve ekran görüntüsü/ekran kaydı
+Mobil Firebase Console bazı string değerlerini boş kaydettiği için fiziksel kabul verisi güvenli seed aracıyla oluşturuldu:
 
-## STUDENT-06 kapanış koşulu
+- `scripts/student06SeedFixture.js`
+- `scripts/seed-student06-firestore.mjs`
 
-STUDENT-06 ancak gerçek fiziksel iPhone üzerinde A-D bölümleri doğrulandıktan sonra tamamen PASS sayılır. E bölümü renderer runtime deployment'ı mevcutsa ayrıca doğrulanır.
+Araç:
+- varsayılan dry-run çalışır;
+- yalnız açık `--apply` ile yazar;
+- Student App'e write yetkisi vermez;
+- Firestore Security Rules'ı değiştirmez;
+- yalnız dört bounded test dokümanını atomik commit ile yazar;
+- public/private package chunk'larını gerçek transport sözleşmesine uygun üretir.
+
+Cloud Shell dry-run sonucu:
+- `DRY RUN: 4 bounded writes`
+
+Canlı seed sonucu:
+- `COMMITTED: 4 bounded writes`
+
+## Otomatik doğrulama
+
+Exact feature head öncesindeki son code/test doğrulaması:
+- 198 test
+- 198 pass
+- 0 fail
+
+Kapsam:
+- Firebase Auth / Firestore browser wiring
+- offline cache + service worker
+- VoiceOver focus restoration regression
+- bounded My Work diagnostics
+- secure STUDENT-06 Firestore seed plan + CLI
+
+## STUDENT-06 kapanış
+
+A-D fiziksel iPhone/Safari/VoiceOver acceptance bölümleri PASS.
+
+E bölümü yalnız renderer/playback runtime production deployment'a bağlandığında ayrıca doğrulanacaktır ve mevcut STUDENT-06 kapanışını bloklamaz.

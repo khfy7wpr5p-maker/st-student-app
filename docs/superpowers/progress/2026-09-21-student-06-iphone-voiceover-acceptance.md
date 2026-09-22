@@ -1,42 +1,114 @@
 # STUDENT-06 progress — iPhone / Safari / VoiceOver Acceptance
 
-Base dependency: STUDENT-05 feature head db1ed163188bca9b369ba86290e33345d97b7aa4. PR #5 remains unmerged; STUDENT-06 is intentionally stacked and must not bypass that merge gate.
+Status: PHYSICAL ACCEPTANCE A-D PASS (2026-09-22)
 
-Approved scope:
+Base:
+- PR #5 / STUDENT-05 main'e merge edildi.
+- PR #6 base: `main`.
+- Feature branch: `feat/student-06-iphone-voiceover-acceptance`.
+
+## Approved scope
+
 - automated mobile/accessibility acceptance coverage
 - VoiceOver focus-loss regression protection
-- physical iPhone/Safari/VoiceOver acceptance checklist
+- Firebase production-like browser wiring
+- physical iPhone/Safari/VoiceOver acceptance
+- offline reload acceptance
 - no unrelated product features
+- no Student App Firestore write capability
+
+## VoiceOver focus regression
 
 RED:
-- commit 0caed0df8598e7bedec9e348652d26798ebdb48e
-- GitHub CI 35654668783
-- 175 tests / 174 pass / 1 fail
-- expected failure: same-screen connectivity repaint lost focused VoiceOver control
+- commit `0caed0df8598e7bedec9e348652d26798ebdb48e`
+- CI 35654668783
+- 175 tests / 174 pass / 1 expected fail
+- failure: same-screen connectivity repaint lost focused VoiceOver control
 
 GREEN:
-- commit 7615b23187e571d36aef5416a178351818b88d03
-- GitHub CI 35654751399
+- commit `7615b23187e571d36aef5416a178351818b88d03`
+- CI 35654751399
 - 175/175 pass
-- fix: preserve matching focused data-action control across same-presentation repaint; do not restore focus across navigation/presentation changes.
+- behavior: same-presentation repaint restores matching focused action control; navigation changes do not force focus restoration.
 
-Physical acceptance status:
-- NOT YET RUN.
-- Requires physical iPhone + Safari + VoiceOver.
-- End-to-end auth/Firestore/offline acceptance additionally requires Firebase production-like provisioning/configuration, which STUDENT-05 intentionally did not commit.
+## Firebase production-like wiring
 
+Verified implementation:
+- Firebase JS SDK 12.19.0 browser modules
+- Email/Password Authentication
+- Firebase uid -> stable Student App studentId
+- Firestore Sharing Adapter behind provider boundary
+- IndexedDB canonical offline package cache
+- Service Worker static shell + pinned Firebase runtime modules
+- no Analytics
+- no Storage
+- no service-account credential in Student App
 
-Automated acceptance coverage:
-- iPhone viewport keeps browser zoom enabled.
-- Primary touch controls retain a 3rem minimum height and visible focus styling.
-- Connectivity status is a bounded polite live region.
-- Practice exposes semantic headings, labeled notation region, labeled tempo control and native repeat checkbox.
-- Primary navigation uses native labeled controls.
-- exact head before closure: 6634815597ce71188195d4873f2c85bd7789955e
-- GitHub CI 35655186621 -> 179/179 pass, 0 fail.
+## Firestore physical test fixture
 
-Review:
-- compared against feat/student-05-offline-cache-sync: 5 commits ahead, 0 behind.
-- production change is limited to same-presentation focus restoration in mountStudentApp.js.
-- no Firebase/auth/offline authorization contract changes.
-- physical iPhone/Safari/VoiceOver acceptance remains intentionally unverified until run on a device with deployable Firebase configuration.
+Mobile Firebase Console saved some manually entered string values as empty strings. The manual path was stopped.
+
+A bounded seed tool was added instead:
+- `scripts/student06SeedFixture.js`
+- `scripts/seed-student06-firestore.mjs`
+
+Safety:
+- dry-run by default
+- `--apply` required for live write
+- short-lived Google access token only
+- token never stored in repository or Student App
+- four exact test documents only
+- Student App Security Rules remain read-only
+
+TDD:
+- seed-plan RED: 196 tests / 193 pass / 3 expected fail
+- seed-plan GREEN: 196/196 pass
+- commit/CLI RED: 198 tests / 196 pass / 2 expected fail
+- commit/CLI GREEN: 198/198 pass
+
+Cloud Shell evidence:
+- `DRY RUN: 4 bounded writes`
+- `COMMITTED: 4 bounded writes`
+
+## Physical iPhone/Safari acceptance
+
+A. Safari core flow — PASS
+- Firebase sign-in
+- Home
+- Public Pool
+- My Work
+- private Practice open
+- real Firestore manifest + chunk read
+
+B. VoiceOver — PASS
+- primary navigation labels and order
+- Practice headings/labels
+- no provider/internal identifiers announced
+
+C. VoiceOver focus preservation — PASS
+- focus left on `Havuz`
+- network status changed
+- focus remained on the same control
+
+D. Offline reload — PASS
+- work opened online and cached
+- Wi-Fi/cellular disabled
+- app reported `Çevrimdışı`
+- Safari reload succeeded
+- cached private Practice reopened
+
+E. Notation/playback runtime — NOT RUN / NOT BLOCKING
+- verified renderer runtime is not deployed into the Student App browser context
+- trusted playback port is not connected
+- bounded UNAVAILABLE UI is expected
+
+## Current verification state before closure commit
+
+- latest full CI evidence: 198/198 pass, 0 fail
+- GitHub Pages deployment: success
+- physical A-D: PASS
+
+## Merge gate
+
+PR #6 remains unmerged.
+Merge to `main` still requires explicit human approval.
