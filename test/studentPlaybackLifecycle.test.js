@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { createWebAudioPianoEngine } from "../src/playback/webAudioPianoEngine.js";
+import { createWebAudioPianoEngine } from "../src/playback/webAudioPianoEngine.js";\nimport { STUDENT_APP_SCREENS } from "../src/ui/studentAppController.js";\nimport { mountStudentApp } from "../src/ui/mountStudentApp.js";
 
 function deferred() {
   let resolve;
@@ -150,4 +150,70 @@ test("new package supersedes a pending old package load", async () => {
   assert.equal(audio.sources.length, 1);
   assert.equal(audio.sources[0].buffer.midi, 67);
   assert.equal(timers.activeCount, 1);
+});
+
+
+test("mount destroy disposes active Practice playback ownership", async () => {
+  let disposeCalls = 0;
+  let listener = null;
+  let markup = "";
+  const state = {
+    screen: STUDENT_APP_SCREENS.PRACTICE,
+    session: { studentId: "student-a" },
+    items: [],
+    practice: {
+      packageId: "pkg-active",
+      title: "Etüt",
+      capabilities: {
+        notation: "UNAVAILABLE",
+        playback: "AVAILABLE",
+        tempoChange: "UNAVAILABLE",
+        measureRepeat: "UNAVAILABLE",
+        guitarTab: "UNAVAILABLE",
+        violin: "UNAVAILABLE",
+      },
+      practice: { tempoBpm: 80, measureRepeatEnabled: false },
+    },
+  };
+  const root = {
+    addEventListener(type, callback) {
+      if (type === "click") listener = callback;
+    },
+    removeEventListener(type, callback) {
+      if (type === "click" && listener === callback) listener = null;
+    },
+    contains() {
+      return true;
+    },
+    querySelector() {
+      return null;
+    },
+    querySelectorAll() {
+      return [];
+    },
+    get innerHTML() {
+      return markup;
+    },
+    set innerHTML(value) {
+      markup = value;
+    },
+  };
+  const controller = {
+    getState() {
+      return state;
+    },
+    getPracticeRenderSource() {
+      return null;
+    },
+    disposeActivePractice() {
+      disposeCalls += 1;
+    },
+  };
+
+  const mounted = mountStudentApp({ root, controller });
+  await mounted.render();
+  await mounted.destroy();
+
+  assert.equal(disposeCalls, 1);
+  assert.equal(state.screen, STUDENT_APP_SCREENS.PRACTICE);
 });
