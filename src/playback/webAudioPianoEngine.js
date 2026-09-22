@@ -140,6 +140,8 @@ export function createWebAudioPianoEngine({
   let anchorTime = 0;
   let schedulerId = null;
   let scheduled = new Set();
+  let repeatMeasureIndex = null;
+  let generation = 0;
   const activeSources = new Set();
 
   function isSupported() {
@@ -214,6 +216,57 @@ export function createWebAudioPianoEngine({
     );
   }
 
+  function repeatMeasure() {
+    if (
+      currentPlan === null ||
+      repeatMeasureIndex === null ||
+      !Array.isArray(currentPlan.measures)
+    ) {
+      return null;
+    }
+
+    return currentPlan.measures.find(
+      (measure) => measure.index === repeatMeasureIndex,
+    ) ?? null;
+  }
+
+  function containingMeasureIndex(beat) {
+    if (
+      currentPlan === null ||
+      !Array.isArray(currentPlan.measures) ||
+      currentPlan.measures.length === 0
+    ) {
+      return null;
+    }
+
+    for (const measure of currentPlan.measures) {
+      if (
+        measure.startBeat <= beat &&
+        beat < measure.endBeat
+      ) {
+        return measure.index;
+      }
+    }
+
+    const last = currentPlan.measures.at(-1);
+
+    if (
+      last !== undefined &&
+      Math.abs(beat - last.endBeat) <= 1e-9
+    ) {
+      return last.index;
+    }
+
+    return null;
+  }
+
+  function reanchor(beat) {
+    anchorBeat = beat;
+    pausedBeat = beat;
+    anchorTime = context.currentTime;
+    scheduled = new Set();
+  }
+
   function noteWhen(note) {
     return (
       anchorTime +
@@ -278,7 +331,14 @@ export function createWebAudioPianoEngine({
 
     const now = context.currentTime;
     const horizon = now + SCHEDULE_AHEAD_SECONDS;
-    const beat = currentBeatSnapshot();
+    let beat = currentBeatSnapshot();
+    const repeat = repeatMeasure();
+
+    if (repeat !== null && beat >= repeat.endBeat - 1e-9) {
+      stopSources();
+      reanchor(repeat.startBeat);
+      beat = repeat.startBeat;
+    }
 
     for (let index = 0; index < currentPlan.notes.length; index += 1) {
       if (scheduled.has(index)) {
@@ -287,6 +347,17 @@ export function createWebAudioPianoEngine({
 
       const note = currentPlan.notes[index];
       const noteEnd = note.startBeat + note.durationBeats;
+
+      if (
+        repeat !== null &&
+        (
+          note.startBeat < repeat.startBeat ||
+          note.startBeat >= repeat.endBeat
+        )
+      ) {
+        scheduled.add(index);
+        continue;
+      }
 
       if (noteEnd <= beat) {
         scheduled.add(index);
@@ -347,15 +418,26 @@ export function createWebAudioPianoEngine({
         throw boundedError("audio playback unavailable");
       }
 
+      const requestGeneration = ++generation;
       const nextContext = ensureContext();
       await resumeContext();
+
+      if (generation !== requestGeneration) {
+        return;
+      }
+
       await sampleBank.load(nextContext);
+
+      if (generation !== requestGeneration) {
+        return;
+      }
 
       if (currentPlan !== plan) {
         clearScheduler();
         stopSources();
         currentPlan = plan;
         pausedBeat = 0;
+        repeatMeasureIndex = null;
       } else if (playing) {
         if (selectedTempoBpm !== tempoBpm) {
           this.setTempo(tempoBpm);
@@ -386,8 +468,10 @@ export function createWebAudioPianoEngine({
       await resumeContext();
       clearScheduler();
       stopSources();
-      pausedBeat = 0;
-      startAt(0);
+      const repeat = repeatMeasure();
+      const restartBeat = repeat?.startBeat ?? 0;
+      pausedBeat = restartBeat;
+      startAt(restartBeat);
     },
 
     setTempo(bpm) {
@@ -408,11 +492,71 @@ export function createWebAudioPianoEngine({
       startAt(beat);
     },
 
+    setMeasureRepeatEnabled(enabled) {
+      if (typeof enabled !== "boolean") {
+        throw new TypeError("repeat enabled must be boolean");
+      }
+
+      if (!enabled) {
+        if (repeatMeasureIndex === null) {
+          return;
+        }
+
+        const beat = currentBeatSnapshot();
+        repeatMeasureIndex = null;
+
+        if (playing && context !== null) {
+          clearScheduler();
+          stopSources();
+          reanchor(beat);
+          scheduleWindow();
+          ensureScheduler();
+        }
+
+        return;
+      }
+
+      if (
+        currentPlan === null ||
+        !Array.isArray(currentPlan.measures) ||
+        currentPlan.measures.length === 0
+      ) {
+        throw boundedError("measure repeat unavailable");
+      }
+
+      if (repeatMeasureIndex !== null) {
+        return;
+      }
+
+      const beat = currentBeatSnapshot();
+      const index = containingMeasureIndex(beat);
+
+      if (index === null) {
+        throw boundedError("measure repeat unavailable");
+      }
+
+      repeatMeasureIndex = index;
+
+      if (playing && context !== null) {
+        clearScheduler();
+        stopSources();
+        reanchor(beat);
+        scheduleWindow();
+        ensureScheduler();
+      }
+    },
+
+    getRepeatMeasureIndex() {
+      return repeatMeasureIndex;
+    },
+
     getCurrentBeat() {
       return currentBeatSnapshot();
     },
 
     dispose() {
+      generation += 1;
+
       if (playing) {
         pausedBeat = currentBeatSnapshot();
       }
@@ -421,6 +565,7 @@ export function createWebAudioPianoEngine({
       stopSources();
       currentPlan = null;
       selectedTempoBpm = null;
+      repeatMeasureIndex = null;
       pausedBeat = 0;
       anchorBeat = 0;
       anchorTime = 0;
