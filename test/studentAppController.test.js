@@ -7,6 +7,7 @@ import {
   STUDENT_APP_SCREENS,
   createStudentAppController,
 } from "../src/ui/studentAppController.js";
+import { renderStudentApp } from "../src/ui/renderStudentApp.js";
 
 const student = createStudentSession({
   studentId: "student-a",
@@ -809,5 +810,82 @@ test("successful repeat update changes only safe UI repeat state", () => {
   assert.equal(
     controller.getState().practice.practice.measureRepeatEnabled,
     true,
+  );
+});
+
+
+test("unsupported playback plan leaves notation available while playback is unavailable", () => {
+  const playbackPort = {
+    canPlayPackage: () => false,
+    playPackage() {},
+    pausePackage() {},
+    restartPackage() {},
+    canChangeTempoForPackage: () => false,
+    setTempoForPackage() {},
+    canRepeatMeasureForPackage: () => false,
+    setMeasureRepeatEnabledForPackage() {},
+    getPlaybackQualityForPackage: () => null,
+    getReferenceTempoForPackage: () => null,
+  };
+  const controller = createStudentAppController({
+    sharingService: makeSharingService(),
+    initialSession: student,
+    notationAdapter: { isAvailable: () => true },
+    playbackPort,
+  });
+
+  controller.openPractice("pub-public");
+
+  assert.equal(
+    controller.getState().practice.capabilities.notation,
+    PRACTICE_CAPABILITY_STATES.AVAILABLE,
+  );
+  assert.equal(
+    controller.getState().practice.capabilities.playback,
+    PRACTICE_CAPABILITY_STATES.UNAVAILABLE,
+  );
+  assert.equal(controller.getState().practice.playbackQuality, null);
+});
+
+test("stale or missing sample failure is playback-only and never reaches state or HTML", async () => {
+  const { port } = makePlaybackPort();
+  port.playPackage = async () => {
+    throw new Error(
+      "piano sample load stale: ./vendor/st-piano/samples/C4.wav",
+    );
+  };
+  const controller = createStudentAppController({
+    sharingService: makeSharingService(),
+    initialSession: student,
+    notationAdapter: { isAvailable: () => true },
+    playbackPort: port,
+  });
+
+  controller.openPractice("pub-public");
+
+  await assert.rejects(
+    () => controller.playPractice(),
+    /piano sample load stale/,
+  );
+
+  const state = controller.getState();
+  const serialized = JSON.stringify(state);
+  const html = renderStudentApp(state);
+
+  assert.equal(
+    state.practice.capabilities.playback,
+    PRACTICE_CAPABILITY_STATES.ERROR,
+  );
+  assert.equal(
+    state.practice.capabilities.notation,
+    PRACTICE_CAPABILITY_STATES.AVAILABLE,
+  );
+  assert.doesNotMatch(
+    serialized,
+    /piano sample load stale|vendor\/st-piano|C4\.wav|score-partwise|notes/,
+  );
+  assert.doesNotMatch(
+    html,
+    /piano sample load stale|vendor\/st-piano|C4\.wav|score-partwise|notes/,
   );
 });
