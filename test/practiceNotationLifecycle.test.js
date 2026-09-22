@@ -474,6 +474,10 @@ test("connectivity repaint preserves renderer content when attached nodes are de
       remove() {
         this.attached = false;
       },
+      replaceWith(existing) {
+        existing.attached = true;
+        notationRoot = existing;
+      },
     };
   }
 
@@ -501,14 +505,7 @@ test("connectivity repaint preserves renderer content when attached nodes are de
       markup = value;
 
       if (value.includes('id="st-score-root"')) {
-        const replacement = {
-          attached: true,
-          replaceWith(existing) {
-            existing.attached = true;
-            notationRoot = existing;
-          },
-        };
-        notationRoot = replacement;
+        notationRoot = createRendererRoot();
       } else {
         notationRoot = null;
       }
@@ -523,7 +520,6 @@ test("connectivity repaint preserves renderer content when attached nodes are de
   });
 
   await mounted.render();
-  notationRoot = createRendererRoot();
 
   connectivityState = "OFFLINE";
   listener?.("OFFLINE");
