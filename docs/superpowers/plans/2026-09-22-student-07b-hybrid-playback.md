@@ -276,7 +276,10 @@ Representative fixture:
         <pitch><step>C</step><octave>4</octave></pitch>
         <duration>4</duration><voice>1</voice>
       </note>
-      <rest/>
+      <note>
+        <rest/>
+        <duration>4</duration><voice>1</voice>
+      </note>
     </measure>
   </part>
 </score-partwise>
@@ -662,17 +665,19 @@ git commit -m "feat: add deterministic local piano sample bank"
 **Interfaces:**
 - Produces:
   - `createPianoSampleBank({ manifestUrl = "./vendor/st-piano/runtime-manifest.json", fetchImpl = globalThis.fetch })`
-  - `bank.isConfigured() -> boolean`
-  - `bank.load(audioContext) -> Promise<void>`
+  - `bank.initialize() -> Promise<boolean>` — fetch/validate manifest without creating AudioContext or decoding samples
+  - `bank.isConfigured() -> boolean` — true only after successful manifest initialization and before any known failed state
+  - `bank.load(audioContext) -> Promise<void>` — fetch/decode sample bytes only after explicit playback starts
   - `bank.resolveMidi(midi) -> { buffer, playbackRate, referenceMidi }`
   - `bank.dispose() -> void`
 
 - [ ] **Step 1: Add RED loader/mapping tests**
 
 With fake `fetchImpl` and fake `audioContext.decodeAudioData`, prove:
-- manifest must be same-origin relative path;
+- `initialize()` fetches only the manifest and validates a same-origin relative manifest/sample graph without creating an AudioContext;
+- missing/invalid manifest makes `initialize()` return false and `isConfigured()` remain false;
 - exactly MIDI 60..71 manifest references;
-- 12 sample fetches occur once and decoded buffers are reused;
+- `load(audioContext)` performs the 12 sample fetch/decode operations once and decoded buffers are reused;
 - MIDI 48 resolves reference C4 / playbackRate 0.5;
 - MIDI 60 resolves 1;
 - MIDI 72 resolves 2;
@@ -697,7 +702,7 @@ node --test test/pianoSampleBank.test.js
 
 - [ ] **Step 3: Implement loader**
 
-Do not trust manifest hashes at runtime as a security boundary if browser Web Crypto is unavailable; source integrity is enforced by committed manifest tests/CI. Runtime must still validate manifest shape, 12 entries, bounded bytes, relative same-origin file paths, and decoded-buffer presence.
+Do not trust manifest hashes at runtime as the sole security boundary; source integrity is enforced by committed manifest tests/CI. `initialize()` must validate manifest shape, 12 entries, bounded declared bytes, exact MIDI 60..71 coverage, and relative same-origin file paths. `load(audioContext)` must validate successful fetch/decode and then retain decoded buffers. A load/decode failure moves the bank into a failed state until a new bank instance/reload.
 
 - [ ] **Step 4: Run focused/full tests and commit**
 
@@ -722,6 +727,7 @@ git commit -m "feat: load local piano samples"
   - loaded piano sample bank.
 - Produces:
   - `createWebAudioPianoEngine({ audioContextFactory, sampleBank, clock = globalThis })`
+  - `isSupported() -> boolean` — requires an available AudioContext constructor boundary and initialized/non-failed sample bank
   - `play({ plan, tempoBpm })`
   - `pause()`
   - `restart()`
@@ -765,7 +771,8 @@ Prove:
 - look-ahead schedules only notes inside a bounded 250 ms horizon;
 - pause stops active sources and preserves beat;
 - next play resumes from preserved beat;
-- restart with repeat off resets beat 0;
+- restart with repeat off resets beat 0 and starts/resumes playback from beat 0;
+- restart with repeat on starts/resumes playback from the captured repeat-measure start;
 - starting another plan stops previous sources first;
 - repeated play does not duplicate active scheduler loops.
 
@@ -780,7 +787,7 @@ const MIN_TEMPO_BPM = 20;
 const MAX_TEMPO_BPM = 300;
 ```
 
-Build a piecewise integral over the plan tempo map, multiplied by:
+Create one master GainNode with conservative default gain `0.16` so ordinary chords do not saturate the destination, then build a piecewise integral over the plan tempo map, multiplied by:
 
 ```js
 tempoScale = plan.referenceTempoBpm / selectedTempoBpm;
@@ -909,6 +916,7 @@ Prove:
 - FULL/APPROXIMATE quality returned safely;
 - unsupported/malformed package -> `canPlayPackage === false`;
 - Web Audio unsupported -> false;
+- sample bank not successfully initialized -> false;
 - teacher permission gates tempo/repeat;
 - tempo only accepts 20..300;
 - play passes selected current tempo;
@@ -962,6 +970,7 @@ When playback available:
 - `playbackQuality === "APPROXIMATE"` projects into view-model;
 - invalid/unknown quality becomes `null`;
 - reference tempo from port wins when valid;
+- safe ephemeral UI state includes `practice.measureRepeatEnabled === false` initially;
 - raw plan does not enter view-model.
 
 When playback unavailable:
@@ -1017,7 +1026,24 @@ function clearActivePractice() {
 
 When `openPractice` replaces an existing package, clear old playback ownership before assigning the new package.
 
-- [ ] **Step 5: Add RED UI tests**
+- [ ] **Step 5: Add RED state-update tests**
+
+Prove:
+- successful `setPracticeTempo(60)` updates only safe UI `practice.tempoBpm` after the port succeeds; the immutable package object is unchanged;
+- async tempo success updates state after resolution; failure does not overwrite the prior UI tempo;
+- successful `setMeasureRepeatEnabled(true)` updates only safe UI `practice.measureRepeatEnabled`;
+- repeat failure preserves the previous safe UI repeat state.
+
+Add focused immutable helpers in `practiceWorkspace.js`:
+
+```js
+withPracticeTempo(viewModel, bpm)
+withPracticeMeasureRepeatEnabled(viewModel, enabled)
+```
+
+Both return new frozen view-model snapshots and never mutate `activePracticePackage`.
+
+- [ ] **Step 6: Add RED UI tests**
 
 APPROXIMATE playback renders:
 - `<p class="practice-playback-quality">Yaklaşık çalma</p>`;
@@ -1040,13 +1066,17 @@ Tempo input:
 >
 ```
 
+The repeat checkbox renders `checked` only when `practice.practice.measureRepeatEnabled === true`.
+
 No plan/XML/sample/provider fields may appear.
 
-- [ ] **Step 6: Tighten controller tempo validation**
+- [ ] **Step 7: Tighten controller tempo/repeat state handling**
 
-`setPracticeTempo(bpm)` rejects non-finite values and values outside 20..300 before calling the port.
+`setPracticeTempo(bpm)` rejects non-finite values and values outside 20..300 before calling the port. On successful sync or async delegation, replace only the safe Practice view-model tempo using `withPracticeTempo`.
 
-- [ ] **Step 7: Run focused tests**
+`setMeasureRepeatEnabled(enabled)` updates the safe Practice view-model only after successful sync or async delegation using `withPracticeMeasureRepeatEnabled`.
+
+- [ ] **Step 8: Run focused tests**
 
 ```bash
 node --test   test/practiceCapabilities.test.js   test/practiceWorkspace.test.js   test/studentAppController.test.js   test/renderStudentApp.test.js   test/studentAppAccessibilityAcceptance.test.js   test/studentPlaybackLifecycle.test.js
@@ -1054,7 +1084,7 @@ node --test   test/practiceCapabilities.test.js   test/practiceWorkspace.test.js
 
 Expected: PASS.
 
-- [ ] **Step 8: Run full suite and commit**
+- [ ] **Step 9: Run full suite and commit**
 
 ```bash
 npm test
@@ -1087,6 +1117,7 @@ git commit -m "feat: integrate playback capability into Practice"
 Require `src/ui/main.js` to:
 - import/create `createPlaybackPlanResolver`;
 - create local piano sample bank with `./vendor/st-piano/runtime-manifest.json`;
+- await `sampleBank.initialize()` before constructing the controller, without creating AudioContext;
 - create Web Audio engine using `AudioContext || webkitAudioContext`;
 - create/inject `playbackPort` into `createStudentAppController`;
 - contain no playback CDN URL;
@@ -1095,7 +1126,17 @@ Require `src/ui/main.js` to:
 
 - [ ] **Step 2: Implement default browser playback wiring**
 
-Use lazy audio context creation:
+Initialize only the lightweight manifest first:
+
+```js
+const sampleBank = createPianoSampleBank({
+  manifestUrl: "./vendor/st-piano/runtime-manifest.json",
+});
+
+await sampleBank.initialize().catch(() => false);
+```
+
+Then use lazy audio context creation:
 
 ```js
 const audioContextFactory = () => {
@@ -1134,20 +1175,20 @@ Require cache name bump:
 const CACHE_NAME = "st-student-shell-v4";
 ```
 
-Require static membership for:
-- all six `src/playback/*.js` modules;
-- `vendor/st-piano/runtime-manifest.json`;
-- license/notices;
-- exactly 12 WAVs.
+Require:
+- all six `src/playback/*.js` modules in required `SHELL_ASSETS`, because `main.js` imports them;
+- a separate `PLAYBACK_STATIC_ASSETS` list containing `vendor/st-piano/runtime-manifest.json`, license/notices, and exactly 12 WAVs;
+- `PLAYBACK_ASSET_PATHS` included in fetch handling.
 
 Also assert:
-- no `Practice Package`/IndexedDB content path is dynamically added to `SHELL_ASSETS`;
+- no `Practice Package`/IndexedDB content path is dynamically added to either static list;
 - sample paths are same-origin relative paths;
-- no audio CDN URL.
+- no audio CDN URL;
+- failure to pre-cache one piano asset does not reject installation of the required Student App shell.
 
 - [ ] **Step 6: Update Service Worker**
 
-Add playback code/assets explicitly to `SHELL_ASSETS`. Preserve existing Firebase best-effort external cache behavior; do not mix piano asset handling with Firebase CDN handling.
+Cache required `SHELL_ASSETS` with the existing strict `cache.addAll` path. Then pre-cache each `PLAYBACK_STATIC_ASSETS` item independently in a bounded best-effort loop so one missing piano asset cannot block the Student App shell upgrade. Fetch handling may serve either required shell paths or playback static paths from the same named cache. Preserve existing Firebase best-effort external cache behavior and private-package exclusion.
 
 - [ ] **Step 7: Run focused/full tests and commit**
 
