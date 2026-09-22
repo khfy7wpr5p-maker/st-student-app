@@ -252,13 +252,15 @@ function renderMyWork(state) {
   `;
 }
 
-function renderPractice(practice) {
+function renderPractice(practice, { showHomeAction = true } = {}) {
   const saveStatus =
     practice?.offlineSaveFailed === true
       ? '<p class="offline-save-status" role="status">Çevrimdışı kaydedilemedi.</p>'
       : "";
 
-  return `${saveStatus}${renderPracticeWorkspace(practice)}`;
+  return `${saveStatus}${renderPracticeWorkspace(practice, {
+    showHomeAction,
+  })}`;
 }
 
 function renderStudent08Shell(body) {
@@ -300,7 +302,7 @@ export function renderStudentApp(
         body = renderMyWork(state);
         break;
       case STUDENT_APP_SCREENS.PRACTICE:
-        body = renderPractice(state.practice);
+        body = renderPractice(state.practice, { showHomeAction: false });
         break;
       case STUDENT_APP_SCREENS.SIGN_IN:
         body = renderSignIn({ signInAvailable });
