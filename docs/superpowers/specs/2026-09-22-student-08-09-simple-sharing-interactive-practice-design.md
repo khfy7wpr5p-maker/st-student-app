@@ -271,7 +271,15 @@ Student App (read-only)
 
 These are future implementation requirements, not defects in the merged STUDENT-07B contract.
 
-## 15. Acceptance direction
+## 15. Implementation decomposition
+
+This is a program-level architecture document, not one monolithic implementation plan.
+
+- STUDENT-08 must receive its own reviewed implementation plan and PR.
+- STUDENT-09 must receive a separate reviewed implementation plan and PR after the STUDENT-08 contracts it consumes are stable.
+- Rendering Layer or Chord Board cross-repository changes, if required, need their own repository-local spec/plan and explicit authorization; this document does not authorize those writes.
+
+## 16. Acceptance direction
 
 STUDENT-08 implementation should prove:
 
@@ -294,6 +302,6 @@ STUDENT-09 implementation should prove:
 - VoiceOver can invoke the measure action without extra visible instructional clutter;
 - notation and playback failure domains remain independent.
 
-## 16. Explicit non-goals
+## 17. Explicit non-goals
 
 No chat, free-form personal messaging, student "Hazırım" action, student completion control, grading, practice score, gamification, social feed, group/class management, push notification system, microphone evaluation, MIDI input, automatic performance assessment, correction-engine runtime, or broad analytics.
