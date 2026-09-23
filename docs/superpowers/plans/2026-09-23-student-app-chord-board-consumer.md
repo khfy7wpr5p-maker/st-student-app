@@ -51,7 +51,7 @@
 
 - `src/contracts/studentChordBoardPackage.js` — strict Student App-owned CHORD_BOARD package and exact-voicing validator/restorer.
 - `src/contracts/secureDeliveryPackage.js` — tiny SCORE/CHORD_BOARD discriminator/restorer used by Secure Delivery assignment/offline boundaries.
-- `src/ui/chordBoardViewModel.js` — student-safe projection from restored CHORD_BOARD package to renderer data.
+- `src/ui/chordBoardViewModel.js` — student-safe projection from restored CHORD_BOARD package to controller/renderer data; created in Task 4 so controller state never holds raw package internals.
 - `src/ui/renderChordBoardWorkspace.js` — read-only semantic/visual chord workspace.
 - `test/studentChordBoardPackage.test.js` — strict CHORD_BOARD package contract.
 - `test/student08ChordBoardReadService.test.js` — Student08 Secure Delivery CHORD_BOARD read path.
@@ -488,7 +488,8 @@ git commit -m "feat: accept strict CHORD_BOARD Secure Delivery rows"
 - Produces:
   - existing `getScorePracticeItem({ session, assignmentId })`
   - new `getChordBoardPracticeItem({ session, assignmentId })`
-  - both return `{ accessRef: { kind: "SECURE_DELIVERY", deliveryId }, package }`
+  - SCORE returns `{ accessRef: { kind: "SECURE_DELIVERY", deliveryId }, practiceType: "SCORE", package }`
+  - CHORD_BOARD returns `{ accessRef: { kind: "SECURE_DELIVERY", deliveryId }, practiceType: "CHORD_BOARD", package }`
 
 - [ ] **Step 1: Write RED test that lists/details a CHORD_BOARD assignment**
 
@@ -572,12 +573,17 @@ async getChordBoardPracticeItem(args = {}) {
       kind: "SECURE_DELIVERY",
       deliveryId: row.deliveryId,
     }),
+    practiceType: PRACTICE_TYPES.CHORD_BOARD,
     package: row.package,
   });
 },
 ```
 
-Do not change `getScorePracticeItem()` except shared refactoring that preserves its exact semantics.
+Update `getScorePracticeItem()` only by adding the explicit envelope discriminator:
+```js
+practiceType: PRACTICE_TYPES.SCORE,
+```
+All SCORE validation, accessRef identity, package contents, and error behavior remain unchanged.
 
 - [ ] **Step 6: Run focused tests**
 
@@ -595,6 +601,7 @@ git commit -m "feat: add Student08 CHORD_BOARD read path"
 ### Task 4: Controller state and dedicated CHORD_BOARD screen
 
 **Files:**
+- Create: `src/ui/chordBoardViewModel.js`
 - Modify: `src/ui/studentAppController.js`
 - Create: `test/student08ChordBoardController.test.js`
 - Modify: `test/student08Ui.test.js`
@@ -602,8 +609,9 @@ git commit -m "feat: add Student08 CHORD_BOARD read path"
 **Interfaces:**
 - Consumes: Task 3 `getChordBoardPracticeItem()`.
 - Produces:
+  - `createChordBoardViewModel(item) -> frozen student-safe view model`
   - `STUDENT_APP_SCREENS.CHORD_BOARD = "chord_board"`
-  - controller state property `chordBoard` when active
+  - controller state property `chordBoard` containing only that view model
   - dedicated type-specific `openAssignment()` behavior
   - no CHORD_BOARD entry into SCORE Practice activation.
 
@@ -672,7 +680,53 @@ node --test   test/student08ChordBoardController.test.js   test/student08Ui.test
 
 Expected: CHORD_BOARD screen/state tests FAIL.
 
-- [ ] **Step 5: Extend frozen state shape without disturbing existing screens**
+- [ ] **Step 5: Create the student-safe CHORD_BOARD view-model projection**
+
+Create `src/ui/chordBoardViewModel.js` now, before controller activation, so raw package provenance never enters controller state.
+
+```js
+const stringState = (fret) =>
+  fret === -1 ? "MUTED" : fret === 0 ? "OPEN" : "FRETTED";
+
+export function createChordBoardViewModel(item) {
+  const pkg = item.package;
+  const snapshot = pkg.content.chordBoard;
+
+  return Object.freeze({
+    packageId: pkg.packageId,
+    title: pkg.title,
+    teacherNote: pkg.practice.teacherNote,
+    chord: Object.freeze({
+      displaySymbol: snapshot.chord.displaySymbol,
+      displayRoot: snapshot.chord.displayRoot,
+    }),
+    strings: Object.freeze(
+      snapshot.voicing.frets.map((fret, index) =>
+        Object.freeze({
+          stringNumber: 6 - index,
+          fret,
+          state: stringState(fret),
+          finger: snapshot.voicing.fingers[index],
+        }),
+      ),
+    ),
+    barres: Object.freeze(
+      snapshot.voicing.barres.map((barre) =>
+        Object.freeze({ ...barre }),
+      ),
+    ),
+    offlineAvailable:
+      item.offlineAvailability?.deviceAvailable === true,
+    offlineSaveFailed:
+      item.offlineAvailability?.saveFailed === true,
+  });
+}
+```
+
+Add controller tests that serialize the resulting state and assert it contains none of:
+`sourceRepository`, `sourceCommit`, `catalogFingerprint`, `voicingFingerprint`, or `recipientStudentId`.
+
+- [ ] **Step 6: Extend frozen state shape without disturbing existing screens**
 
 Add `chordBoard = null` to the state factory:
 
@@ -705,7 +759,7 @@ CHORD_BOARD: "chord_board",
 
 to `STUDENT_APP_SCREENS`.
 
-- [ ] **Step 6: Add a focused CHORD_BOARD activation helper**
+- [ ] **Step 7: Add a focused CHORD_BOARD activation helper**
 
 Keep it separate from `activatePracticeItem()`:
 
@@ -730,9 +784,9 @@ function activateChordBoardItem({
 }
 ```
 
-The exact projection function is added in Task 5; during Task 4 either introduce its minimal file/interface together with the controller test fixture, or temporarily store only the restored item behind a private helper if no UI projection is yet needed. Do not expose package internals from controller state beyond the Task 5 view model.
+Import and use the Task 4 `createChordBoardViewModel()` projection. Do not place raw package objects in public controller state.
 
-- [ ] **Step 7: Update `openAssignment()`**
+- [ ] **Step 8: Update `openAssignment()`**
 
 Required branch:
 
@@ -760,11 +814,11 @@ if (assignment.practiceType !== PRACTICE_TYPES.SCORE) {
 
 Existing SCORE branch stays below this and remains unchanged in behavior.
 
-- [ ] **Step 8: Run focused tests**
+- [ ] **Step 9: Run focused tests**
 
 Same command as Step 4. Expected: PASS.
 
-- [ ] **Step 9: Commit**
+- [ ] **Step 10: Commit**
 
 ```bash
 git add   src/ui/studentAppController.js   test/student08ChordBoardController.test.js   test/student08Ui.test.js
@@ -776,7 +830,7 @@ git commit -m "feat: add dedicated CHORD_BOARD student screen"
 ### Task 5: Student-safe CHORD_BOARD view model, My Work action, renderer, and accessibility
 
 **Files:**
-- Create: `src/ui/chordBoardViewModel.js`
+- Modify: `src/ui/chordBoardViewModel.js`
 - Create: `src/ui/renderChordBoardWorkspace.js`
 - Modify: `src/ui/renderStudentApp.js`
 - Create: `test/student08ChordBoardUi.test.js`
@@ -785,9 +839,9 @@ git commit -m "feat: add dedicated CHORD_BOARD student screen"
 - Modify: `index.html` only for minimal CHORD_BOARD workspace CSS required by the new view.
 
 **Interfaces:**
-- Consumes: restored CHORD_BOARD item from Tasks 1–4.
+- Consumes: Task 4 `createChordBoardViewModel(item)` plus controller CHORD_BOARD state.
 - Produces:
-  - `createChordBoardViewModel(item) -> frozen student-safe view model`
+  - completed projection tests for the existing `createChordBoardViewModel(item)`
   - `renderChordBoardWorkspace(viewModel) -> HTML string`
   - My Work CHORD_BOARD card uses existing `open-assignment` action.
 
@@ -831,50 +885,15 @@ Assert serialized view model does not contain:
 
 Teacher note and display symbol must remain.
 
-- [ ] **Step 3: Implement `createChordBoardViewModel()`**
+- [ ] **Step 3: Run the Task 4 view-model tests and make only projection corrections if they expose a defect**
 
-Core projection:
+Run:
 
-```js
-const stringState = (fret) =>
-  fret === -1 ? "MUTED" : fret === 0 ? "OPEN" : "FRETTED";
-
-export function createChordBoardViewModel(item) {
-  const pkg = item.package;
-  const snapshot = pkg.content.chordBoard;
-
-  return Object.freeze({
-    packageId: pkg.packageId,
-    title: pkg.title,
-    teacherNote: pkg.practice.teacherNote,
-    chord: Object.freeze({
-      displaySymbol: snapshot.chord.displaySymbol,
-      displayRoot: snapshot.chord.displayRoot,
-    }),
-    strings: Object.freeze(
-      snapshot.voicing.frets.map((fret, index) =>
-        Object.freeze({
-          stringNumber: 6 - index,
-          fret,
-          state: stringState(fret),
-          finger: snapshot.voicing.fingers[index],
-        }),
-      ),
-    ),
-    barres: Object.freeze(
-      snapshot.voicing.barres.map((barre) =>
-        Object.freeze({ ...barre }),
-      ),
-    ),
-    offlineAvailable:
-      item.offlineAvailability?.deviceAvailable === true,
-    offlineSaveFailed:
-      item.offlineAvailability?.saveFailed === true,
-  });
-}
+```bash
+node --test test/student08ChordBoardController.test.js
 ```
 
-Do not copy provenance or fingerprints.
+Expected: PASS. If a test added in Steps 1–2 reveals that Task 4's projection omitted required student-safe chord data, change only `src/ui/chordBoardViewModel.js` and rerun until PASS. Do not add provenance or fingerprint fields.
 
 - [ ] **Step 4: Write RED My Work test converting CHORD_BOARD from unavailable to actionable**
 
@@ -1024,8 +1043,8 @@ git commit -m "feat: render accessible CHORD_BOARD workspace"
 **Files:**
 - Modify: `src/offline/offlineRecord.js`
 - Modify: `src/offline/secureDeliveryOfflineReadService.js`
-- Modify: `src/offline/secureDeliveryStatusService.js` only as required by union-aware assignment validation.
-- Modify: `src/ui/student08Composition.js` only for interface completeness.
+- Verify only: `src/offline/secureDeliveryStatusService.js` — Task 2's union-aware row validator should make CHORD_BOARD status work without product-code edits.
+- Modify: `src/ui/student08Composition.js` — constructor/interface completeness must expose the new method through the selected online/offline read service.
 - Create: `test/student08ChordBoardOffline.test.js`
 - Modify: `test/secureDeliveryOfflineReadService.test.js`
 - Modify: `test/student08OfflineOnlineRegressionMatrix.test.js`
@@ -1133,11 +1152,11 @@ const pkg = restoreSecureDeliveryPackage({
 
 This is the plan’s chosen interface because it prevents type inference from untrusted package fields.
 
-Update Task 3 return envelopes accordingly before Task 6 if not already done:
+Task 3 already defines explicit `practiceType` in both return envelopes:
 - SCORE method returns `practiceType: PRACTICE_TYPES.SCORE`;
 - CHORD_BOARD method returns `practiceType: PRACTICE_TYPES.CHORD_BOARD`.
 
-Store `practiceType` on the offline record so later type isolation is explicit.
+Store that explicit `practiceType` on the offline record so later type isolation is explicit.
 
 - [ ] **Step 5: Extend offline record/repository compatibility without changing record key**
 
@@ -1166,7 +1185,7 @@ Add a regression test using a legacy SCORE stored record fixture.
 
 - [ ] **Step 6: Implement offline `getChordBoardPracticeItem()` mirroring SCORE while enforcing type**
 
-Factor the common path only if it makes type checks clearer. A focused helper may accept:
+Factor the duplicated SCORE/CHORD_BOARD cache/read flow into this private helper:
 
 ```js
 async function getPrivatePracticeItem({
@@ -1174,8 +1193,15 @@ async function getPrivatePracticeItem({
   assignmentId,
   expectedPracticeType,
   onlineMethod,
-}) { ... }
+}) {
+  // require current student
+  // build exact SECURE_DELIVERY accessRef
+  // offline: fetch ACTIVE student-scoped record and require exact practiceType
+  // online: call onlineMethod, verify accessRef + practiceType, cache, annotate
+}
 ```
+
+Keep only type-specific public wrappers around this helper.
 
 Offline return must check:
 
@@ -1257,7 +1283,7 @@ git commit -m "feat: cache CHORD_BOARD assignments offline safely"
 
 **Files:**
 - Modify: `docs/architecture.md`
-- Modify: `README.md` only if the current capability summary would otherwise be false.
+- Do not modify `README.md` in this plan; its current high-level capability text does not need CHORD_BOARD detail for correctness.
 - No product behavior changes unless a failing verification proves a scoped defect.
 
 **Interfaces:**
@@ -1335,11 +1361,9 @@ Do not update historical claims unrelated to this feature.
 - [ ] **Step 8: Commit documentation reality update**
 
 ```bash
-git add docs/architecture.md README.md
+git add docs/architecture.md
 git commit -m "docs: document Student CHORD_BOARD consumer"
 ```
-
-If README requires no factual change, omit it from `git add`.
 
 - [ ] **Step 9: Push final branch and require exact-head CI**
 
