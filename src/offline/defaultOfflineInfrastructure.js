@@ -36,6 +36,7 @@ export function createDefaultOfflineInfrastructure({
     return Object.freeze({
       sharingService: onlineSharingService,
       connectivityPort,
+      offlineRepository: null,
       offlineRepositoryAvailable: false,
     });
   }
@@ -47,6 +48,7 @@ export function createDefaultOfflineInfrastructure({
       connectivityPort,
     }),
     connectivityPort,
+    offlineRepository,
     offlineRepositoryAvailable: true,
   });
 }

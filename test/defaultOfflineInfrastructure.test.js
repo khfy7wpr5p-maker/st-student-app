@@ -27,6 +27,7 @@ test("missing IndexedDB degrades to online service without blocking bootstrap", 
 
   assert.equal(infrastructure.sharingService, onlineSharingService);
   assert.equal(infrastructure.offlineRepositoryAvailable, false);
+  assert.equal(infrastructure.offlineRepository, null);
   assert.equal(
     infrastructure.connectivityPort.getState(),
     CONNECTIVITY_STATES.ONLINE,
@@ -44,6 +45,10 @@ test("available IndexedDB creates offline-aware sharing without Firebase configu
 
   assert.notEqual(infrastructure.sharingService, onlineSharingService);
   assert.equal(infrastructure.offlineRepositoryAvailable, true);
+  assert.equal(
+    typeof infrastructure.offlineRepository?.getActiveByAccessRef,
+    "function",
+  );
   assert.equal(
     infrastructure.connectivityPort.getState(),
     CONNECTIVITY_STATES.OFFLINE,

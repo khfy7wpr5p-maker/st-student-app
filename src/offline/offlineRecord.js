@@ -1,5 +1,16 @@
-import { PRACTICE_PACKAGE_SCOPES } from "../contracts/practicePackage.js";
-import { createDeliveryItem } from "../sharing/deliveryItem.js";
+import {
+  PRACTICE_PACKAGE_SCOPES,
+} from "../contracts/practicePackage.js";
+import {
+  createPracticeAccessRef,
+  practiceAccessKey,
+} from "../practice/practiceAccessRef.js";
+import {
+  assertPublishablePracticePackage,
+} from "../sharing/packageEligibility.js";
+import {
+  createDeliveryItem,
+} from "../sharing/deliveryItem.js";
 
 export const OFFLINE_ACCESS_STATES = Object.freeze({
   ACTIVE: "ACTIVE",
@@ -33,9 +44,69 @@ function requireText(value, name) {
   return value;
 }
 
+function normalizePracticeItem({
+  deliveryItem,
+  practiceItem,
+}) {
+  if (practiceItem !== undefined) {
+    if (
+      practiceItem === null ||
+      typeof practiceItem !== "object" ||
+      Array.isArray(practiceItem)
+    ) {
+      throw new TypeError(
+        "practiceItem must be an object",
+      );
+    }
+
+    const accessRef = createPracticeAccessRef(
+      practiceItem.accessRef,
+    );
+    if (accessRef.kind !== "SECURE_DELIVERY") {
+      throw new TypeError(
+        "practiceItem accessRef must be SECURE_DELIVERY",
+      );
+    }
+
+    assertPublishablePracticePackage(
+      practiceItem.package,
+    );
+    if (
+      practiceItem.package.publication.scope !==
+      PRACTICE_PACKAGE_SCOPES.STUDENT_PRIVATE
+    ) {
+      throw new Error(
+        "Secure Delivery offline package must be student_private",
+      );
+    }
+
+    return {
+      accessRef,
+      publication: null,
+      package: practiceItem.package,
+    };
+  }
+
+  const normalized = createDeliveryItem(
+    deliveryItem?.publication,
+    deliveryItem?.package,
+  );
+
+  return {
+    accessRef: createPracticeAccessRef({
+      kind: "PUBLICATION",
+      publicationId:
+        normalized.publication.publicationId,
+    }),
+    publication: normalized.publication,
+    package: normalized.package,
+  };
+}
+
 export function createOfflineRecord({
   studentId,
   deliveryItem,
+  practiceItem,
   cachedAt,
   lastVerifiedAt,
   accessState,
@@ -44,34 +115,56 @@ export function createOfflineRecord({
   requireText(cachedAt, "cachedAt");
   requireText(lastVerifiedAt, "lastVerifiedAt");
 
-  if (!Object.values(OFFLINE_ACCESS_STATES).includes(accessState)) {
-    throw new TypeError("accessState must be ACTIVE or REVOKED");
+  if (
+    !Object.values(
+      OFFLINE_ACCESS_STATES,
+    ).includes(accessState)
+  ) {
+    throw new TypeError(
+      "accessState must be ACTIVE or REVOKED",
+    );
   }
 
-  const normalized = createDeliveryItem(
-    deliveryItem?.publication,
-    deliveryItem?.package,
-  );
+  const normalized = normalizePracticeItem({
+    deliveryItem,
+    practiceItem,
+  });
 
   if (
+    normalized.accessRef.kind === "PUBLICATION" &&
     normalized.publication.scope ===
       PRACTICE_PACKAGE_SCOPES.STUDENT_PRIVATE &&
-    normalized.publication.recipientStudentId !== studentId
+    normalized.publication.recipientStudentId !==
+      studentId
   ) {
-    throw new Error("private offline record belongs to a different student");
+    throw new Error(
+      "private offline record belongs to a different student",
+    );
+  }
+
+  const base = {
+    studentId,
+    accessRef: normalized.accessRef,
+    accessKey: practiceAccessKey(
+      normalized.accessRef,
+    ),
+    packageId: normalized.package.packageId,
+    scope: normalized.package.publication.scope,
+    publication: normalized.publication,
+    package: normalized.package,
+    cachedAt,
+    lastVerifiedAt,
+    accessState,
+  };
+
+  if (
+    normalized.accessRef.kind === "PUBLICATION"
+  ) {
+    base.publicationId =
+      normalized.accessRef.publicationId;
   }
 
   return deepFreeze(
-    structuredClone({
-      studentId,
-      publicationId: normalized.publication.publicationId,
-      packageId: normalized.package.packageId,
-      scope: normalized.publication.scope,
-      publication: normalized.publication,
-      package: normalized.package,
-      cachedAt,
-      lastVerifiedAt,
-      accessState,
-    }),
+    structuredClone(base),
   );
 }

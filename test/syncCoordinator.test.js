@@ -8,6 +8,7 @@ import {
   createForegroundSyncCoordinator,
 } from "../src/offline/syncCoordinator.js";
 import {
+  makeApprovedPracticePackage,
   makeDelivery,
   makePutArgs,
 } from "./support/practiceFixtures.js";
@@ -275,4 +276,140 @@ test("newer server package that is not cached does not revoke or invalidate the 
   assert.equal(record.packageId, "pkg-a");
   assert.equal(record.accessState, "ACTIVE");
   assert.equal(record.lastVerifiedAt, "2026-09-21T12:00:00Z");
+});
+
+
+function makeSecurePracticeForSync() {
+  return {
+    accessRef: {
+      kind: "SECURE_DELIVERY",
+      deliveryId: "assignment-a",
+    },
+    package: makeApprovedPracticePackage({
+      packageId: "pkg-secure",
+      scope: "student_private",
+      recipientStudentId: "server-student-a",
+    }),
+  };
+}
+
+async function seededSecureRepository() {
+  const repo = createInMemoryOfflineRepository();
+  await repo.putAuthorized({
+    studentId: "student-a",
+    practiceItem:
+      makeSecurePracticeForSync(),
+    cachedAt:
+      "2026-09-23T12:00:00Z",
+    lastVerifiedAt:
+      "2026-09-23T12:00:00Z",
+  });
+  return repo;
+}
+
+test("Secure Delivery NOT_FOUND revokes only the matching tagged cache", async () => {
+  const repo =
+    await seededSecureRepository();
+  const accessRef = {
+    kind: "SECURE_DELIVERY",
+    deliveryId: "assignment-a",
+  };
+  const coordinator =
+    createForegroundSyncCoordinator({
+      offlineRepository: repo,
+      publicationStatusService: {
+        async getPublicationStatus() {
+          throw new Error(
+            "publication status must not be used",
+          );
+        },
+      },
+      secureDeliveryStatusService: {
+        async getAccessStatus({
+          accessRef: received,
+        }) {
+          assert.deepEqual(
+            received,
+            accessRef,
+          );
+          return {
+            state: "REVOKED",
+          };
+        },
+      },
+      clock: () =>
+        "2026-09-23T13:00:00Z",
+    });
+
+  const result =
+    await coordinator.sync({
+      session: studentA,
+    });
+
+  assert.deepEqual(result, {
+    state: SYNC_STATES.SYNCED,
+    checked: 1,
+    revoked: 1,
+    failed: 0,
+  });
+  assert.equal(
+    await repo.getActiveByAccessRef({
+      studentId: "student-a",
+      accessRef,
+    }),
+    null,
+  );
+});
+
+test("Secure Delivery transient verification failure preserves cached SCORE", async () => {
+  const repo =
+    await seededSecureRepository();
+  const accessRef = {
+    kind: "SECURE_DELIVERY",
+    deliveryId: "assignment-a",
+  };
+  const coordinator =
+    createForegroundSyncCoordinator({
+      offlineRepository: repo,
+      publicationStatusService: {
+        async getPublicationStatus() {
+          throw new Error(
+            "publication status must not be used",
+          );
+        },
+      },
+      secureDeliveryStatusService: {
+        async getAccessStatus() {
+          throw new Error(
+            "network down",
+          );
+        },
+      },
+      clock: () =>
+        "2026-09-23T13:00:00Z",
+    });
+
+  const result =
+    await coordinator.sync({
+      session: studentA,
+    });
+
+  assert.equal(
+    result.state,
+    SYNC_STATES.SYNC_ERROR,
+  );
+  assert.equal(result.failed, 1);
+  assert.notEqual(
+    await repo.getActiveByAccessRef({
+      studentId: "student-a",
+      accessRef,
+    }),
+    null,
+  );
+  assert.equal(
+    JSON.stringify(result).includes(
+      "network down",
+    ),
+    false,
+  );
 });

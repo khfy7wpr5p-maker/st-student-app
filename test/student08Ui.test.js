@@ -177,6 +177,16 @@ function makeLegacySharingService() {
   };
 }
 
+function deferred() {
+  let resolve;
+  let reject;
+  const promise = new Promise((next, fail) => {
+    resolve = next;
+    reject = fail;
+  });
+  return { promise, resolve, reject };
+}
+
 test("STUDENT-08 controller uses PoolItem read model and opens detail without Practice", () => {
   const { service, calls } = makeStudent08Service();
   const controller = createStudentAppController({
@@ -412,5 +422,67 @@ test("legacy shell width stays bounded while STUDENT-08 alone may use wide layou
   assert.match(
     html,
     /#app:has\(\.student-shell\)\s*\{[^}]*width:\s*min\(100%,\s*80rem\)/s,
+  );
+});
+
+
+test("late STUDENT-08 Pool response from prior account cannot replace current session state", async () => {
+  const pending = deferred();
+  const studentA = createStudentSession({
+    studentId: "student-a",
+  });
+  const studentB = createStudentSession({
+    studentId: "student-b",
+  });
+  const service = {
+    listPoolItems() {
+      return pending.promise;
+    },
+    getPoolItem() {
+      throw new Error("unused");
+    },
+    listAssignments() {
+      return [];
+    },
+    getAssignment() {
+      throw new Error("unused");
+    },
+    getScorePracticeItem() {
+      throw new Error("unused");
+    },
+  };
+  const controller = createStudentAppController({
+    sharingService: makeLegacySharingService(),
+    student08ReadService: service,
+    initialSession: studentA,
+  });
+
+  const request = controller.showPublicPool();
+  controller.attachSession(studentB);
+
+  pending.resolve([
+    {
+      poolItemId: "student-a-late-pool",
+      title: "Eski hesap duyurusu",
+      shortDescription: "",
+      detailText: "",
+      publishedAt: "2026-09-23T11:00:00Z",
+      audienceMode: "ALL",
+    },
+  ]);
+
+  await request;
+
+  assert.equal(
+    controller.getState().session.studentId,
+    "student-b",
+  );
+  assert.equal(
+    controller.getState().screen,
+    STUDENT_APP_SCREENS.HOME,
+  );
+  assert.notEqual(
+    controller.getState().items[0]?.poolItemId,
+    "student-a-late-pool",
   );
 });
