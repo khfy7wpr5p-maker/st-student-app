@@ -141,6 +141,10 @@
         white-space: normal;
       }
 
+      .nav-label-short {
+        display: none;
+      }
+
       .student-navigation button[aria-current="page"] {
         background: var(--st-accent-soft);
         color: var(--st-accent);
@@ -443,6 +447,20 @@
           min-height: 3.5rem;
           padding: var(--st-space-3) var(--st-space-2);
           font-size: var(--st-font-size-sm);
+          white-space: nowrap;
+          overflow-wrap: normal;
+        }
+
+        .nav-label-full {
+          display: none;
+        }
+
+        .nav-label-short {
+          display: inline;
+        }
+
+        .student-shell-practice {
+          grid-template-columns: minmax(4.75rem, 20%) minmax(0, 1fr);
         }
 
         .student-navigation button[data-action="sign-out"] {
@@ -471,12 +489,21 @@
           background: var(--st-surface-panel);
         }
 
+        .student-shell-practice .student-content {
+          padding-left: var(--st-space-2);
+          padding-right: var(--st-space-2);
+        }
+
         .student-content h1 {
           font-size: clamp(1.45rem, 7vw, 2rem);
         }
 
         .practice-notation {
           padding: var(--st-space-3);
+        }
+
+        .student-shell-practice .practice-notation {
+          padding: var(--st-space-2);
         }
 
         .practice-playback-controls {
