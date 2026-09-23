@@ -71,9 +71,9 @@ Add explicit assignment metadata required by STUDENT-08:
 - `state`
 - `assignedAt`
 
-The response remains sanitized. It must not include:
+The response remains sanitized. It must not add or expose:
 
-- `studentId`
+- a top-level `studentId`
 - `teacherId`
 - `providerSubject`
 - raw Firebase UID/token
@@ -81,6 +81,8 @@ The response remains sanitized. It must not include:
 - recipient lists
 - Firestore paths
 - service-account/provider diagnostics
+
+The existing validated PracticePackage v1 remains unchanged, including its required `package.publication.recipientStudentId` for `student_private`. That single intended-recipient field is used only for package validation/authority consistency and is not promoted into normal Student UI state.
 
 `assignmentId` is returned explicitly even though TD-06 currently defines `deliveryId === assignmentId`. Student App must not depend on that hidden storage invariant.
 
@@ -417,7 +419,7 @@ S08-3 must preserve all of the following:
 - Server derives authority from verified bearer identity, never caller-supplied IDs.
 - Pool recipient lists remain server-private.
 - Private SCORE package remains exact-student and revoke-aware.
-- No credential, provider diagnostic, Firestore path, teacher ID, evidence ID, or recipient list enters normal Student UI state.
+- No credential, provider diagnostic, Firestore path, teacher ID, evidence ID, or recipient list enters normal Student UI state; the PracticePackage v1 intended-recipient field remains confined to package validation.
 - Cross-account stale async responses cannot replace the current session state.
 - Offline records remain partitioned by local authenticated UID.
 - No production Firebase rules/schema/index/credential/billing/deploy action occurs in implementation PRs.
