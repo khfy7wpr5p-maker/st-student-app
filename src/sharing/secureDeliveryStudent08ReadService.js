@@ -192,6 +192,33 @@ export function createSecureDeliveryStudent08ReadService({
           kind: "SECURE_DELIVERY",
           deliveryId: row.deliveryId,
         }),
+        practiceType: PRACTICE_TYPES.SCORE,
+        package: row.package,
+      });
+    },
+
+    async getChordBoardPracticeItem(
+      args = {},
+    ) {
+      const row =
+        await exactAssignment(args);
+
+      if (
+        row.practiceType !==
+        PRACTICE_TYPES.CHORD_BOARD
+      ) {
+        throw new Error(
+          "assignment type unavailable",
+        );
+      }
+
+      return Object.freeze({
+        accessRef: Object.freeze({
+          kind: "SECURE_DELIVERY",
+          deliveryId: row.deliveryId,
+        }),
+        practiceType:
+          PRACTICE_TYPES.CHORD_BOARD,
         package: row.package,
       });
     },
