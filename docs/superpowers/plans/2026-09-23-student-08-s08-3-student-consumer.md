@@ -66,7 +66,7 @@ import {
   toStudentAssignmentView,
 } from "../src/contracts/secureDeliveryAssignment.js";
 import {
-  makePracticePackage,
+  makeApprovedPracticePackage,
 } from "./support/practiceFixtures.js";
 
 test("StudentPoolView accepts only sanitized fields", () => {
@@ -101,7 +101,7 @@ test("Secure Delivery assignment requires exact metadata and no fake publication
     state: "ACTIVE",
     assignedAt: "2026-09-23T10:00:00Z",
     deliveredAt: "2026-09-23T10:01:00Z",
-    package: makePracticePackage({
+    package: makeApprovedPracticePackage({
       packageId: "pkg-a",
       scope: "student_private",
       recipientStudentId: "server-student-a",
@@ -128,7 +128,7 @@ test("Secure Delivery assignment rejects extra fields and identity mismatches", 
     state: "COMPLETED",
     assignedAt: "2026-09-23T10:00:00Z",
     deliveredAt: "2026-09-23T10:01:00Z",
-    package: makePracticePackage({
+    package: makeApprovedPracticePackage({
       packageId: "pkg-a",
       scope: "student_private",
       recipientStudentId: "server-student-a",
@@ -883,7 +883,7 @@ const workspace = createPracticeWorkspace({
       kind: "SECURE_DELIVERY",
       deliveryId: "assignment-a",
     },
-    package: makePracticePackage({
+    package: makeApprovedPracticePackage({
       packageId: "pkg-a",
       scope: "student_private",
       recipientStudentId: "server-student-a",
@@ -1022,7 +1022,7 @@ const securePractice = (deliveryId = "assignment-a") => ({
     kind: "SECURE_DELIVERY",
     deliveryId,
   },
-  package: makePracticePackage({
+  package: makeApprovedPracticePackage({
     packageId: "pkg-secure",
     scope: "student_private",
     recipientStudentId: "server-student-a",
@@ -1118,12 +1118,29 @@ For a legacy publication record, also preserve its existing `publicationId` fiel
 
 - [ ] **Step 4: Add generic repository methods and compatibility wrappers**
 
-Use keys:
+Use a backward-compatible primary-key helper. Publication records keep their existing v1 key format; only Secure Delivery records use the tagged identity:
 
 ```js
-const cacheKey = ({ studentId, accessKey, packageId }) =>
-  `${studentId}\u0000${accessKey}\u0000${packageId}`;
+function cacheKey({
+  studentId,
+  accessRef,
+  packageId,
+}) {
+  const ref = createPracticeAccessRef(accessRef);
+
+  return ref.kind === "PUBLICATION"
+    ? `${studentId}\u0000${ref.publicationId}\u0000${packageId}`
+    : `${studentId}\u0000SECURE_DELIVERY:${ref.deliveryId}\u0000${packageId}`;
+}
+
+const studentAccessKey = ({
+  studentId,
+  accessRef,
+}) =>
+  `${studentId}\u0000${practiceAccessKey(accessRef)}`;
 ```
+
+This avoids rewriting IndexedDB primary keys for existing publication cache records.
 
 Implement:
 
@@ -1170,6 +1187,8 @@ assert.deepEqual(legacy.accessRef, {
 
 Set repository default `dbVersion = 2`.
 
+Change the handler signature to `request.onupgradeneeded = (event) => { ... }`.
+
 During `onupgradeneeded`:
 
 ```js
@@ -1200,6 +1219,7 @@ if (event.oldVersion < 2) {
         `PUBLICATION:${value.publicationId}`;
       value.studentAccessKey =
         `${value.studentId}\u0000${value.accessKey}`;
+      // Keep the existing v1 cacheKey primary key unchanged.
       cursor.update(value);
     }
     cursor.continue();
@@ -1572,16 +1592,34 @@ const student08Composition =
   });
 ```
 
-Pass:
+When Secure Delivery is enabled and an offline repository exists, compose foreground verification using the existing legacy Firestore status service plus the new Secure Delivery status service:
+
+```js
+const syncCoordinator =
+  secureDeliveryConfig.enabled &&
+  offlineInfrastructure.offlineRepository !== null
+    ? createForegroundSyncCoordinator({
+        offlineRepository:
+          offlineInfrastructure.offlineRepository,
+        publicationStatusService:
+          firebaseRuntime.sharingService,
+        secureDeliveryStatusService:
+          student08Composition.secureDeliveryStatusService,
+      })
+    : null;
+```
+
+Pass both:
 
 ```js
 student08ReadService:
-  student08Composition.student08ReadService
+  student08Composition.student08ReadService,
+syncCoordinator,
 ```
 
 to `createStudentAppController`.
 
-Do not add a direct Firestore TD-06 adapter.
+With Secure Delivery disabled, `syncCoordinator` remains `null`, preserving the current browser behavior. Do not add a direct Firestore TD-06 adapter.
 
 - [ ] **Step 5: Add stale-session integration regression**
 
