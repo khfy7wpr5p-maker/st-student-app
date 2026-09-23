@@ -4,16 +4,27 @@
 
 ST Student App, öğretmenin SesliTab içinde düzenleyip onayladığı çalışmayı öğrencinin hesabında açar. Öğrenci OMR, MusicXML düzenleme veya öğretmen editörüyle uğraşmaz.
 
-## 2. İlk sürüm kullanıcı yüzeyi
+## 2. Kullanıcı yüzeyi ve sadelik ilkesi
 
-Yalnız dört ana adım hedeflenir:
+STUDENT-07B sonrasında ürün yönü, teknik karmaşıklığı kullanıcıdan saklayan sade bir öğrenci yüzeyidir.
 
-1. Giriş
-2. Havuz
-3. Benim Çalışmalarım
-4. Çalışmayı Aç
+Giriş sonrasında ana bilgi mimarisi:
 
-Çalışma görünümünde nota, ritim, playback ve paket içinde mevcutsa Guitar TAB veya keman verisi gösterilebilir.
+1. Havuz
+2. Benim Çalışmalarım
+3. Çıkış
+
+İki-pane kullanılabilen ekranda sol navigasyon yaklaşık %25, seçilen içerik yaklaşık %75 alan kullanır. Daha dar ekranlarda aynı bilgi mimarisi responsive biçimde korunur; yeni bir ürün alanı eklenmez.
+
+Havuz toplu repertuar/duyuru alanıdır ve nota/practice ekranı açmaz.
+
+Benim Çalışmalarım kişisel çalışma alanıdır ve üç klasör taşır:
+
+- Aktif Çalışmalar
+- Bitmiş Çalışmalar
+- Repertuarım
+
+Öğrenci tamamlanma veya repertuara alma kararı vermez. "Hazırım" butonu yoktur. Bu durumlar öğretmen authority'sidir.
 
 ## 3. Sistem sınırı
 
@@ -78,14 +89,29 @@ Sunucu/servis katmanının minimum sorumlulukları:
 - Paket içinde gereksiz kişisel veri taşınmaz.
 - Public havuz içeriği ile kişisel atama aynı erişim kaydı gibi ele alınmaz.
 
-## 9. Sonraki bounded paketler
+## 9. Stage gerçekliği ve sonraki ürün paketleri
 
-1. Practice Package v1 sözleşmesi ve testleri — bu paket.
-2. Auth + Sharing Layer karar ve güvenlik sözleşmesi.
-3. Minimal Student App shell: Giriş / Havuz / Benim Çalışmalarım.
-4. Salt-okunur çalışma ekranı.
-5. Offline cache/sync.
-6. iPhone VoiceOver ve erişilebilirlik kabul testleri.
+STUDENT-01–07B ana dalda tamamlanmış ürün temelini oluşturur. STUDENT-07B merge commit'i `a5ede988f198c49b70021d621554b55e6b961502`'dir.
+
+Sonraki tasarım iki ayrı bounded ürün paketine ayrılır:
+
+1. **STUDENT-08 — Simple Pool + Private Assignment Management**
+   - sade %25/%75 bilgi mimarisi;
+   - Havuz için duyuru/repertuar kart + detay;
+   - ALL / SELECTED pool audience;
+   - çoklu öğrenciye ayrı private assignment;
+   - öğrenci bazında öğretmen notu;
+   - Aktif / Bitmiş / Repertuarım klasörleri;
+   - teacher-only completion/repertoire/revoke;
+   - SCORE ve CHORD_BOARD assignment tipleri.
+2. **STUDENT-09 — Interactive Score Follow**
+   - otomatik measure cursor;
+   - çalan nota/akor vurgusu;
+   - öğrencinin nota seçmemesi;
+   - ölçünün herhangi bir yerine dokununca o ölçünün bir kez çalması;
+   - VoiceOver uyumlu measure action.
+
+Detaylı tasarım: `docs/superpowers/specs/2026-09-22-student-08-09-simple-sharing-interactive-practice-design.md`.
 
 
 ## 10. STUDENT-02 — Account + Sharing Layer
@@ -282,7 +308,7 @@ STUDENT-04 aşamasında renderer runtime asset graph'ı henüz Student App'e ba�
 - load order: vendor OSMD global -> ST browser bootstrap -> `st-score-render-host-ready`
 - `#st-score-root`, runtime bootstrap yüklenmeden önce Practice DOM içinde mevcut olmalıdır.
 
-Student App doğrudan OSMD nesnelerini ürün sözleşmesi yapmaz. Runtime CDN'den alınmaz. Service Worker v4 notation ve playback modül graph'ını app shell ile cache'ler; piano manifest/license/notices ve 12 yerel WAV asset'i ayrı best-effort static listede tutulur. Private Practice Package hiçbir zaman Cache Storage'a taşınmaz.
+Student App doğrudan OSMD nesnelerini ürün sözleşmesi yapmaz. Runtime CDN'den alınmaz. Service Worker v5 notation ve playback modül graph'ını app shell ile cache'ler; piano manifest/license/notices ve 12 yerel WAV asset'i ayrı best-effort static listede tutulur. Private Practice Package hiçbir zaman Cache Storage'a taşınmaz.
 
 ### Playback ve practice kontrolleri
 
@@ -352,20 +378,21 @@ Package switch, Home/Public Pool/My Work navigation, session change ve sign-out 
 
 Playback/practice port çağrısı hata verirse yalnız ilgili capability `ERROR` durumuna geçirilir: playback hatası notation'ı değiştirmez; tempo hatası playback'i değiştirmez; measure-repeat hatası playback'i değiştirmez. Raw backend exception state/HTML içine yazılmaz.
 
-### Mevcut STUDENT-07B checkpoint
+### STUDENT-07B final checkpoint
 
-Feature branch: `feat/student-07b-hybrid-playback`.
+STUDENT-07B, PR #8 ile `main` dalına merge edilmiştir.
 
-- Task 1–13: otomatik geliştirme ve verification kapsamı tamamlanmıştır.
-- Task 10 GREEN: `ceabfb1ec3a660166fd3260df7ce6a53db7893ac`, CI #311, 297/297 PASS.
-- Task 11 GREEN: `0613f4b5d3a10ca478e085620d0c4147f2d47fcd`, CI #322, 302/302 PASS.
-- Task 12 GREEN: `3a53ff08dbcd62ae0ccb0da063b4c88fbe319681`, CI #327, 307/307 PASS.
-- Default browser bootstrap resolver + local piano sample bank + lazy Web Audio engine + StudentPlaybackPort'u bağlar. AudioContext yalnız playback etkileşimi gerektiğinde oluşturulur.
-- Service Worker cache adı `st-student-shell-v4`'tür. Yedi playback modülü strict shell cache içindedir; piano manifest/license/notices ve 12 WAV best-effort static cache içindedir.
-- Package switch/navigation/session/sign-out ve mount destroy aktif playback ownership'ini bounded biçimde dispose eder.
-- Playback/sample/tempo/repeat hataları capability-local kalır; MusicXML, generated plan veya provider/sample hata detayı UI state/HTML'e taşınmaz.
-- Task 13 automated verification code head: `9d7efe310ae0109454261d5c1d69d4f619aa27ad`; CI #338, 312/312 PASS. CI ayrıca `npm ci`, deterministik piano-bank regeneration + zero diff ve `git diff --check` çalıştırmıştır. Bağımsız Codex Engineering Guardrails review; spec/plan uyumu, parser/timing bounds, Web Audio lifecycle/race davranışı, authority/data-minimization, offline asset seti ve generated-audio provenance sınırlarında yeni material defect bulmamıştır.
-- Task 14 fiziksel iPhone/Safari/VoiceOver, offline audio ve interaction acceptance henüz yapılmamıştır; bu kapı geçmeden merge-ready/production-ready iddiası yapılmaz.
+- Feature head: `5de1575e05f1822b1ee79ff113b4795c077a2a0b`.
+- Merge commit: `a5ede988f198c49b70021d621554b55e6b961502`.
+- Post-merge CI #380: **314/314 PASS**, 0 fail.
+- Deterministik piyano bankası regeneration + zero-diff gate: PASS.
+- `git diff --check`: PASS.
+- Service Worker cache: `st-student-shell-v5`.
+- Fiziksel iPhone/Safari/VoiceOver Task 14: **16/16 PASS**.
+- Offline test sırasında bulunan connectivity-repaint / disappearing notation kök nedeni TDD ile düzeltilmiş ve fiziksel offline retest PASS olmuştur.
+- Temporary Pages preview kaldırılmış, repository Pages ayarı önceki STUDENT-06 düzenine geri alınmıştır.
+
+Bu checkpoint playback, notation, offline ve authority sınırlarının mevcut production baseline'ıdır. STUDENT-08/09 kararları bu baseline'ı genişleten **tasarım** kararlarıdır; henüz kod olarak uygulanmış değildir.
 
 ### TAB ve keman
 
@@ -468,3 +495,87 @@ Runtime yalnız notation presentation authority'sine sahiptir. Student App:
 - private Practice Package'ı IndexedDB dışına taşımaz.
 
 STUDENT-07A playback authority eklemez. Playback, tempo ve measure-repeat için güvenilir timing/playback port keşfi ayrı STUDENT-07B kapsamındadır.
+
+
+## 15. STUDENT-08/09 — Sade öğrenci ürünü yönü
+
+Ürün kuralı: **karmaşıklık mimaride kalır, öğrenci ekranına çıkmaz**.
+
+Signed-in shell:
+
+```text
+Sol yaklaşık %25                Sağ yaklaşık %75
+Havuz                           seçilen içerik
+Benim Çalışmalarım
+  - Aktif
+  - Bitmiş
+  - Repertuarım
+Çıkış
+```
+
+Havuz:
+- repertuar/duyuru;
+- kart + detay;
+- varsayılan ALL, isteğe bağlı SELECTED çoklu öğrenci;
+- nota, playback ve Chord Board practice yok.
+
+Benim Çalışmalarım:
+- yalnız private assignments;
+- SCORE veya CHORD_BOARD;
+- öğretmen notu assignment bazında;
+- aynı kaynak çoklu öğrenciye gönderildiğinde her öğrenci için ayrı kayıt;
+- completion ve repertoire teacher-only;
+- öğrenci "Hazırım" butonu yok.
+
+## 16. PrivateAssignment ve içerik türleri
+
+`PrivateAssignment` immutable içerik authority'sini kopyalamaz; student-specific metadata'yı taşır:
+
+- stable target `studentId`;
+- content type;
+- source reference/snapshot;
+- teacher note;
+- `ACTIVE | COMPLETED | REPERTOIRE`;
+- publication/revocation metadata.
+
+`SCORE`, mevcut teacher-approved Practice Package yolunu kullanır.
+
+`CHORD_BOARD`, Practice Package v1'e MusicXML uydurmaz. Öğretmenin seçtiği akor/pozisyonun bounded immutable snapshot'ını taşır. Eski bir ödev, Chord Board catalog sıralaması daha sonra değişse bile aynı voicing'i göstermelidir.
+
+## 17. STUDENT-09 — Interactive Score Follow sınırı
+
+Öğrenci nota seçmez. Kullanıcı etkileşim birimi ölçüdür.
+
+```text
+measure tap
+-> renderer-owned measure hit
+-> partId + measureIndex
+-> Student Playback
+-> o ölçüyü baştan bir kez çal
+```
+
+Ayrı görünür measure-repeat butonu hedef UX'in parçası değildir.
+
+Playback sırasında:
+- cursor otomatik ilerler;
+- çalan nota/akor otomatik vurgulanabilir;
+- pause/stop/navigation/sign-out eski highlight/cursor state'ini temizler.
+
+Current Rendering Layer cursor/highlight primitives taşır; fakat ölçünün boş alanına dokunmayı güvenilir biçimde çözmek için renderer-owned full-measure hit-test contract gerekir. Student App DOM/SVG scraping veya nearest-note tahmini yapmaz.
+
+Precise note highlight için PlaybackPlan ile renderer arasında deterministic event identity gerekir. Correction Engine'in exact-revision-local identity yaklaşımı tasarım referansı olabilir; Correction Engine Student App runtime dependency'si olmaz.
+
+## 18. Bilinçli non-goals
+
+Şimdilik eklenmez:
+
+- chat / öğrenci mesajlaşması;
+- bağımsız kişisel not mesajları;
+- öğrenci "Hazırım" aksiyonu;
+- öğrenci completion/repertoire write yetkisi;
+- puanlama / gamification / gelişmiş analytics;
+- grup/sınıf yönetimi;
+- push notification;
+- mikrofon/MIDI performans değerlendirmesi;
+- Student App içinde OMR veya Correction Engine;
+- gereksiz teknik açıklama/metin yoğun UI.

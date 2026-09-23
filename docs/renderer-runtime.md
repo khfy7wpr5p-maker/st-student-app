@@ -68,4 +68,23 @@ Authorized private Practice Packages remain on the existing IndexedDB path. Cach
 
 ## Physical acceptance
 
-Repository tests do not prove target-device rendering. Before STUDENT-07A is merged, verify on the physical iPhone/Safari path that notation is visible, the Nota region remains accessible with VoiceOver, orientation/resize does not make the score disappear, and an already-authorized cached Practice can reopen offline with the static renderer runtime available.
+STUDENT-07A notation-specific physical iPhone/Safari checks passed, and STUDENT-07B Task 14 later completed the combined notation/playback/offline/VoiceOver physical path at 16/16 PASS. The final merged Student App baseline is `a5ede988f198c49b70021d621554b55e6b961502`.
+
+The connectivity/offline acceptance exposed one Safari repaint defect where audio continued while the notation SVG disappeared. The Student App mount now preserves the live renderer root across destructive shell repaint, and Service Worker v5 ensures the corrected browser code replaces stale cached main code.
+
+## Future STUDENT-09 interaction boundary — design only
+
+The student must interact with **measures**, not select notes.
+
+The current pinned Rendering Layer already exposes cursor/highlight and generic NOTE/REST hit evidence. That is useful for follow presentation, but it is not a complete full-measure interaction contract because a tap in empty measure whitespace may have no NOTE/REST owner.
+
+STUDENT-09 therefore requires a renderer-owned measure hit-test such as:
+
+```text
+hitTestMeasure({ clientX, clientY })
+-> { partId, measureIndex } | MISS
+```
+
+Student App must not implement this by scraping SVG/OSMD internals, nearest-note guessing or pitch matching.
+
+For automatic active-note coloring, a separate deterministic mapping from PlaybackPlan events to renderer event identity is required. Correction Engine identity concepts may inform that design, but Correction Engine does not become a runtime dependency.
