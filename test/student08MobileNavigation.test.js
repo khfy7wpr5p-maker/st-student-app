@@ -69,7 +69,7 @@ test("S08-4C mobile navigation keeps persistent sidebar access to Pool, My Work,
 
   assert.match(
     html,
-    /@media\s*\(max-width:\s*640px\)[\s\S]*?\.student-navigation\s+nav\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/s,
+    /@media\s*\(max-width:\s*640px\)[\s\S]*?\.student-navigation\s+nav\s*\{[^}]*grid-template-columns:\s*1fr/s,
   );
   assert.match(
     html,
@@ -89,11 +89,11 @@ test("S08-4C mobile sidebar uses safe-area-aware sticky presentation without red
 
   assert.match(
     html,
-    /@media\s*\(max-width:\s*640px\)[\s\S]*?\.student-navigation\s*\{[^}]*position:\s*sticky[^}]*top:\s*env\(safe-area-inset-top,\s*0px\)[^}]*z-index:/s,
+    /@media\s*\(max-width:\s*640px\)[\s\S]*?\.student-navigation\s*\{[^}]*position:\s*sticky[^}]*top:\s*0[^}]*min-height:\s*100dvh[^}]*z-index:/s,
   );
   assert.match(
     html,
-    /@media\s*\(max-width:\s*640px\)[\s\S]*?#app:has\(\.student-shell\)\s*\{[^}]*padding-left:\s*max\([^;]*env\(safe-area-inset-left,\s*0px\)[^;]*\)[^}]*padding-right:\s*max\([^;]*env\(safe-area-inset-right,\s*0px\)[^;]*\)/s,
+    /@media\s*\(max-width:\s*640px\)[\s\S]*?#app:has\(\.student-shell\)\s*\{[^}]*padding-left:\s*max\(0px,\s*env\(safe-area-inset-left,\s*0px\)\)[^}]*padding-right:\s*max\(0px,\s*env\(safe-area-inset-right,\s*0px\)\)/s,
   );
   assert.match(html, /button\s*\{[^}]*min-height:\s*3rem/s);
 });
