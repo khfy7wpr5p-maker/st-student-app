@@ -33,7 +33,7 @@ test("S08-4B Practice keeps notation as the primary workspace and preserves the 
   );
   assert.match(
     html,
-    /<div id="st-score-root" class="practice-score-root" role="region" aria-label="Nota"><\/div>/,
+    /<div id="st-score-root" role="region" aria-label="Nota"><\/div>/,
   );
   assert.equal((html.match(/id="st-score-root"/g) ?? []).length, 1);
   assert.ok(
@@ -102,7 +102,7 @@ test("S08-4B Practice visual hierarchy keeps score full-width and controls secon
   );
   assert.match(
     html,
-    /\.practice-score-root\s*\{[^}]*min-width:\s*0[^}]*width:\s*100%[^}]*overflow-x:\s*auto/s,
+    /\.practice-notation\s+#st-score-root\s*\{[^}]*min-width:\s*0[^}]*width:\s*100%[^}]*overflow-x:\s*auto/s,
   );
   assert.match(
     html,
