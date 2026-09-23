@@ -4,8 +4,10 @@ import {
 } from "./privateAssignment.js";
 import {
   PRACTICE_PACKAGE_SCOPES,
-  validatePracticePackage,
 } from "./practicePackage.js";
+import {
+  restoreSecureDeliveryPackage,
+} from "./secureDeliveryPackage.js";
 
 const ALLOWED_KEYS = Object.freeze([
   "deliveryId",
@@ -24,22 +26,6 @@ function requiredText(value, name) {
     throw new TypeError(`${name} must be a non-empty string`);
   }
   return value.trim();
-}
-
-function cloneAndFreeze(value) {
-  if (Array.isArray(value)) {
-    return Object.freeze(value.map(cloneAndFreeze));
-  }
-
-  if (value !== null && typeof value === "object") {
-    const clone = {};
-    for (const [key, child] of Object.entries(value)) {
-      clone[key] = cloneAndFreeze(child);
-    }
-    return Object.freeze(clone);
-  }
-
-  return value;
 }
 
 export function createSecureDeliveryAssignmentRow(value) {
@@ -63,8 +49,10 @@ export function createSecureDeliveryAssignmentRow(value) {
     throw new Error("deliveryId must match assignmentId");
   }
 
-  if (value.practiceType !== PRACTICE_TYPES.SCORE) {
-    throw new TypeError("practiceType must be SCORE");
+  if (!Object.values(PRACTICE_TYPES).includes(value.practiceType)) {
+    throw new TypeError(
+      "practiceType must be SCORE or CHORD_BOARD",
+    );
   }
 
   if (!Object.values(ASSIGNMENT_STATES).includes(value.state)) {
@@ -75,22 +63,46 @@ export function createSecureDeliveryAssignmentRow(value) {
     throw new TypeError("teacherNote must be a string");
   }
 
-  const validation = validatePracticePackage(value.package);
-  if (!validation.ok) {
-    throw new TypeError(
-      `invalid PracticePackage: ${validation.errors.join("; ")}`,
-    );
-  }
+  const assignedAt = requiredText(
+    value.assignedAt,
+    "assignedAt",
+  );
+  const deliveredAt = requiredText(
+    value.deliveredAt,
+    "deliveredAt",
+  );
+  const pkg = restoreSecureDeliveryPackage({
+    practiceType: value.practiceType,
+    package: value.package,
+  });
 
-  if (value.package.packageId !== packageId) {
+  if (pkg.packageId !== packageId) {
     throw new Error("packageId must match package");
   }
 
   if (
-    value.package.publication.scope !==
+    pkg.publication.scope !==
     PRACTICE_PACKAGE_SCOPES.STUDENT_PRIVATE
   ) {
     throw new Error("Secure Delivery package must be student_private");
+  }
+
+  if (
+    value.practiceType ===
+    PRACTICE_TYPES.CHORD_BOARD
+  ) {
+    if (
+      pkg.assignmentAuthority.assignmentId !==
+        assignmentId ||
+      pkg.assignmentAuthority.assignedAt !==
+        assignedAt ||
+      pkg.practice.teacherNote !==
+        value.teacherNote
+    ) {
+      throw new Error(
+        "CHORD_BOARD assignment authority mismatch",
+      );
+    }
   }
 
   return Object.freeze({
@@ -100,9 +112,9 @@ export function createSecureDeliveryAssignmentRow(value) {
     practiceType: value.practiceType,
     teacherNote: value.teacherNote,
     state: value.state,
-    assignedAt: requiredText(value.assignedAt, "assignedAt"),
-    deliveredAt: requiredText(value.deliveredAt, "deliveredAt"),
-    package: cloneAndFreeze(value.package),
+    assignedAt,
+    deliveredAt,
+    package: pkg,
   });
 }
 
