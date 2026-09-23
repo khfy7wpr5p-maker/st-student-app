@@ -460,7 +460,25 @@
         }
 
         .student-shell-practice {
-          grid-template-columns: minmax(4.75rem, 20%) minmax(0, 1fr);
+          grid-template-columns: 4.5rem minmax(0, 1fr);
+        }
+
+        .student-shell-practice .nav-label-short {
+          display: none;
+        }
+
+        .student-shell-practice .student-navigation button {
+          justify-content: center;
+          gap: 0;
+          padding-inline: 0;
+        }
+
+        .student-shell-practice
+          .student-navigation
+          button[data-action="sign-out"]::before {
+          content: "↪";
+          font-size: 1.35rem;
+          line-height: 1;
         }
 
         .student-navigation button[data-action="sign-out"] {
@@ -492,6 +510,14 @@
         .student-shell-practice .student-content {
           padding-left: var(--st-space-2);
           padding-right: var(--st-space-2);
+        }
+
+        .student-shell-practice .student-content > .app-status {
+          margin-bottom: var(--st-space-2);
+          padding: 0;
+          border: 0;
+          background: transparent;
+          color: var(--st-text-muted);
         }
 
         .student-content h1 {
