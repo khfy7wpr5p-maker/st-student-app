@@ -7,7 +7,7 @@
     <style>
       :root {
         font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        color-scheme: light dark;
+        color-scheme: light;
 
         --st-space-1: 0.25rem;
         --st-space-2: 0.5rem;
@@ -25,12 +25,16 @@
         --st-font-size-lg: 1.25rem;
         --st-font-size-xl: clamp(1.5rem, 3vw, 2rem);
 
-        --st-surface-page: Canvas;
-        --st-surface-panel: color-mix(in srgb, Canvas 96%, CanvasText 4%);
-        --st-surface-raised: color-mix(in srgb, Canvas 98%, CanvasText 2%);
-        --st-border: color-mix(in srgb, CanvasText 18%, transparent);
-        --st-text-muted: color-mix(in srgb, CanvasText 70%, transparent);
-        --st-focus-ring: 0.2rem solid currentColor;
+        --st-surface-page: #f7f9fc;
+        --st-surface-panel: #ffffff;
+        --st-surface-raised: #ffffff;
+        --st-sidebar: #f3f6fa;
+        --st-border: #d8dee8;
+        --st-text: #1f2937;
+        --st-text-muted: #667085;
+        --st-accent: #3478e5;
+        --st-accent-soft: #eaf2ff;
+        --st-focus-ring: 0.2rem solid var(--st-accent);
       }
 
       * {
@@ -41,7 +45,7 @@
         margin: 0;
         min-height: 100vh;
         background: var(--st-surface-page);
-        color: CanvasText;
+        color: var(--st-text);
         font-size: var(--st-font-size-md);
         line-height: 1.5;
       }
@@ -81,7 +85,7 @@
       }
 
       .student-navigation {
-        background: var(--st-surface-panel);
+        background: var(--st-sidebar);
         border: 1px solid var(--st-border);
         border-radius: var(--st-radius-lg);
         padding: var(--st-space-3);
@@ -96,6 +100,39 @@
 
       .student-navigation button {
         width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: var(--st-space-3);
+        text-align: start;
+        border-color: transparent;
+        background: transparent;
+      }
+
+      .student-navigation button[data-action="show-public-pool"]::before,
+      .student-navigation button[data-action="show-my-work"]::before {
+        content: "";
+        width: 1.35rem;
+        height: 1.05rem;
+        flex: 0 0 auto;
+        background: currentColor;
+        clip-path: polygon(
+          0 18%,
+          36% 18%,
+          46% 0,
+          100% 0,
+          100% 100%,
+          0 100%
+        );
+        border-radius: 0.15rem;
+        opacity: 0.72;
+      }
+
+      .student-navigation button[data-action="sign-out"] {
+        margin-top: var(--st-space-4);
+        border-top: 1px solid var(--st-border);
+        border-radius: 0;
+        padding-top: var(--st-space-4);
       }
 
       .student-navigation button,
@@ -105,9 +142,10 @@
       }
 
       .student-navigation button[aria-current="page"] {
-        border-width: 2px;
-        text-decoration: underline;
-        text-underline-offset: 0.2em;
+        background: var(--st-accent-soft);
+        color: var(--st-accent);
+        border-color: transparent;
+        text-decoration: none;
       }
 
       .student-content {
@@ -181,7 +219,7 @@
 
       .teacher-note-label {
         display: block;
-        color: CanvasText;
+        color: var(--st-text);
         font-weight: 600;
         margin-bottom: var(--st-space-1);
       }
@@ -358,54 +396,72 @@
         }
 
         #app:has(.student-shell) {
-          padding-top: var(--st-space-2);
-          padding-bottom: max(
-            var(--st-space-4),
-            env(safe-area-inset-bottom, 0px)
-          );
-          padding-left: max(
-            var(--st-space-4),
-            env(safe-area-inset-left, 0px)
-          );
-          padding-right: max(
-            var(--st-space-4),
-            env(safe-area-inset-right, 0px)
-          );
+          width: 100%;
+          padding: 0;
         }
 
         .student-shell {
-          grid-template-columns: 1fr;
-          gap: var(--st-space-3);
+          grid-template-columns: minmax(5.75rem, 28%) minmax(0, 1fr);
+          gap: 0;
+          align-items: stretch;
         }
 
         .student-navigation {
           position: sticky;
-          top: env(safe-area-inset-top, 0px);
+          top: 0;
+          align-self: start;
+          min-height: 100dvh;
           z-index: 10;
-          padding: var(--st-space-2);
-          border-radius: var(--st-radius-md);
+          padding:
+            max(var(--st-space-6), env(safe-area-inset-top, 0px))
+            var(--st-space-2)
+            max(var(--st-space-4), env(safe-area-inset-bottom, 0px));
+          border: 0;
+          border-right: 1px solid var(--st-border);
+          border-radius: 0;
         }
 
         .student-navigation nav {
           position: static;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: var(--st-space-1);
+          grid-template-columns: 1fr;
+          gap: var(--st-space-2);
         }
 
         .student-navigation button {
           min-width: 0;
-          padding-inline: var(--st-space-2);
+          min-height: 3.5rem;
+          padding: var(--st-space-3) var(--st-space-2);
           font-size: var(--st-font-size-sm);
+        }
+
+        .student-navigation button[data-action="sign-out"] {
+          margin-top: var(--st-space-6);
+        }
+
+        .work-folders {
+          grid-template-columns: 1fr;
         }
 
         .work-folders button {
           min-width: 0;
-          padding-inline: var(--st-space-2);
+          padding-inline: var(--st-space-3);
           font-size: var(--st-font-size-sm);
+          text-align: start;
         }
 
         .student-content {
-          padding: var(--st-space-4);
+          min-height: 100dvh;
+          padding:
+            max(var(--st-space-6), env(safe-area-inset-top, 0px))
+            var(--st-space-4)
+            max(var(--st-space-6), env(safe-area-inset-bottom, 0px));
+          border-radius: 0;
+          border: 0;
+          background: var(--st-surface-panel);
+        }
+
+        .student-content h1 {
+          font-size: clamp(1.45rem, 7vw, 2rem);
         }
 
         .practice-notation {
@@ -428,12 +484,15 @@
 
       @media (max-width: 360px) {
         #app:has(.student-shell) {
-          padding-left: max(var(--st-space-2), env(safe-area-inset-left, 0px));
-          padding-right: max(var(--st-space-2), env(safe-area-inset-right, 0px));
+          padding-left: max(0px, env(safe-area-inset-left, 0px));
+          padding-right: max(0px, env(safe-area-inset-right, 0px));
         }
 
         .student-content {
-          padding: var(--st-space-3);
+          padding:
+            max(var(--st-space-4), env(safe-area-inset-top, 0px))
+            var(--st-space-3)
+            max(var(--st-space-4), env(safe-area-inset-bottom, 0px));
         }
       }
     </style>
