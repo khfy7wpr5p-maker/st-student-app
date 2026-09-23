@@ -1,3 +1,10 @@
+function disabledConfig() {
+  return Object.freeze({
+    enabled: false,
+    baseUrl: null,
+  });
+}
+
 export function createSecureDeliveryConfig(
   env = import.meta.env ?? {},
 ) {
@@ -9,21 +16,25 @@ export function createSecureDeliveryConfig(
     raw === null ||
     String(raw).trim() === ""
   ) {
-    return Object.freeze({
-      enabled: false,
-      baseUrl: null,
-    });
+    return disabledConfig();
   }
 
-  const url = new URL(String(raw).trim());
-  if (url.protocol !== "https:") {
-    throw new TypeError(
-      "Secure Delivery API base URL must use https",
+  let url;
+  try {
+    url = new URL(
+      String(raw).trim(),
     );
+  } catch {
+    return disabledConfig();
+  }
+
+  if (url.protocol !== "https:") {
+    return disabledConfig();
   }
 
   return Object.freeze({
     enabled: true,
-    baseUrl: url.toString().replace(/\/$/u, ""),
+    baseUrl:
+      url.toString().replace(/\/$/u, ""),
   });
 }
