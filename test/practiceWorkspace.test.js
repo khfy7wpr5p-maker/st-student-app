@@ -11,6 +11,13 @@ import {
   withPracticeMeasureRepeatEnabled,
   withPracticeTempo,
 } from "../src/practice/practiceWorkspace.js";
+import {
+  createPracticeAccessRef,
+  practiceAccessKey,
+} from "../src/practice/practiceAccessRef.js";
+import {
+  makeApprovedPracticePackage,
+} from "./support/practiceFixtures.js";
 
 function makeDeliveryItem() {
   return {
@@ -258,4 +265,81 @@ test("safe practice helpers update frozen UI state without mutating previous sna
   assert.equal(repeat.practice.measureRepeatEnabled, true);
   assert.equal(Object.isFrozen(repeat), true);
   assert.equal(Object.isFrozen(repeat.practice), true);
+});
+
+
+test("PracticeAccessRef supports publication and Secure Delivery identities", () => {
+  assert.deepEqual(
+    createPracticeAccessRef({
+      kind: "SECURE_DELIVERY",
+      deliveryId: "assignment-a",
+    }),
+    {
+      kind: "SECURE_DELIVERY",
+      deliveryId: "assignment-a",
+    },
+  );
+  assert.equal(
+    practiceAccessKey({
+      kind: "SECURE_DELIVERY",
+      deliveryId: "assignment-a",
+    }),
+    "SECURE_DELIVERY:assignment-a",
+  );
+  assert.equal(
+    practiceAccessKey({
+      kind: "PUBLICATION",
+      publicationId: "pub-a",
+    }),
+    "PUBLICATION:pub-a",
+  );
+  assert.throws(
+    () => createPracticeAccessRef({
+      kind: "UNKNOWN",
+    }),
+    /unsupported PracticeAccessRef/i,
+  );
+});
+
+test("Practice workspace opens Secure Delivery without inventing publicationId", () => {
+  const workspace = createPracticeWorkspace({
+    deliveryItem: {
+      accessRef: {
+        kind: "SECURE_DELIVERY",
+        deliveryId: "assignment-a",
+      },
+      package: makeApprovedPracticePackage({
+        packageId: "pkg-secure",
+        scope: "student_private",
+        recipientStudentId: "server-student-a",
+      }),
+    },
+    notationRuntimeAvailable: true,
+  });
+
+  assert.deepEqual(workspace.viewModel.accessRef, {
+    kind: "SECURE_DELIVERY",
+    deliveryId: "assignment-a",
+  });
+  assert.equal(
+    "publicationId" in workspace.viewModel,
+    false,
+  );
+  assert.equal(
+    workspace.renderSource.sourceId,
+    "pkg-secure",
+  );
+});
+
+test("legacy Practice workspace keeps publicationId compatibility", () => {
+  const workspace = createPracticeWorkspace({
+    deliveryItem: makeDeliveryItem(),
+    notationRuntimeAvailable: true,
+  });
+
+  assert.deepEqual(workspace.viewModel.accessRef, {
+    kind: "PUBLICATION",
+    publicationId: "pub-1",
+  });
+  assert.equal(workspace.viewModel.publicationId, "pub-1");
 });
