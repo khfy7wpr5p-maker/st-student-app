@@ -306,7 +306,7 @@ function currentPageAttribute(active) {
   return active ? ' aria-current="page"' : "";
 }
 
-function renderStudent08Shell(body, state) {
+function renderStudent08Shell(body, state, statusMarkup = "") {
   const poolCurrent =
     state.screen === STUDENT_APP_SCREENS.PUBLIC_POOL;
   const myWorkCurrent =
@@ -316,6 +316,7 @@ function renderStudent08Shell(body, state) {
   return `
     <div class="student-shell">
       <aside class="student-navigation">
+        ${statusMarkup}
         <nav aria-label="Öğrenci menüsü">
           <button type="button"${currentPageAttribute(poolCurrent)} data-action="show-public-pool">Havuz</button>
           <button type="button"${currentPageAttribute(myWorkCurrent)} data-action="show-my-work">Benim Çalışmalarım</button>
@@ -338,6 +339,7 @@ export function renderStudentApp(
   } = {},
 ) {
   let body;
+  let statusRenderedInsideShell = false;
 
   if (state.student08 === true) {
     switch (state.screen) {
@@ -361,7 +363,12 @@ export function renderStudentApp(
     }
 
     if (state.screen !== STUDENT_APP_SCREENS.SIGN_IN) {
-      body = renderStudent08Shell(body, state);
+      body = renderStudent08Shell(
+        body,
+        state,
+        renderStatus(status, connectivityState),
+      );
+      statusRenderedInsideShell = true;
     }
   } else {
     switch (state.screen) {
@@ -393,8 +400,7 @@ export function renderStudentApp(
     }
   }
 
-  return `<main class="student-app">${renderStatus(
-    status,
-    connectivityState,
-  )}${body}</main>`;
+  return `<main class="student-app">${statusRenderedInsideShell
+    ? ""
+    : renderStatus(status, connectivityState)}${body}</main>`;
 }
