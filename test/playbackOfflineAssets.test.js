@@ -36,7 +36,7 @@ test("service worker v6 pins the complete local playback module graph", async ()
     "utf8",
   );
 
-  assert.match(source, /const CACHE_NAME = "st-student-shell-v6"/);
+  assert.match(source, /const CACHE_NAME = "st-student-shell-v7"/);
   for (const asset of REQUIRED_PLAYBACK_MODULES) {
     assert.equal(source.includes(`"${asset}"`), true, asset);
   }
