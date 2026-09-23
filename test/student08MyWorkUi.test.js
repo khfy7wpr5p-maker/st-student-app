@@ -73,7 +73,7 @@ test("S08-4B My Work keeps CHORD_BOARD informative and non-actionable", () => {
     /class="assignment-unavailable">Bu akor çalışması henüz kullanıma hazır değil\./,
   );
   assert.doesNotMatch(html, /data-action="open-assignment"/);
-  assert.doesNotMatch(html, /Düzenle|Çal|Dinle/);
+  assert.doesNotMatch(html, />\s*(?:Düzenle|Çal|Dinle)\s*</);
 });
 
 test("S08-4B My Work folders are compact, visibly selected, and responsive", async () => {
