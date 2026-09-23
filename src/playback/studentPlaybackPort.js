@@ -125,6 +125,26 @@ export function createStudentPlaybackPort({
       return playablePlan(pkg) !== null;
     },
 
+    async preparePackage(pkg) {
+      if (
+        resolve(pkg) === null ||
+        typeof engine?.prepare !== "function"
+      ) {
+        return false;
+      }
+
+      try {
+        const prepared =
+          await engine.prepare();
+        return (
+          prepared === true &&
+          playablePlan(pkg) !== null
+        );
+      } catch {
+        return false;
+      }
+    },
+
     canChangeTempoForPackage(pkg) {
       return (
         pkg?.practice?.allowTempoChange === true &&
