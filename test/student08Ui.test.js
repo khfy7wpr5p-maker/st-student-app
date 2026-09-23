@@ -364,7 +364,7 @@ test("new STUDENT-08 shell actions forward only bounded read/navigation values",
 });
 
 
-test("static shell provides wide 25/75 layout and narrow responsive fallback", async () => {
+test("static shell provides wide 25/75 layout and narrow persistent sidebar layout", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
 
   assert.match(
@@ -373,7 +373,7 @@ test("static shell provides wide 25/75 layout and narrow responsive fallback", a
   );
   assert.match(
     html,
-    /@media\s*\(max-width:\s*640px\)[\s\S]*?\.student-shell\s*\{[^}]*grid-template-columns:\s*1fr/s,
+    /@media\s*\(max-width:\s*640px\)[\s\S]*?\.student-shell\s*\{[^}]*grid-template-columns:\s*minmax\(5\.75rem,\s*28%\)\s+minmax\(0,\s*1fr\)/s,
   );
   assert.match(
     html,
