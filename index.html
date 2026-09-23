@@ -384,6 +384,15 @@
         display: none;
       }
 
+      .student-navigation .app-status {
+        margin: 0 0 var(--st-space-6);
+        padding: 0 var(--st-space-2);
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        color: var(--st-text-muted);
+      }
+
       .offline-availability,
       .practice-playback-quality {
         color: var(--st-text-muted);
@@ -398,6 +407,8 @@
         #app:has(.student-shell) {
           width: 100%;
           padding: 0;
+          padding-left: max(0px, env(safe-area-inset-left, 0px));
+          padding-right: max(0px, env(safe-area-inset-right, 0px));
         }
 
         .student-shell {
