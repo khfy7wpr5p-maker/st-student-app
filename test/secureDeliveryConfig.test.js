@@ -46,3 +46,32 @@ test("invalid Secure Delivery endpoint disables integration instead of crashing 
     );
   }
 });
+
+
+test("native browser runtime config can enable Secure Delivery without Vite env", () => {
+  const previous =
+    globalThis.__ST_STUDENT_APP_CONFIG__;
+
+  globalThis.__ST_STUDENT_APP_CONFIG__ = {
+    secureDeliveryApiBaseUrl:
+      "https://student-api.example.test/api/secure-delivery/v1/",
+  };
+
+  try {
+    assert.deepEqual(
+      createSecureDeliveryConfig(undefined),
+      Object.freeze({
+        enabled: true,
+        baseUrl:
+          "https://student-api.example.test/api/secure-delivery/v1",
+      }),
+    );
+  } finally {
+    if (previous === undefined) {
+      delete globalThis.__ST_STUDENT_APP_CONFIG__;
+    } else {
+      globalThis.__ST_STUDENT_APP_CONFIG__ =
+        previous;
+    }
+  }
+});
