@@ -37,11 +37,11 @@ test("S08-4B mobile navigation exposes the current student section to VoiceOver"
   );
   assert.match(
     pool,
-    /aria-current="page" data-action="show-public-pool">Havuz/,
+    /<button(?=[^>]*aria-label="Havuz")(?=[^>]*aria-current="page")(?=[^>]*data-action="show-public-pool")[^>]*>/,
   );
   assert.doesNotMatch(
     pool,
-    /aria-current="page" data-action="show-my-work"/,
+    /<button(?=[^>]*aria-current="page")(?=[^>]*data-action="show-my-work")[^>]*>/,
   );
 
   const work = renderStudentApp(
@@ -49,7 +49,7 @@ test("S08-4B mobile navigation exposes the current student section to VoiceOver"
   );
   assert.match(
     work,
-    /aria-current="page" data-action="show-my-work">Benim Çalışmalarım/,
+    /<button(?=[^>]*aria-label="Benim Çalışmalarım")(?=[^>]*aria-current="page")(?=[^>]*data-action="show-my-work")[^>]*>/,
   );
 
   const practice = renderStudentApp(
@@ -57,7 +57,7 @@ test("S08-4B mobile navigation exposes the current student section to VoiceOver"
   );
   assert.match(
     practice,
-    /aria-current="page" data-action="show-my-work">Benim Çalışmalarım/,
+    /<button(?=[^>]*aria-label="Benim Çalışmalarım")(?=[^>]*aria-current="page")(?=[^>]*data-action="show-my-work")[^>]*>/,
   );
 });
 
