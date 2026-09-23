@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { OFFLINE_ACCESS_STATES } from "../src/offline/offlineRecord.js";
 import { createInMemoryOfflineRepository } from "../src/offline/inMemoryOfflineRepository.js";
 import {
+  makeApprovedPracticePackage,
   makeDelivery,
   makePrivateDelivery,
   makePutArgs,
@@ -127,5 +128,105 @@ test("revoked records disappear from active reads but remain stored", async () =
   assert.equal(
     (await repo.listAllForStudent({ studentId: "student-a" }))[0].accessState,
     OFFLINE_ACCESS_STATES.REVOKED,
+  );
+});
+
+
+function makeSecurePractice(
+  deliveryId = "assignment-a",
+  packageId = "pkg-secure",
+) {
+  return {
+    accessRef: {
+      kind: "SECURE_DELIVERY",
+      deliveryId,
+    },
+    package: makeApprovedPracticePackage({
+      packageId,
+      scope: "student_private",
+      recipientStudentId: "server-student-a",
+    }),
+  };
+}
+
+test("in-memory repository stores Secure Delivery by accessRef and local UID partition", async () => {
+  const repo = createInMemoryOfflineRepository();
+
+  await repo.putAuthorized({
+    studentId: "firebase-uid-a",
+    practiceItem: makeSecurePractice(),
+    cachedAt: "2026-09-23T11:00:00Z",
+    lastVerifiedAt: "2026-09-23T11:00:00Z",
+  });
+
+  const cached = await repo.getActiveByAccessRef({
+    studentId: "firebase-uid-a",
+    accessRef: {
+      kind: "SECURE_DELIVERY",
+      deliveryId: "assignment-a",
+    },
+  });
+
+  assert.equal(cached.packageId, "pkg-secure");
+  assert.deepEqual(cached.accessRef, {
+    kind: "SECURE_DELIVERY",
+    deliveryId: "assignment-a",
+  });
+  assert.equal(cached.publication, null);
+  assert.equal(
+    await repo.getActiveByAccessRef({
+      studentId: "firebase-uid-b",
+      accessRef: cached.accessRef,
+    }),
+    null,
+  );
+});
+
+test("generic accessRef revocation applies to every Secure Delivery package version", async () => {
+  const repo = createInMemoryOfflineRepository();
+  const accessRef = {
+    kind: "SECURE_DELIVERY",
+    deliveryId: "assignment-a",
+  };
+
+  for (const [packageId, cachedAt] of [
+    ["pkg-old", "2026-09-23T11:00:00Z"],
+    ["pkg-new", "2026-09-23T12:00:00Z"],
+  ]) {
+    await repo.putAuthorized({
+      studentId: "firebase-uid-a",
+      practiceItem: makeSecurePractice(
+        "assignment-a",
+        packageId,
+      ),
+      cachedAt,
+      lastVerifiedAt: cachedAt,
+    });
+  }
+
+  await repo.markRevoked({
+    studentId: "firebase-uid-a",
+    accessRef,
+    lastVerifiedAt: "2026-09-23T13:00:00Z",
+  });
+
+  assert.equal(
+    await repo.getActiveByAccessRef({
+      studentId: "firebase-uid-a",
+      accessRef,
+    }),
+    null,
+  );
+  assert.equal(
+    (
+      await repo.listAllForStudent({
+        studentId: "firebase-uid-a",
+      })
+    ).every(
+      (record) =>
+        record.accessState ===
+        OFFLINE_ACCESS_STATES.REVOKED,
+    ),
+    true,
   );
 });
