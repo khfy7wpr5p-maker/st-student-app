@@ -1,9 +1,6 @@
 name: S08-3 Pilot Smoke
 
 on:
-  push:
-    branches:
-      - pilot/student-08-s08-3-device-acceptance
   workflow_dispatch:
 
 permissions:
@@ -62,7 +59,7 @@ jobs:
         run: |
           set -euo pipefail
           curl -sS --fail-with-body             https://st-student-s08-3-pilot.onrender.com/pilot-head.txt             -o /tmp/pilot-head.txt
-          test "$(tr -d '\r\n' < /tmp/pilot-head.txt)" =             "f2c766d6730393fe25fbfced466d3941a0d4e7fd"
+          test "$(tr -d '\r\n' < /tmp/pilot-head.txt)" = "$GITHUB_SHA"
 
           curl -sS --fail-with-body             https://st-student-s08-3-pilot.onrender.com/             -o /tmp/index.html
           runtime_line="$(grep -n 'runtime-config.js' /tmp/index.html | head -1 | cut -d: -f1)"
