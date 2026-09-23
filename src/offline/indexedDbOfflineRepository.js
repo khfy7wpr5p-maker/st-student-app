@@ -1,4 +1,7 @@
 import {
+  PRACTICE_TYPES,
+} from "../contracts/privateAssignment.js";
+import {
   OFFLINE_ACCESS_STATES,
   createOfflineRecord,
 } from "./offlineRecord.js";
@@ -165,10 +168,26 @@ function fromStorageRecord(stored) {
     accessRef.kind ===
     "SECURE_DELIVERY"
   ) {
+    const practiceType =
+      stored.practiceType ??
+      (
+        stored.package?.packageType ===
+        undefined
+          ? PRACTICE_TYPES.SCORE
+          : null
+      );
+
+    if (practiceType === null) {
+      throw new TypeError(
+        "legacy Secure Delivery practiceType unavailable",
+      );
+    }
+
     return createOfflineRecord({
       ...common,
       practiceItem: {
         accessRef,
+        practiceType,
         package: stored.package,
       },
     });
@@ -192,6 +211,8 @@ function recordInput(record) {
     return {
       practiceItem: {
         accessRef: record.accessRef,
+        practiceType:
+          record.practiceType,
         package: record.package,
       },
     };
