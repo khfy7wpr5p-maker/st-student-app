@@ -636,7 +636,15 @@ const service = {
     calls.push("chord");
     return chordItem;
   },
-  // existing required list/pool methods...
+  listPoolItems() {
+    return [];
+  },
+  getPoolItem() {
+    throw new Error("unused");
+  },
+  listAssignments() {
+    return [];
+  },
 };
 ```
 
@@ -737,7 +745,10 @@ function freezeState({
   items = [],
   practice = null,
   chordBoard = null,
-  // existing properties...
+  syncState,
+  student08 = false,
+  poolDetail,
+  assignmentState,
 }) {
   const value = {
     screen,
@@ -746,7 +757,14 @@ function freezeState({
     practice,
     chordBoard,
   };
-  // existing optional fields...
+
+  if (syncState !== undefined) value.syncState = syncState;
+  if (student08 === true) value.student08 = true;
+  if (poolDetail !== undefined) value.poolDetail = poolDetail;
+  if (assignmentState !== undefined) {
+    value.assignmentState = assignmentState;
+  }
+
   return Object.freeze(value);
 }
 ```
@@ -893,7 +911,7 @@ Run:
 node --test test/student08ChordBoardController.test.js
 ```
 
-Expected: PASS. If a test added in Steps 1–2 reveals that Task 4's projection omitted required student-safe chord data, change only `src/ui/chordBoardViewModel.js` and rerun until PASS. Do not add provenance or fingerprint fields.
+Expected: PASS. A failure here means Task 4 is incomplete; return to Task 4, correct only `src/ui/chordBoardViewModel.js`, rerun Task 4's controller tests, then rerun this command. Provenance and fingerprint fields remain forbidden.
 
 - [ ] **Step 4: Write RED My Work test converting CHORD_BOARD from unavailable to actionable**
 
@@ -921,7 +939,9 @@ Expected semantic HTML must include:
 <section class="chord-board-workspace" role="region" aria-label="Akor çalışması">
   <h1>Am</h1>
   <ol class="chord-string-list" aria-label="Gitar telleri">
-    ...
+    <li>6. tel: kapalı.</li>
+    <li>5. tel: açık.</li>
+    <li>4. tel: 2. perde, 2. parmak.</li>
   </ol>
 </section>
 ```
@@ -1105,7 +1125,10 @@ Also pin:
 Online repository write failure:
 
 ```js
-const item = await service.getChordBoardPracticeItem(...);
+const item = await service.getChordBoardPracticeItem({
+  session: studentA,
+  assignmentId: "assignment-chord-a",
+});
 assert.equal(item.offlineAvailability.deviceAvailable, false);
 assert.equal(item.offlineAvailability.saveFailed, true);
 assert.equal(item.package.packageType, "CHORD_BOARD");
