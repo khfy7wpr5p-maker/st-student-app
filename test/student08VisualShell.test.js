@@ -38,7 +38,15 @@ test("S08-4C phone layout keeps a persistent left folder rail instead of a top b
   );
   assert.match(
     html,
-    /@media\s*\(max-width:\s*640px\)[\s\S]*?\.student-navigation\s*\{[^}]*border-radius:\s*0[^}]*border-right:\s*1px solid var\(--st-border\)[^}]*min-height:\s*100dvh/s,
+    /@media\s*\(max-width:\s*640px\)[\s\S]*?\.student-navigation\s*\{[^}]*min-height:\s*100dvh/s,
+  );
+  assert.match(
+    html,
+    /@media\s*\(max-width:\s*640px\)[\s\S]*?\.student-navigation\s*\{[^}]*border-right:\s*1px solid var\(--st-border\)/s,
+  );
+  assert.match(
+    html,
+    /@media\s*\(max-width:\s*640px\)[\s\S]*?\.student-navigation\s*\{[^}]*border-radius:\s*0/s,
   );
   assert.match(
     html,
