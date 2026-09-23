@@ -416,6 +416,22 @@ export function createWebAudioPianoEngine({
   return Object.freeze({
     isSupported,
 
+    async prepare() {
+      if (
+        typeof sampleBank?.initialize !== "function"
+      ) {
+        return false;
+      }
+
+      try {
+        const ready =
+          await sampleBank.initialize();
+        return ready === true && isSupported();
+      } catch {
+        return false;
+      }
+    },
+
     async play({ plan, tempoBpm } = {}) {
       if (
         plan === null ||
