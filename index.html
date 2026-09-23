@@ -428,14 +428,8 @@
 
       @media (max-width: 360px) {
         #app:has(.student-shell) {
-          padding-left: max(
-            var(--st-space-2),
-            env(safe-area-inset-left, 0px)
-          );
-          padding-right: max(
-            var(--st-space-2),
-            env(safe-area-inset-right, 0px)
-          );
+          padding-left: max(var(--st-space-2), env(safe-area-inset-left, 0px));
+          padding-right: max(var(--st-space-2), env(safe-area-inset-right, 0px));
         }
 
         .student-content {
