@@ -29,12 +29,20 @@ test("Secure Delivery config accepts and normalizes explicit HTTPS endpoint", ()
   );
 });
 
-test("Secure Delivery config rejects non-HTTPS endpoint", () => {
-  assert.throws(
-    () => createSecureDeliveryConfig({
-      VITE_SECURE_DELIVERY_API_BASE_URL:
-        "http://example.test/api",
-    }),
-    /https/i,
-  );
+test("invalid Secure Delivery endpoint disables integration instead of crashing bootstrap", () => {
+  for (const value of [
+    "http://example.test/api",
+    "not a url",
+  ]) {
+    assert.deepEqual(
+      createSecureDeliveryConfig({
+        VITE_SECURE_DELIVERY_API_BASE_URL:
+          value,
+      }),
+      Object.freeze({
+        enabled: false,
+        baseUrl: null,
+      }),
+    );
+  }
 });
