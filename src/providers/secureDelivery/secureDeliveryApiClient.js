@@ -29,20 +29,63 @@ export function createSecureDeliveryApiClient({
   }
 
   async function request(path) {
-    const token = requiredText(
-      await getIdToken(),
-      "Firebase ID token",
-    );
-    const response = await fetchImpl(
-      `${root}/${path}`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
+    let token;
+    try {
+      token = requiredText(
+        await getIdToken(),
+        "Firebase ID token",
+      );
+    } catch {
+      throw new SecureDeliveryApiError({
+        status: 401,
+        code: "UNAUTHENTICATED",
+        message:
+          "Secure Delivery authentication unavailable",
+      });
+    }
+
+    let response;
+    try {
+      response = await fetchImpl(
+        `${root}/${path}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization:
+              `Bearer ${token}`,
+            Accept:
+              "application/json",
+          },
         },
-      },
-    );
+      );
+    } catch {
+      throw new SecureDeliveryApiError({
+        status: 0,
+        code:
+          "SECURE_DELIVERY_UNAVAILABLE",
+        message:
+          "Secure Delivery request failed",
+      });
+    }
+
+    if (
+      response === null ||
+      typeof response !== "object" ||
+      typeof response.ok !== "boolean" ||
+      !Number.isInteger(
+        response.status,
+      ) ||
+      typeof response.json !==
+        "function"
+    ) {
+      throw new SecureDeliveryApiError({
+        status: 0,
+        code:
+          "SECURE_DELIVERY_UNAVAILABLE",
+        message:
+          "Secure Delivery request failed",
+      });
+    }
 
     let body = null;
     try {
@@ -51,14 +94,19 @@ export function createSecureDeliveryApiClient({
       body = null;
     }
 
-    if (!response.ok || body?.success !== true) {
+    if (
+      !response.ok ||
+      body?.success !== true
+    ) {
       throw new SecureDeliveryApiError({
         status: response.status,
         code:
-          typeof body?.error?.code === "string"
+          typeof body?.error?.code ===
+          "string"
             ? body.error.code
             : "SECURE_DELIVERY_UNAVAILABLE",
-        message: "Secure Delivery request failed",
+        message:
+          "Secure Delivery request failed",
       });
     }
 
