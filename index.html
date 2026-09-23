@@ -133,6 +133,13 @@
         gap: var(--st-space-3);
       }
 
+      .pool-list {
+        grid-template-columns: repeat(
+          auto-fit,
+          minmax(min(100%, 18rem), 1fr)
+        );
+      }
+
       .pool-card {
         width: 100%;
         display: grid;
@@ -140,6 +147,29 @@
         text-align: start;
         border: 1px solid var(--st-border);
         background: var(--st-surface-raised);
+        padding: var(--st-space-4);
+        align-content: start;
+      }
+
+      .pool-card-title {
+        font-size: var(--st-font-size-lg);
+        line-height: 1.3;
+      }
+
+      .pool-card-description {
+        color: var(--st-text-muted);
+        font-weight: 400;
+      }
+
+      .pool-published-at,
+      .pool-detail-published-at {
+        font-size: var(--st-font-size-sm);
+        color: var(--st-text-muted);
+      }
+
+      .pool-detail {
+        display: grid;
+        gap: var(--st-space-3);
       }
 
       .pool-detail,
