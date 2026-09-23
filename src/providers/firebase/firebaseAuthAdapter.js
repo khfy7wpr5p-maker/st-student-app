@@ -29,6 +29,24 @@ export function createFirebaseAuthAdapter({ auth, sdk }) {
   }
 
   return Object.freeze({
+    async getIdToken() {
+      const user = auth?.currentUser;
+      if (
+        user === null ||
+        user === undefined ||
+        typeof sdk?.getIdToken !== "function"
+      ) {
+        throw new Error("authenticated Firebase user required");
+      }
+
+      const token = await sdk.getIdToken(user);
+      if (!hasText(token)) {
+        throw new Error("Firebase ID token unavailable");
+      }
+
+      return token;
+    },
+
     async signIn({ email, password } = {}) {
       if (!hasText(email) || !hasText(password)) {
         throw new TypeError("email and password are required");
