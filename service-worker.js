@@ -1,4 +1,4 @@
-const CACHE_NAME = "st-student-shell-v6";
+const CACHE_NAME = "st-student-shell-v7";
 
 const FIREBASE_RUNTIME_ASSETS = Object.freeze([
   "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js",
@@ -13,6 +13,17 @@ const SHELL_ASSETS = Object.freeze([
   "./index.html",
   "./src/ui/main.js",
   "./src/config/firebaseConfig.js",
+  "./pilot-runtime-config.js",
+  "./src/config/secureDeliveryConfig.js",
+  "./src/providers/secureDelivery/secureDeliveryApiClient.js",
+  "./src/contracts/studentPoolView.js",
+  "./src/contracts/secureDeliveryAssignment.js",
+  "./src/contracts/privateAssignment.js",
+  "./src/sharing/secureDeliveryStudent08ReadService.js",
+  "./src/practice/practiceAccessRef.js",
+  "./src/offline/secureDeliveryOfflineReadService.js",
+  "./src/offline/secureDeliveryStatusService.js",
+  "./src/ui/student08Composition.js",
   "./src/providers/firebase/firebaseBrowserRuntime.js",
   "./src/providers/firebase/firebaseAuthAdapter.js",
   "./src/providers/firebase/firestoreSharingAdapter.js",
