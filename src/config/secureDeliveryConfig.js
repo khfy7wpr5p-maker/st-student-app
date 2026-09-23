@@ -1,3 +1,6 @@
+const API_BASE_URL_KEY =
+  "VITE_SECURE_DELIVERY_API_BASE_URL";
+
 function disabledConfig() {
   return Object.freeze({
     enabled: false,
@@ -5,11 +8,33 @@ function disabledConfig() {
   });
 }
 
+function defaultEnvironment() {
+  const viteEnv = import.meta.env;
+
+  if (
+    viteEnv !== undefined &&
+    viteEnv !== null &&
+    Object.prototype.hasOwnProperty.call(
+      viteEnv,
+      API_BASE_URL_KEY,
+    )
+  ) {
+    return viteEnv;
+  }
+
+  return {
+    [API_BASE_URL_KEY]:
+      globalThis
+        .__ST_STUDENT_APP_CONFIG__
+        ?.secureDeliveryApiBaseUrl,
+  };
+}
+
 export function createSecureDeliveryConfig(
-  env = import.meta.env ?? {},
+  env = defaultEnvironment(),
 ) {
   const raw =
-    env?.VITE_SECURE_DELIVERY_API_BASE_URL;
+    env?.[API_BASE_URL_KEY];
 
   if (
     raw === undefined ||
