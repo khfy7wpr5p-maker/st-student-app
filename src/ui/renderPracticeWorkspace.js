@@ -14,7 +14,7 @@ function renderNotation(practice) {
 
   if (capability === PRACTICE_CAPABILITY_STATES.AVAILABLE) {
     return `
-      <section aria-labelledby="notation-heading">
+      <section class="practice-notation practice-primary" aria-labelledby="notation-heading">
         <h2 id="notation-heading">Nota</h2>
         <div id="st-score-root" role="region" aria-label="Nota"></div>
       </section>
@@ -23,7 +23,7 @@ function renderNotation(practice) {
 
   if (capability === PRACTICE_CAPABILITY_STATES.ERROR) {
     return `
-      <section aria-labelledby="notation-heading">
+      <section class="practice-notation practice-primary" aria-labelledby="notation-heading">
         <h2 id="notation-heading">Nota</h2>
         <p role="status">Nota görüntülenemedi.</p>
       </section>
@@ -31,7 +31,7 @@ function renderNotation(practice) {
   }
 
   return `
-    <section aria-labelledby="notation-heading">
+    <section class="practice-notation practice-primary" aria-labelledby="notation-heading">
       <h2 id="notation-heading">Nota</h2>
       <p>Nota görünümü bu çalışma için kullanılamıyor.</p>
     </section>
@@ -48,7 +48,7 @@ function renderPlayback(practice) {
 
   if (playback === PRACTICE_CAPABILITY_STATES.ERROR) {
     return `
-      <section aria-labelledby="playback-heading">
+      <section class="practice-playback practice-secondary" aria-labelledby="playback-heading">
         <h2 id="playback-heading">Dinleme</h2>
         <p role="status">Dinleme kullanılamadı.</p>
       </section>
@@ -57,7 +57,7 @@ function renderPlayback(practice) {
 
   if (playback !== PRACTICE_CAPABILITY_STATES.AVAILABLE) {
     return `
-      <section aria-labelledby="playback-heading">
+      <section class="practice-playback practice-secondary" aria-labelledby="playback-heading">
         <h2 id="playback-heading">Dinleme</h2>
         <p>Dinleme bu çalışma için kullanılamıyor.</p>
       </section>
@@ -105,7 +105,7 @@ function renderPlayback(practice) {
       : "";
 
   return `
-    <section aria-labelledby="playback-heading">
+    <section class="practice-playback practice-secondary" aria-labelledby="playback-heading">
       <h2 id="playback-heading">Dinleme</h2>
       ${quality}
       <div class="practice-playback-controls">
