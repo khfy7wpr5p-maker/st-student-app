@@ -13,7 +13,7 @@ test("vendored ST score runtime matches its pinned provenance and integrity mani
   assert.equal(manifest.schemaVersion, 1);
   assert.equal(
     manifest.rendererSourceRevision,
-    "49dcb4737e802f956fc483ab2c8eac62a2508846",
+    "78eec1d958923e871b5069f5026eed9e4ead2c33",
   );
   assert.equal(manifest.scoreRendererContractVersion, "0.2.0");
   assert.equal(manifest.runtimeTarget, "browser");
@@ -43,4 +43,17 @@ test("vendored browser bootstrap remains local, root-bound, and contract-ready",
   assert.match(source, /st-score-render-host-ready/);
   assert.match(source, /contractVersion:\s*SCORE_RENDERER_CONTRACT_VERSION/);
   assert.doesNotMatch(source, /fetch\s*\(|XMLHttpRequest|WebSocket|https?:\/\//i);
+});
+
+
+test("vendored runtime CSP rejects unsafe-inline and pins generated hashes", async () => {
+  const source = await readFile(
+    new URL("index.html", RUNTIME_ROOT),
+    "utf8",
+  );
+
+  assert.match(source, /Content-Security-Policy/);
+  assert.match(source, /script-src 'self' 'sha256-[^']+'/);
+  assert.match(source, /style-src 'sha256-[^']+'/);
+  assert.doesNotMatch(source, /'unsafe-inline'/);
 });

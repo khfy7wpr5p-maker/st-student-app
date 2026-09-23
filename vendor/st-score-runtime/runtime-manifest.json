@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "rendererSourceRevision": "49dcb4737e802f956fc483ab2c8eac62a2508846",
+  "rendererSourceRevision": "78eec1d958923e871b5069f5026eed9e4ead2c33",
   "scoreRendererContractVersion": "0.2.0",
   "packages": {
     "contracts": "0.1.0",
@@ -28,8 +28,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 1165,
-      "sha256": "e0f59d936d4fb46d792ac94b46e0103533f37eaca856906dc9b0055153aa8b9d"
+      "bytes": 1241,
+      "sha256": "c2e713e93d6ccca303b422af19992985b245d56108a2df54be6d20cd60c6a062"
     },
     {
       "path": "licenses/opensheetmusicdisplay-BSD-3-Clause.txt",
