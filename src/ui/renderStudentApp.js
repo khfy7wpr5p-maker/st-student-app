@@ -263,13 +263,23 @@ function renderPractice(practice, { showHomeAction = true } = {}) {
   })}`;
 }
 
-function renderStudent08Shell(body) {
+function currentPageAttribute(active) {
+  return active ? ' aria-current="page"' : "";
+}
+
+function renderStudent08Shell(body, state) {
+  const poolCurrent =
+    state.screen === STUDENT_APP_SCREENS.PUBLIC_POOL;
+  const myWorkCurrent =
+    state.screen === STUDENT_APP_SCREENS.MY_WORK ||
+    state.screen === STUDENT_APP_SCREENS.PRACTICE;
+
   return `
     <div class="student-shell">
       <aside class="student-navigation">
         <nav aria-label="Öğrenci menüsü">
-          <button type="button" data-action="show-public-pool">Havuz</button>
-          <button type="button" data-action="show-my-work">Benim Çalışmalarım</button>
+          <button type="button"${currentPageAttribute(poolCurrent)} data-action="show-public-pool">Havuz</button>
+          <button type="button"${currentPageAttribute(myWorkCurrent)} data-action="show-my-work">Benim Çalışmalarım</button>
           <button type="button" data-action="sign-out">Çıkış</button>
         </nav>
       </aside>
@@ -312,7 +322,7 @@ export function renderStudentApp(
     }
 
     if (state.screen !== STUDENT_APP_SCREENS.SIGN_IN) {
-      body = renderStudent08Shell(body);
+      body = renderStudent08Shell(body, state);
     }
   } else {
     switch (state.screen) {
