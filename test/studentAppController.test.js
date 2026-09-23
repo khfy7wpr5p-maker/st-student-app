@@ -889,3 +889,56 @@ test("stale or missing sample failure is playback-only and never reaches state o
     /piano sample load stale|vendor\/st-piano|C4\.wav|score-partwise|notes/,
   );
 });
+
+
+test("active Practice playback capability recovers after connectivity restores audio preparation", async () => {
+  let ready = false;
+  const playbackPort = {
+    canPlayPackage() {
+      return ready;
+    },
+    async preparePackage() {
+      ready = true;
+      return true;
+    },
+    canChangeTempoForPackage() {
+      return ready;
+    },
+    canRepeatMeasureForPackage() {
+      return ready;
+    },
+    getPlaybackQualityForPackage() {
+      return ready ? "APPROXIMATE" : null;
+    },
+    getReferenceTempoForPackage() {
+      return ready ? 80 : null;
+    },
+  };
+  const controller = createStudentAppController({
+    sharingService: makeSharingService(),
+    initialSession: student,
+    notationAdapter: { isAvailable: () => true },
+    playbackPort,
+  });
+
+  controller.openPractice("pub-public");
+  assert.equal(
+    controller.getState().practice.capabilities.playback,
+    PRACTICE_CAPABILITY_STATES.UNAVAILABLE,
+  );
+
+  await controller.recoverActivePracticePlayback();
+
+  assert.equal(
+    controller.getState().practice.capabilities.playback,
+    PRACTICE_CAPABILITY_STATES.AVAILABLE,
+  );
+  assert.equal(
+    controller.getState().practice.capabilities.tempoChange,
+    PRACTICE_CAPABILITY_STATES.AVAILABLE,
+  );
+  assert.equal(
+    controller.getState().practice.capabilities.measureRepeat,
+    PRACTICE_CAPABILITY_STATES.AVAILABLE,
+  );
+});
