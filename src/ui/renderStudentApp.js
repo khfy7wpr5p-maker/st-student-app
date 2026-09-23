@@ -224,13 +224,16 @@ function folderButton(state, value, label) {
 function renderAssignmentItem(item) {
   const note =
     typeof item.teacherNote === "string" && item.teacherNote.length > 0
-      ? `<p class="teacher-note">${escapeHtml(item.teacherNote)}</p>`
+      ? `<p class="teacher-note"><span class="teacher-note-label">Öğretmen notu</span>${escapeHtml(
+          item.teacherNote,
+        )}</p>`
       : "";
 
   if (item.practiceType === PRACTICE_TYPES.SCORE) {
     return `
       <li>
-        <article>
+        <article class="assignment-card assignment-card-score">
+          <span class="assignment-type">Nota çalışması</span>
           <h2>${escapeHtml(item.title)}</h2>
           ${note}
           <button
@@ -245,11 +248,11 @@ function renderAssignmentItem(item) {
 
   return `
     <li>
-      <article>
+      <article class="assignment-card assignment-card-chord-board">
+        <span class="assignment-type">Akor çalışması</span>
         <h2>${escapeHtml(item.title)}</h2>
-        <p>Akor çalışması</p>
         ${note}
-        <p>Bu akor çalışması henüz kullanıma hazır değil.</p>
+        <p class="assignment-unavailable">Bu akor çalışması henüz kullanıma hazır değil.</p>
       </article>
     </li>
   `;
