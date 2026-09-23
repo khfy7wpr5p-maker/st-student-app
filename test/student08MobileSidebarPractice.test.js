@@ -96,7 +96,7 @@ test("mobile Practice gives the notation workspace more width than the ordinary 
 
   assert.match(
     html,
-    /@media\s*\(max-width:\s*640px\)[\s\S]*?\.student-shell-practice\s*\{[^}]*grid-template-columns:\s*minmax\(4\.75rem,\s*20%\)\s+minmax\(0,\s*1fr\)/s,
+    /@media\s*\(max-width:\s*640px\)[\s\S]*?\.student-shell-practice\s*\{[^}]*grid-template-columns:\s*4\.5rem\s+minmax\(0,\s*1fr\)/s,
   );
   assert.match(
     html,
@@ -105,5 +105,50 @@ test("mobile Practice gives the notation workspace more width than the ordinary 
   assert.match(
     html,
     /@media\s*\(max-width:\s*640px\)[\s\S]*?\.student-shell-practice \.practice-notation\s*\{[^}]*padding:\s*var\(--st-space-2\)/s,
+  );
+});
+
+
+test("mobile Practice uses an icon-only mini rail while preserving full accessible names", () => {
+  const html = renderStudentApp(
+    state(STUDENT_APP_SCREENS.PRACTICE),
+    { connectivityState: "ONLINE" },
+  );
+
+  assert.match(
+    html,
+    /class="student-shell student-shell-practice"/,
+  );
+  assert.match(
+    html,
+    /<button(?=[^>]*data-action="show-my-work")(?=[^>]*aria-label="Benim Çalışmalarım")[^>]*>/,
+  );
+  assert.match(
+    html,
+    /<div class="student-content">\s*<div class="app-status" role="status" aria-live="polite">Çevrimiçi<\/div>/,
+  );
+});
+
+test("mobile Practice rail hides visible labels and centers icon controls", async () => {
+  const html = await readFile(
+    new URL("../index.html", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(
+    html,
+    /@media\s*\(max-width:\s*640px\)[\s\S]*?\.student-shell-practice\s*\{[^}]*grid-template-columns:\s*4\.5rem\s+minmax\(0,\s*1fr\)/s,
+  );
+  assert.match(
+    html,
+    /@media\s*\(max-width:\s*640px\)[\s\S]*?\.student-shell-practice \.nav-label-short\s*\{[^}]*display:\s*none/s,
+  );
+  assert.match(
+    html,
+    /@media\s*\(max-width:\s*640px\)[\s\S]*?\.student-shell-practice \.student-navigation button\s*\{[^}]*justify-content:\s*center[^}]*gap:\s*0[^}]*padding-inline:\s*0/s,
+  );
+  assert.match(
+    html,
+    /\.student-shell-practice\s+\.student-navigation\s+button\[data-action="sign-out"\]::before\s*\{[^}]*content:\s*"↪"/s,
   );
 });

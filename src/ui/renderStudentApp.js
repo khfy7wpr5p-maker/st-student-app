@@ -309,18 +309,21 @@ function currentPageAttribute(active) {
 function renderStudent08Shell(body, state, statusMarkup = "") {
   const poolCurrent =
     state.screen === STUDENT_APP_SCREENS.PUBLIC_POOL;
+  const practiceCurrent =
+    state.screen === STUDENT_APP_SCREENS.PRACTICE;
   const myWorkCurrent =
     state.screen === STUDENT_APP_SCREENS.MY_WORK ||
-    state.screen === STUDENT_APP_SCREENS.PRACTICE;
-  const shellClass =
-    state.screen === STUDENT_APP_SCREENS.PRACTICE
-      ? "student-shell student-shell-practice"
-      : "student-shell";
+    practiceCurrent;
+  const shellClass = practiceCurrent
+    ? "student-shell student-shell-practice"
+    : "student-shell";
+  const navigationStatus = practiceCurrent ? "" : statusMarkup;
+  const contentStatus = practiceCurrent ? statusMarkup : "";
 
   return `
     <div class="${shellClass}">
       <aside class="student-navigation">
-        ${statusMarkup}
+        ${navigationStatus}
         <nav aria-label="Öğrenci menüsü">
           <button
             type="button"
@@ -342,6 +345,7 @@ function renderStudent08Shell(body, state, statusMarkup = "") {
         </nav>
       </aside>
       <div class="student-content">
+        ${contentStatus}
         ${body}
       </div>
     </div>
