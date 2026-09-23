@@ -347,3 +347,34 @@ test("late async tempo success cannot restore disposed package selection", async
   const playCalls = engine.calls.filter(([name]) => name === "play");
   assert.equal(playCalls.at(-1)[1].tempoBpm, 120);
 });
+
+
+test("preparePackage restores playback availability after audio runtime recovery", async () => {
+  let supported = false;
+  const engine = makeEngine({ supported: false });
+  engine.isSupported = () => {
+    engine.calls.push(["isSupported"]);
+    return supported;
+  };
+  engine.prepare = async () => {
+    engine.calls.push(["prepare"]);
+    supported = true;
+    return true;
+  };
+
+  const port = createStudentPlaybackPort({
+    playbackPlanResolver: {
+      resolvePackage: (value) => plan(value.packageId),
+    },
+    engine,
+  });
+  const work = pkg();
+
+  assert.equal(port.canPlayPackage(work), false);
+  assert.equal(await port.preparePackage(work), true);
+  assert.equal(port.canPlayPackage(work), true);
+  assert.equal(
+    engine.calls.some(([name]) => name === "prepare"),
+    true,
+  );
+});
