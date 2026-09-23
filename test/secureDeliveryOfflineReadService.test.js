@@ -52,6 +52,7 @@ function practiceItem(
       kind: "SECURE_DELIVERY",
       deliveryId: assignmentId,
     }),
+    practiceType: "SCORE",
     package: makeApprovedPracticePackage({
       packageId: "pkg-a",
       scope: "student_private",
@@ -115,6 +116,9 @@ test("Secure Delivery offline wrapper caches SCORE and keeps assignment metadata
       return practiceItem(
         assignmentId,
       );
+    },
+    async getChordBoardPracticeItem() {
+      throw new Error("unused");
     },
   };
 
@@ -225,6 +229,11 @@ test("cold offline wrapper never invents assignment metadata", async () => {
           );
         },
         async getScorePracticeItem() {
+          throw new Error(
+            "online must not run",
+          );
+        },
+        async getChordBoardPracticeItem() {
           throw new Error(
             "online must not run",
           );
