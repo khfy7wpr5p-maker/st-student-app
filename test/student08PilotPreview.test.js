@@ -134,3 +134,27 @@ test("pilot preview rejects non-HTTPS or malformed API URLs", async () => {
     );
   }
 });
+
+
+test("pilot branch service worker includes Secure Delivery offline runtime", async () => {
+  const source = await readFile(
+    new URL("../service-worker.js", import.meta.url),
+    "utf8",
+  );
+
+  for (const asset of [
+    "./runtime-config.js",
+    "./src/config/secureDeliveryConfig.js",
+    "./src/providers/secureDelivery/secureDeliveryApiClient.js",
+    "./src/contracts/studentPoolView.js",
+    "./src/contracts/secureDeliveryAssignment.js",
+    "./src/contracts/privateAssignment.js",
+    "./src/sharing/secureDeliveryStudent08ReadService.js",
+    "./src/practice/practiceAccessRef.js",
+    "./src/offline/secureDeliveryOfflineReadService.js",
+    "./src/offline/secureDeliveryStatusService.js",
+    "./src/ui/student08Composition.js",
+  ]) {
+    assert.equal(source.includes(asset), true);
+  }
+});
