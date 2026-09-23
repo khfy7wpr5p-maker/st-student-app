@@ -82,6 +82,32 @@ function renderStudent08Home() {
   `;
 }
 
+function formatPublishedDate(value) {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value.trim());
+
+  if (match === null) {
+    return value.trim();
+  }
+
+  return `${match[3]}.${match[2]}.${match[1]}`;
+}
+
+function renderPublishedTime(value, className) {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return "";
+  }
+
+  const stableValue = value.trim();
+
+  return `<time class="${className}" datetime="${escapeHtml(stableValue)}">${escapeHtml(
+    formatPublishedDate(stableValue),
+  )}</time>`;
+}
+
 function renderWorkList({ heading, items, emptyText }) {
   const content =
     items.length === 0
@@ -135,12 +161,18 @@ function renderPool(state) {
                     data-action="open-pool-item"
                     data-pool-item-id="${escapeHtml(item.poolItemId)}"
                   >
-                    <strong>${escapeHtml(item.title)}</strong>
+                    <strong class="pool-card-title">${escapeHtml(item.title)}</strong>
                     ${
                       item.shortDescription
-                        ? `<span>${escapeHtml(item.shortDescription)}</span>`
+                        ? `<span class="pool-card-description">${escapeHtml(
+                            item.shortDescription,
+                          )}</span>`
                         : ""
                     }
+                    ${renderPublishedTime(
+                      item.publishedAt,
+                      "pool-published-at",
+                    )}
                   </button>
                 </li>
               `,
@@ -155,6 +187,10 @@ function renderPool(state) {
       : `
         <article class="pool-detail" aria-labelledby="pool-detail-title">
           <h2 id="pool-detail-title">${escapeHtml(state.poolDetail.title)}</h2>
+          ${renderPublishedTime(
+            state.poolDetail.publishedAt,
+            "pool-detail-published-at",
+          )}
           ${
             state.poolDetail.detailText
               ? `<p>${escapeHtml(state.poolDetail.detailText)}</p>`
