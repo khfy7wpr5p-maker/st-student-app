@@ -1,4 +1,5 @@
 name: S08-3 Pilot Smoke
+# Exact deployed-head verification for S08-3 recovery.
 
 on:
   workflow_dispatch:
