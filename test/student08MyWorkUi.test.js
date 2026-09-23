@@ -49,7 +49,7 @@ test("S08-4B My Work gives SCORE items a clear hierarchy while preserving the ex
   );
 });
 
-test("S08-4B My Work keeps CHORD_BOARD informative and non-actionable", () => {
+test("S08-4B My Work makes supported CHORD_BOARD assignments actionable without adding edit or playback actions", () => {
   const html = renderStudentApp(
     myWorkState([
       {
@@ -70,9 +70,13 @@ test("S08-4B My Work keeps CHORD_BOARD informative and non-actionable", () => {
   assert.match(html, /class="assignment-type">Akor çalışması/);
   assert.match(
     html,
-    /class="assignment-unavailable">Bu akor çalışması henüz kullanıma hazır değil\./,
+    /data-action="open-assignment"[^>]*data-assignment-id="chord-1"/s,
   );
-  assert.doesNotMatch(html, /data-action="open-assignment"/);
+  assert.match(html, />Çalışmayı Aç<\/button>/);
+  assert.doesNotMatch(
+    html,
+    /Bu akor çalışması henüz kullanıma hazır değil/,
+  );
   assert.doesNotMatch(html, />\s*(?:Düzenle|Çal|Dinle)\s*</);
 });
 
