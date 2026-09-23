@@ -1,5 +1,12 @@
-import { getAuthenticatedStudentId } from "../auth/session.js";
-import { OFFLINE_ACCESS_STATES } from "./offlineRecord.js";
+import {
+  getAuthenticatedStudentId,
+} from "../auth/session.js";
+import {
+  createPracticeAccessRef,
+} from "../practice/practiceAccessRef.js";
+import {
+  OFFLINE_ACCESS_STATES,
+} from "./offlineRecord.js";
 
 export const SYNC_STATES = Object.freeze({
   IDLE: "IDLE",
@@ -9,49 +16,90 @@ export const SYNC_STATES = Object.freeze({
 });
 
 function requireStudentId(session) {
-  const studentId = getAuthenticatedStudentId(session);
+  const studentId =
+    getAuthenticatedStudentId(session);
 
   if (studentId === null) {
-    throw new Error("authenticated student session required");
+    throw new Error(
+      "authenticated student session required",
+    );
   }
 
   return studentId;
 }
 
-function hasActivePackageStatus(status) {
+function hasActivePackageStatus(
+  status,
+) {
   return (
     status !== null &&
     typeof status === "object" &&
     status.state === "ACTIVE" &&
-    typeof status.packageId === "string" &&
-    status.packageId.trim().length > 0
+    typeof status.packageId ===
+      "string" &&
+    status.packageId.trim().length >
+      0
   );
 }
 
-function activePublicationGroups(records) {
+function activeAccessGroups(records) {
   const groups = new Map();
 
   for (const record of records) {
-    if (record.accessState === OFFLINE_ACCESS_STATES.REVOKED) {
+    if (
+      record.accessState ===
+      OFFLINE_ACCESS_STATES.REVOKED
+    ) {
       continue;
     }
 
-    const current = groups.get(record.publicationId);
+    const accessRef =
+      createPracticeAccessRef(
+        record.accessRef,
+      );
 
-    if (current === undefined) {
-      groups.set(record.publicationId, {
-        publicationId: record.publicationId,
-        scope: record.scope,
-        records: [record],
-      });
+    if (
+      typeof record.accessKey !==
+        "string" ||
+      record.accessKey.trim()
+        .length === 0
+    ) {
+      throw new Error(
+        "cached access key missing",
+      );
+    }
+
+    const current =
+      groups.get(
+        record.accessKey,
+      );
+
+    if (
+      current === undefined
+    ) {
+      groups.set(
+        record.accessKey,
+        {
+          accessRef,
+          scope: record.scope,
+          records: [record],
+        },
+      );
       continue;
     }
 
-    if (current.scope !== record.scope) {
-      throw new Error("cached publication scope mismatch");
+    if (
+      current.scope !==
+      record.scope
+    ) {
+      throw new Error(
+        "cached access scope mismatch",
+      );
     }
 
-    current.records.push(record);
+    current.records.push(
+      record,
+    );
   }
 
   return [...groups.values()];
@@ -60,69 +108,155 @@ function activePublicationGroups(records) {
 export function createForegroundSyncCoordinator({
   offlineRepository,
   publicationStatusService,
-  clock = () => new Date().toISOString(),
+  secureDeliveryStatusService = null,
+  clock = () =>
+    new Date().toISOString(),
 }) {
   if (
     offlineRepository === null ||
-    typeof offlineRepository !== "object"
+    typeof offlineRepository !==
+      "object"
   ) {
-    throw new TypeError("offlineRepository is required");
+    throw new TypeError(
+      "offlineRepository is required",
+    );
   }
 
   if (
-    publicationStatusService === null ||
-    typeof publicationStatusService?.getPublicationStatus !== "function"
+    publicationStatusService ===
+      null ||
+    typeof publicationStatusService
+      ?.getPublicationStatus !==
+      "function"
   ) {
-    throw new TypeError("publicationStatusService is required");
+    throw new TypeError(
+      "publicationStatusService is required",
+    );
+  }
+
+  if (
+    secureDeliveryStatusService !==
+      null &&
+    typeof secureDeliveryStatusService
+      ?.getAccessStatus !==
+      "function"
+  ) {
+    throw new TypeError(
+      "secureDeliveryStatusService must provide getAccessStatus()",
+    );
+  }
+
+  async function statusForGroup(
+    group,
+    session,
+  ) {
+    if (
+      group.accessRef.kind ===
+      "PUBLICATION"
+    ) {
+      return publicationStatusService
+        .getPublicationStatus({
+          session,
+          publicationId:
+            group.accessRef
+              .publicationId,
+          scope: group.scope,
+        });
+    }
+
+    if (
+      secureDeliveryStatusService ===
+      null
+    ) {
+      throw new Error(
+        "Secure Delivery status service unavailable",
+      );
+    }
+
+    return secureDeliveryStatusService
+      .getAccessStatus({
+        session,
+        accessRef:
+          group.accessRef,
+      });
   }
 
   return Object.freeze({
     async sync({ session }) {
-      const studentId = requireStudentId(session);
-      const records = await offlineRepository.listAllForStudent({
-        studentId,
-      });
-      const groups = activePublicationGroups(records);
+      const studentId =
+        requireStudentId(session);
+      const records =
+        await offlineRepository
+          .listAllForStudent({
+            studentId,
+          });
+      const groups =
+        activeAccessGroups(
+          records,
+        );
 
       let checked = 0;
       let revoked = 0;
       let failed = 0;
 
-      for (const group of groups) {
+      for (
+        const group of groups
+      ) {
         checked += 1;
 
         try {
           const status =
-            await publicationStatusService.getPublicationStatus({
+            await statusForGroup(
+              group,
               session,
-              publicationId: group.publicationId,
-              scope: group.scope,
-            });
+            );
 
-          const verifiedAt = clock();
+          const verifiedAt =
+            clock();
 
-          if (status?.state === "REVOKED") {
-            await offlineRepository.markRevoked({
-              studentId,
-              publicationId: group.publicationId,
-              lastVerifiedAt: verifiedAt,
-            });
+          if (
+            status?.state ===
+            "REVOKED"
+          ) {
+            await offlineRepository
+              .markRevoked({
+                studentId,
+                accessRef:
+                  group.accessRef,
+                lastVerifiedAt:
+                  verifiedAt,
+              });
             revoked += 1;
             continue;
           }
 
-          if (hasActivePackageStatus(status)) {
-            const cachedMatch = group.records.find(
-              (record) => record.packageId === status.packageId,
-            );
+          if (
+            hasActivePackageStatus(
+              status,
+            )
+          ) {
+            const cachedMatch =
+              group.records.find(
+                (record) =>
+                  record.packageId ===
+                  status.packageId,
+              );
 
-            if (cachedMatch !== undefined) {
-              await offlineRepository.markVerifiedActive({
-                studentId,
-                publicationId: group.publicationId,
-                packageId: cachedMatch.packageId,
-                lastVerifiedAt: verifiedAt,
-              });
+            if (
+              cachedMatch !==
+              undefined
+            ) {
+              await offlineRepository
+                .markVerifiedActive({
+                  studentId,
+                  accessRef:
+                    group.accessRef,
+                  packageId:
+                    cachedMatch
+                      .packageId,
+                  lastVerifiedAt:
+                    verifiedAt,
+                });
             }
 
             continue;
@@ -136,7 +270,9 @@ export function createForegroundSyncCoordinator({
 
       return Object.freeze({
         state:
-          failed > 0 ? SYNC_STATES.SYNC_ERROR : SYNC_STATES.SYNCED,
+          failed > 0
+            ? SYNC_STATES.SYNC_ERROR
+            : SYNC_STATES.SYNCED,
         checked,
         revoked,
         failed,
