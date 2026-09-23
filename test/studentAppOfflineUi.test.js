@@ -222,6 +222,7 @@ test("mount synchronizes on online transition and unsubscribes on destroy", asyn
   const connectivity = makeConnectivityHarness();
   const root = makeRoot();
   let syncCalls = 0;
+  let recoverCalls = 0;
 
   const controller = {
     getState() {
@@ -238,6 +239,9 @@ test("mount synchronizes on online transition and unsubscribes on destroy", asyn
     },
     async synchronizeOffline() {
       syncCalls += 1;
+    },
+    async recoverActivePracticePlayback() {
+      recoverCalls += 1;
     },
   };
 
@@ -256,6 +260,7 @@ test("mount synchronizes on online transition and unsubscribes on destroy", asyn
   await mounted.render();
 
   assert.equal(syncCalls, 1);
+  assert.equal(recoverCalls, 1);
   assert.match(root.innerHTML, /Çevrimiçi/);
 
   await mounted.destroy();
