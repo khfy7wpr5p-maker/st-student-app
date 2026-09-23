@@ -98,6 +98,12 @@
         width: 100%;
       }
 
+      .student-navigation button,
+      .work-folders button {
+        overflow-wrap: anywhere;
+        white-space: normal;
+      }
+
       .student-navigation button[aria-current="page"] {
         border-width: 2px;
         text-decoration: underline;
@@ -226,6 +232,11 @@
         gap: var(--st-space-3);
       }
 
+      .practice-workspace,
+      .practice-notation {
+        min-width: 0;
+      }
+
       .practice-workspace > section {
         background: var(--st-surface-raised);
         border: 1px solid var(--st-border);
@@ -263,6 +274,20 @@
 
       .practice-tempo label {
         grid-column: 1 / -1;
+      }
+
+      .practice-repeat {
+        min-height: 3rem;
+        display: flex;
+        align-items: center;
+        gap: var(--st-space-2);
+      }
+
+      .practice-repeat input[type="checkbox"] {
+        width: 1.25rem;
+        height: 1.25rem;
+        min-height: 1.25rem;
+        flex: 0 0 auto;
       }
 
       input {
@@ -398,6 +423,17 @@
 
         .practice-tempo label {
           grid-column: auto;
+        }
+      }
+
+      @media (max-width: 360px) {
+        #app:has(.student-shell) {
+          padding-left: max(var(--st-space-2), env(safe-area-inset-left, 0px));
+          padding-right: max(var(--st-space-2), env(safe-area-inset-right, 0px));
+        }
+
+        .student-content {
+          padding: var(--st-space-3);
         }
       }
     </style>

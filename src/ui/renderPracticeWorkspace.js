@@ -108,7 +108,7 @@ function renderPlayback(practice) {
     <section class="practice-playback practice-secondary" aria-labelledby="playback-heading">
       <h2 id="playback-heading">Dinleme</h2>
       ${quality}
-      <div class="practice-playback-controls">
+      <div class="practice-playback-controls" role="group" aria-label="Dinleme kontrolleri">
         <button type="button" data-action="play-practice">Dinle</button>
         <button type="button" data-action="pause-practice">Duraklat</button>
         <button type="button" data-action="restart-practice">Baştan</button>
