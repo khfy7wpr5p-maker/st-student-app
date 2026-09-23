@@ -205,7 +205,11 @@
         opacity: 0.6;
       }
 
-      button:focus-visible,
+      button:focus-visible {
+        outline: var(--st-focus-ring);
+        outline-offset: var(--st-space-1);
+      }
+
       input:focus-visible {
         outline: var(--st-focus-ring);
         outline-offset: var(--st-space-1);
