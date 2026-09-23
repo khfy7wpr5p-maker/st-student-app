@@ -41,7 +41,7 @@ test("mobile sidebar exposes short visible My Work text with the full accessible
 
   assert.match(
     html,
-    /data-action="show-my-work"[^>]*aria-label="Benim Çalışmalarım"[^>]*>/,
+    /<button(?=[^>]*data-action="show-my-work")(?=[^>]*aria-label="Benim Çalışmalarım")[^>]*>/,
   );
   assert.match(
     html,
