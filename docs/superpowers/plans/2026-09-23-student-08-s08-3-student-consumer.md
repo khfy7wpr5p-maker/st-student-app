@@ -301,6 +301,23 @@ export function createSecureDeliveryAssignmentRow(value) {
     throw new Error("Secure Delivery package must be student_private");
   }
 
+  const packageSnapshot =
+    structuredClone(value.package);
+
+  const deepFreeze = (node) => {
+    if (
+      node !== null &&
+      typeof node === "object" &&
+      !Object.isFrozen(node)
+    ) {
+      for (const child of Object.values(node)) {
+        deepFreeze(child);
+      }
+      Object.freeze(node);
+    }
+    return node;
+  };
+
   return Object.freeze({
     deliveryId,
     assignmentId,
@@ -310,7 +327,7 @@ export function createSecureDeliveryAssignmentRow(value) {
     state: value.state,
     assignedAt: requiredText(value.assignedAt, "assignedAt"),
     deliveredAt: requiredText(value.deliveredAt, "deliveredAt"),
-    package: value.package,
+    package: deepFreeze(packageSnapshot),
   });
 }
 
@@ -663,7 +680,7 @@ assert.deepEqual(practice.accessRef, {
 assert.equal("publication" in practice, false);
 ```
 
-Also test duplicate Pool IDs and duplicate assignment IDs reject with an error.
+Also test duplicate Pool IDs and duplicate assignment IDs reject with an error. Mutate the original server row after normalization and assert the returned package/title remain unchanged, proving provider data was snapshotted rather than retained by reference.
 
 - [ ] **Step 2: Run and confirm RED**
 
@@ -1017,6 +1034,10 @@ git commit -m "feat: generalize practice access identity"
 Add a helper:
 
 ```js
+import {
+  makeApprovedPracticePackage,
+} from "./support/practiceFixtures.js";
+
 const securePractice = (deliveryId = "assignment-a") => ({
   accessRef: {
     kind: "SECURE_DELIVERY",
@@ -1115,6 +1136,38 @@ Store canonical:
 ```
 
 For a legacy publication record, also preserve its existing `publicationId` field for backward compatibility.
+
+For `PUBLICATION` private cache, preserve the existing local check that `package.publication.recipientStudentId === studentId`. For `SECURE_DELIVERY`, do **not** compare the server's internal PracticePackage recipient ID to the local Firebase UID; require `student_private` scope and rely on the server-authorized read plus the local UID cache partition. Add this regression:
+
+```js
+await repo.putAuthorized({
+  studentId: "firebase-uid-a",
+  practiceItem: {
+    accessRef: {
+      kind: "SECURE_DELIVERY",
+      deliveryId: "assignment-a",
+    },
+    package: makeApprovedPracticePackage({
+      packageId: "pkg-secure",
+      scope: "student_private",
+      recipientStudentId: "server-student-a",
+    }),
+  },
+  cachedAt: "2026-09-23T11:00:00Z",
+  lastVerifiedAt: "2026-09-23T11:00:00Z",
+});
+
+assert.notEqual(
+  await repo.getActiveByAccessRef({
+    studentId: "firebase-uid-a",
+    accessRef: {
+      kind: "SECURE_DELIVERY",
+      deliveryId: "assignment-a",
+    },
+  }),
+  null,
+);
+```
 
 - [ ] **Step 4: Add generic repository methods and compatibility wrappers**
 
@@ -1265,6 +1318,22 @@ git commit -m "feat: add tagged offline practice access identity"
 Assert:
 
 ```js
+const listeners = new Set();
+let connectivityState = "ONLINE";
+const connectivityPort = {
+  getState() {
+    return connectivityState;
+  },
+  subscribe(listener) {
+    listeners.add(listener);
+    return () => listeners.delete(listener);
+  },
+  setState(next) {
+    connectivityState = next;
+    for (const listener of listeners) listener(next);
+  },
+};
+
 const service = createSecureDeliveryOfflineReadService({
   onlineReadService,
   offlineRepository,
@@ -1278,7 +1347,7 @@ const online = await service.getScorePracticeItem({
 });
 assert.equal(online.offlineAvailability.deviceAvailable, true);
 
-connectivity.setState("OFFLINE");
+connectivityPort.setState("OFFLINE");
 
 const offline = await service.getScorePracticeItem({
   session: studentA,
@@ -1296,7 +1365,7 @@ await assert.rejects(
 );
 ```
 
-Pool and assignment list methods delegate online and fail with bounded unavailable error while offline; they never fabricate authorization lists.
+Pool and assignment list methods delegate online. While offline they throw `new Error("secure delivery list unavailable offline")`; they never fabricate authorization lists.
 
 - [ ] **Step 2: Run and confirm RED**
 
@@ -1310,9 +1379,25 @@ Expected: FAIL because Secure Delivery offline services do not exist.
 
 - [ ] **Step 3: Implement Secure Delivery offline wrapper**
 
-Core behavior:
+Core helpers and behavior:
 
 ```js
+function annotate(
+  item,
+  source,
+  deviceAvailable,
+  saveFailed = false,
+) {
+  return Object.freeze({
+    ...item,
+    offlineAvailability: Object.freeze({
+      source,
+      deviceAvailable,
+      saveFailed,
+    }),
+  });
+}
+
 async function getScorePracticeItem({
   session,
   assignmentId,
@@ -1380,9 +1465,8 @@ async getAccessStatus({ accessRef }) {
   } catch (error) {
     if (
       error instanceof SecureDeliveryApiError &&
-      (error.status === 404 ||
-        error.code === "NOT_FOUND" ||
-        error.code === "STUDENT_ASSIGNMENT_NOT_FOUND")
+      error.status === 404 &&
+      error.code === "NOT_FOUND"
     ) {
       return Object.freeze({ state: "REVOKED" });
     }
@@ -1420,7 +1504,7 @@ Pass the same `accessRef` to generic `markVerifiedActive` and `markRevoked`.
 Test exact outcomes:
 
 ```js
-// 404-like bounded result
+// exact Secure Delivery 404 / NOT_FOUND
 assert.equal(result.state, SYNC_STATES.SYNCED);
 assert.equal(result.revoked, 1);
 assert.equal(
