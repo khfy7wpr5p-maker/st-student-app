@@ -312,15 +312,33 @@ function renderStudent08Shell(body, state, statusMarkup = "") {
   const myWorkCurrent =
     state.screen === STUDENT_APP_SCREENS.MY_WORK ||
     state.screen === STUDENT_APP_SCREENS.PRACTICE;
+  const shellClass =
+    state.screen === STUDENT_APP_SCREENS.PRACTICE
+      ? "student-shell student-shell-practice"
+      : "student-shell";
 
   return `
-    <div class="student-shell">
+    <div class="${shellClass}">
       <aside class="student-navigation">
         ${statusMarkup}
         <nav aria-label="Öğrenci menüsü">
-          <button type="button"${currentPageAttribute(poolCurrent)} data-action="show-public-pool">Havuz</button>
-          <button type="button"${currentPageAttribute(myWorkCurrent)} data-action="show-my-work">Benim Çalışmalarım</button>
-          <button type="button" data-action="sign-out">Çıkış</button>
+          <button
+            type="button"
+            aria-label="Havuz"
+            ${currentPageAttribute(poolCurrent)}
+            data-action="show-public-pool"
+          ><span class="nav-label-full">Havuz</span><span class="nav-label-short" aria-hidden="true">Havuz</span></button>
+          <button
+            type="button"
+            aria-label="Benim Çalışmalarım"
+            ${currentPageAttribute(myWorkCurrent)}
+            data-action="show-my-work"
+          ><span class="nav-label-full">Benim Çalışmalarım</span><span class="nav-label-short" aria-hidden="true">Çalışmalar</span></button>
+          <button
+            type="button"
+            aria-label="Çıkış"
+            data-action="sign-out"
+          ><span class="nav-label-full">Çıkış</span><span class="nav-label-short" aria-hidden="true">Çıkış</span></button>
         </nav>
       </aside>
       <div class="student-content">
