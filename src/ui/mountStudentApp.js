@@ -451,6 +451,26 @@ export function mountStudentApp({
 
     Promise.resolve(syncResult)
       .catch(() => null)
+      .then(() => {
+        if (
+          destroyed ||
+          connectivityState !==
+            CONNECTIVITY_STATES.ONLINE ||
+          typeof controller
+            .recoverActivePracticePlayback !==
+            "function"
+        ) {
+          return null;
+        }
+
+        try {
+          return controller
+            .recoverActivePracticePlayback();
+        } catch {
+          return null;
+        }
+      })
+      .catch(() => null)
       .finally(() => {
         if (!destroyed) {
           render();
