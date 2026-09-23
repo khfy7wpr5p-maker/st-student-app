@@ -1,0 +1,72 @@
+name: S08-3 Pilot Smoke
+
+on:
+  push:
+    branches:
+      - pilot/student-08-s08-3-device-acceptance
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify pilot backend health
+        run: |
+          set -euo pipefail
+          curl -sS --fail-with-body --retry 3 --retry-delay 3             https://seslitab-s08-3-pilot-api.onrender.com/health             -o /tmp/health.json
+          node -e '
+            const fs = require("fs");
+            const body = JSON.parse(fs.readFileSync("/tmp/health.json", "utf8"));
+            if (body?.success !== true) process.exit(1);
+            if (body?.data?.status !== "ok") process.exit(1);
+            if (body?.data?.mode !== "student08-pilot") process.exit(1);
+            if (body?.data?.studentReadsEnabled !== true) process.exit(1);
+            if (body?.data?.writesEnabled !== false) process.exit(1);
+          '
+
+      - name: Verify exact-origin Authorization preflight
+        run: |
+          set -euo pipefail
+          curl -sS -D /tmp/cors-headers.txt -o /dev/null             -X OPTIONS             -H 'Origin: https://st-student-s08-3-pilot.onrender.com'             -H 'Access-Control-Request-Method: GET'             -H 'Access-Control-Request-Headers: authorization'             https://seslitab-s08-3-pilot-api.onrender.com/api/secure-delivery/v1/student/pool
+          tr -d '\r' < /tmp/cors-headers.txt > /tmp/cors-clean.txt
+          grep -Fqi 'access-control-allow-origin: https://st-student-s08-3-pilot.onrender.com' /tmp/cors-clean.txt
+          grep -Eqi '^access-control-allow-headers:.*authorization' /tmp/cors-clean.txt
+
+      - name: Verify missing auth fails closed
+        run: |
+          set -euo pipefail
+          code="$(curl -sS -o /tmp/noauth.json -w '%{http_code}'             https://seslitab-s08-3-pilot-api.onrender.com/api/secure-delivery/v1/student/pool)"
+          test "$code" = "401"
+          node -e '
+            const fs = require("fs");
+            const body = JSON.parse(fs.readFileSync("/tmp/noauth.json", "utf8"));
+            if (body?.success !== false) process.exit(1);
+            if (JSON.stringify(body).match(/Bearer|token|firebase-uid/i)) process.exit(1);
+          '
+
+      - name: Verify deployed Student preview runtime config
+        run: |
+          set -euo pipefail
+          curl -sS --fail-with-body --retry 3 --retry-delay 3             https://st-student-s08-3-pilot.onrender.com/runtime-config.js             -o /tmp/runtime-config.js
+          grep -Fq             'https://seslitab-s08-3-pilot-api.onrender.com/api/secure-delivery/v1'             /tmp/runtime-config.js
+          if grep -Eqi 'Authorization|Bearer|token' /tmp/runtime-config.js; then
+            echo 'runtime config contains forbidden auth material'
+            exit 1
+          fi
+
+      - name: Verify deployed Student preview exact head and script order
+        run: |
+          set -euo pipefail
+          curl -sS --fail-with-body             https://st-student-s08-3-pilot.onrender.com/pilot-head.txt             -o /tmp/pilot-head.txt
+          test "$(tr -d '\r\n' < /tmp/pilot-head.txt)" =             "f2c766d6730393fe25fbfced466d3941a0d4e7fd"
+
+          curl -sS --fail-with-body             https://st-student-s08-3-pilot.onrender.com/             -o /tmp/index.html
+          runtime_line="$(grep -n 'runtime-config.js' /tmp/index.html | head -1 | cut -d: -f1)"
+          main_line="$(grep -n './src/ui/main.js' /tmp/index.html | head -1 | cut -d: -f1)"
+          test -n "$runtime_line"
+          test -n "$main_line"
+          test "$runtime_line" -lt "$main_line"
