@@ -119,6 +119,8 @@ function recordInput(record) {
     return {
       practiceItem: {
         accessRef: record.accessRef,
+        practiceType:
+          record.practiceType,
         package: record.package,
       },
     };
