@@ -57,6 +57,64 @@ function makeScoreDelivery() {
   };
 }
 
+function makeChordBoardItem() {
+  return {
+    accessRef: {
+      kind: "SECURE_DELIVERY",
+      deliveryId: "assignment-chord",
+    },
+    practiceType: PRACTICE_TYPES.CHORD_BOARD,
+    package: {
+      schemaVersion: "1.0.0",
+      packageType: "CHORD_BOARD",
+      packageId: "assignment-chord",
+      title: "Am Akor Çalışması",
+      assignmentAuthority: {
+        assignmentId: "assignment-chord",
+        state: "teacher_assigned",
+        assignedAt: "2026-09-22T16:05:00Z",
+      },
+      publication: {
+        scope: "student_private",
+        recipientStudentId: "student-a",
+      },
+      content: {
+        chordBoard: {
+          schemaVersion: 1,
+          sourceKind: "chord_board_exact_voicing",
+          chord: {
+            canonicalSymbol: "Am",
+            canonicalRoot: "A",
+            quality: "minor",
+            displayRoot: "A",
+            displaySymbol: "Am",
+          },
+          voicing: {
+            frets: [-1, 0, 2, 2, 1, 0],
+            fingers: [-1, 0, 2, 3, 1, 0],
+            barres: [],
+            shape: "open",
+            generated: false,
+            curated: true,
+          },
+          provenance: {
+            sourceRepository: "st-guitar-chord-board",
+            sourceCommit:
+              "1111111111111111111111111111111111111111",
+            catalogFingerprint:
+              "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          },
+          voicingFingerprint:
+            "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        },
+      },
+      practice: {
+        teacherNote: "Parmakları sırayla yerleştir.",
+      },
+    },
+  };
+}
+
 function makeStudent08Service() {
   const calls = [];
   return {
@@ -159,6 +217,10 @@ function makeStudent08Service() {
         calls.push(["getScorePracticeItem", assignmentId]);
         return makeScoreDelivery();
       },
+      getChordBoardPracticeItem({ assignmentId }) {
+        calls.push(["getChordBoardPracticeItem", assignmentId]);
+        return makeChordBoardItem();
+      },
     },
   };
 }
@@ -237,7 +299,7 @@ test("STUDENT-08 My Work filters exact teacher-owned lifecycle folders", () => {
   );
 });
 
-test("SCORE assignment opens existing Practice while CHORD_BOARD never enters SCORE path", () => {
+test("SCORE assignment keeps existing Practice while CHORD_BOARD opens its dedicated screen", () => {
   const { service, calls } = makeStudent08Service();
   const controller = createStudentAppController({
     sharingService: makeLegacySharingService(),
@@ -251,9 +313,15 @@ test("SCORE assignment opens existing Practice while CHORD_BOARD never enters SC
   assert.equal(controller.getState().practice.title, "Gitar Etüdü");
 
   controller.showMyWork();
-  assert.throws(
-    () => controller.openAssignment("assignment-chord"),
-    /chord board.*unavailable/i,
+  controller.openAssignment("assignment-chord");
+
+  assert.equal(
+    controller.getState().screen,
+    STUDENT_APP_SCREENS.CHORD_BOARD,
+  );
+  assert.equal(
+    controller.getState().chordBoard.chord.displaySymbol,
+    "Am",
   );
   assert.equal(
     calls.some(
@@ -262,6 +330,14 @@ test("SCORE assignment opens existing Practice while CHORD_BOARD never enters SC
         call[1] === "assignment-chord",
     ),
     false,
+  );
+  assert.equal(
+    calls.some(
+      (call) =>
+        call[0] === "getChordBoardPracticeItem" &&
+        call[1] === "assignment-chord",
+    ),
+    true,
   );
 });
 
