@@ -1341,6 +1341,11 @@ const service = createSecureDeliveryOfflineReadService({
   clock: () => "2026-09-23T12:00:00Z",
 });
 
+await service.listAssignments({
+  session: studentA,
+  state: "ACTIVE",
+});
+
 const online = await service.getScorePracticeItem({
   session: studentA,
   assignmentId: "assignment-a",
@@ -1348,6 +1353,14 @@ const online = await service.getScorePracticeItem({
 assert.equal(online.offlineAvailability.deviceAvailable, true);
 
 connectivityPort.setState("OFFLINE");
+
+assert.equal(
+  (await service.getAssignment({
+    session: studentA,
+    assignmentId: "assignment-a",
+  })).assignmentId,
+  "assignment-a",
+);
 
 const offline = await service.getScorePracticeItem({
   session: studentA,
@@ -1363,9 +1376,32 @@ await assert.rejects(
   }),
   /offline practice unavailable/i,
 );
+
+const coldService =
+  createSecureDeliveryOfflineReadService({
+    onlineReadService,
+    offlineRepository,
+    connectivityPort,
+  });
+await assert.rejects(
+  () => coldService.getAssignment({
+    session: studentA,
+    assignmentId: "assignment-a",
+  }),
+  /offline assignment metadata unavailable/i,
+);
 ```
 
-Pool and assignment list methods delegate online. While offline they throw `new Error("secure delivery list unavailable offline")`; they never fabricate authorization lists.
+Pool methods delegate online and throw `new Error("secure delivery Pool unavailable offline")` while offline; Havuz is not cached.
+
+Assignment metadata uses an in-memory, current-process cache only. Online `listAssignments` and `getAssignment` store only already-validated `StudentAssignmentView` values in a `Map` keyed by `assignmentId`. While offline:
+
+- `listAssignments` returns only those validated in-memory views, filtered by requested state;
+- `getAssignment` returns the exact cached view or throws `new Error("offline assignment metadata unavailable")`;
+- no state, teacher note, title, or timestamp is synthesized;
+- after a cold app restart with no validated in-memory views, assignment listing/opening fails closed until connectivity returns.
+
+This preserves the spec's persistent offline-record shape while allowing the existing controller to reopen a cached SCORE during the same authenticated session.
 
 - [ ] **Step 2: Run and confirm RED**
 
@@ -1382,6 +1418,8 @@ Expected: FAIL because Secure Delivery offline services do not exist.
 Core helpers and behavior:
 
 ```js
+const assignmentViews = new Map();
+
 function annotate(
   item,
   source,
@@ -1396,6 +1434,63 @@ function annotate(
       saveFailed,
     }),
   });
+}
+
+async function listAssignments({ session, state } = {}) {
+  requireStudentId(session);
+
+  if (isOffline()) {
+    return Object.freeze(
+      [...assignmentViews.values()].filter(
+        (item) =>
+          state === undefined ||
+          item.state === state,
+      ),
+    );
+  }
+
+  const items =
+    await onlineReadService.listAssignments({
+      session,
+      state,
+    });
+  for (const item of items) {
+    assignmentViews.set(
+      item.assignmentId,
+      item,
+    );
+  }
+  return items;
+}
+
+async function getAssignment({
+  session,
+  assignmentId,
+}) {
+  requireStudentId(session);
+
+  if (isOffline()) {
+    const cached =
+      assignmentViews.get(assignmentId) ??
+      null;
+    if (cached === null) {
+      throw new Error(
+        "offline assignment metadata unavailable",
+      );
+    }
+    return cached;
+  }
+
+  const item =
+    await onlineReadService.getAssignment({
+      session,
+      assignmentId,
+    });
+  assignmentViews.set(
+    item.assignmentId,
+    item,
+  );
+  return item;
 }
 
 async function getScorePracticeItem({
