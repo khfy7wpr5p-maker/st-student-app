@@ -3,6 +3,9 @@ import {
   PRACTICE_CAPABILITY_STATES,
   derivePracticeCapabilities,
 } from "./practiceCapabilities.js";
+import {
+  createPracticeAccessRef,
+} from "./practiceAccessRef.js";
 
 function positiveFinite(value) {
   return Number.isFinite(value) && value > 0 ? value : null;
@@ -37,19 +40,32 @@ function safeReferenceTempo(playbackPort, pkg, playbackAvailable) {
   }
 }
 
+function accessRefForItem(item) {
+  if (item?.accessRef !== undefined) {
+    return createPracticeAccessRef(item.accessRef);
+  }
+
+  return createPracticeAccessRef({
+    kind: "PUBLICATION",
+    publicationId:
+      item?.publication?.publicationId,
+  });
+}
+
 function requireDeliveryItem(deliveryItem) {
   if (
     deliveryItem === null ||
-    typeof deliveryItem !== "object" ||
-    deliveryItem.publication === null ||
-    typeof deliveryItem.publication !== "object" ||
-    typeof deliveryItem.publication.publicationId !== "string" ||
-    deliveryItem.publication.publicationId.trim().length === 0
+    typeof deliveryItem !== "object"
   ) {
-    throw new TypeError("authorized practice delivery item required");
+    throw new TypeError(
+      "authorized practice delivery item required",
+    );
   }
 
-  assertPublishablePracticePackage(deliveryItem.package);
+  assertPublishablePracticePackage(
+    deliveryItem.package,
+  );
+  accessRefForItem(deliveryItem);
   return deliveryItem;
 }
 
@@ -60,6 +76,7 @@ export function createPracticeWorkspace({
 }) {
   const item = requireDeliveryItem(deliveryItem);
   const pkg = item.package;
+  const accessRef = accessRefForItem(item);
 
   const capabilities = derivePracticeCapabilities({
     pkg,
@@ -80,8 +97,8 @@ export function createPracticeWorkspace({
     playbackAvailable,
   );
 
-  const viewModel = Object.freeze({
-    publicationId: item.publication.publicationId,
+  const viewModelValue = {
+    accessRef,
     packageId: pkg.packageId,
     title: pkg.title,
     playbackQuality,
@@ -92,7 +109,16 @@ export function createPracticeWorkspace({
         positiveFinite(pkg.practice?.tempoBpm),
       measureRepeatEnabled: false,
     }),
-  });
+  };
+
+  if (accessRef.kind === "PUBLICATION") {
+    viewModelValue.publicationId =
+      accessRef.publicationId;
+  }
+
+  const viewModel = Object.freeze(
+    viewModelValue,
+  );
 
   const renderSource = Object.freeze({
     kind: "musicxml",
