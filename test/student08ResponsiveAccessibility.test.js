@@ -69,7 +69,7 @@ test("S08-4B repeat control preserves a large labeled touch target without stret
   );
 });
 
-test("S08-4B extra-narrow iPhone layout keeps safe-area padding while reducing content pressure", async () => {
+test("S08-4C extra-narrow iPhone layout preserves safe areas inside the light sidebar shell", async () => {
   const html = await readFile(
     new URL("../index.html", import.meta.url),
     "utf8",
@@ -77,10 +77,10 @@ test("S08-4B extra-narrow iPhone layout keeps safe-area padding while reducing c
 
   assert.match(
     html,
-    /@media\s*\(max-width:\s*360px\)[\s\S]*?#app:has\(\.student-shell\)\s*\{[^}]*padding-left:\s*max\(var\(--st-space-2\),\s*env\(safe-area-inset-left,\s*0px\)\)[^}]*padding-right:\s*max\(var\(--st-space-2\),\s*env\(safe-area-inset-right,\s*0px\)\)/s,
+    /@media\s*\(max-width:\s*360px\)[\s\S]*?#app:has\(\.student-shell\)\s*\{[^}]*padding-left:\s*max\(0px,\s*env\(safe-area-inset-left,\s*0px\)\)[^}]*padding-right:\s*max\(0px,\s*env\(safe-area-inset-right,\s*0px\)\)/s,
   );
   assert.match(
     html,
-    /@media\s*\(max-width:\s*360px\)[\s\S]*?\.student-content\s*\{[^}]*padding:\s*var\(--st-space-3\)/s,
+    /@media\s*\(max-width:\s*360px\)[\s\S]*?\.student-content\s*\{[^}]*env\(safe-area-inset-top,\s*0px\)[^}]*var\(--st-space-3\)[^}]*env\(safe-area-inset-bottom,\s*0px\)/s,
   );
 });

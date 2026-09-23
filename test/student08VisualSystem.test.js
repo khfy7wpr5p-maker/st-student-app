@@ -59,7 +59,7 @@ test("S08-4B foundation applies reusable control, card, status, and navigation s
   );
   assert.match(
     html,
-    /\.student-navigation\s*\{[^}]*background:\s*var\(--st-surface-panel\)[^}]*border:\s*1px solid var\(--st-border\)/s,
+    /\.student-navigation\s*\{[^}]*background:\s*var\(--st-sidebar\)[^}]*border:\s*1px solid var\(--st-border\)/s,
   );
 });
 
