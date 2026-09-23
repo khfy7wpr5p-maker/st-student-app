@@ -432,3 +432,39 @@ test("engine reports unsupported without creating AudioContext when constructor 
   assert.equal(engine.isSupported(), false);
   assert.equal(created, 0);
 });
+
+
+test("engine prepare can restore sample-bank support without creating AudioContext", async () => {
+  let configured = false;
+  let created = 0;
+  const sampleBank = {
+    isConfigured() {
+      return configured;
+    },
+    async initialize() {
+      configured = true;
+      return true;
+    },
+    async load() {},
+    resolveMidi() {
+      return {
+        buffer: {},
+        playbackRate: 1,
+        referenceMidi: 60,
+      };
+    },
+  };
+  const engine = createWebAudioPianoEngine({
+    audioContextFactory() {
+      created += 1;
+      return makeAudioContext();
+    },
+    sampleBank,
+    clock: makeClock(),
+  });
+
+  assert.equal(engine.isSupported(), false);
+  assert.equal(await engine.prepare(), true);
+  assert.equal(engine.isSupported(), true);
+  assert.equal(created, 0);
+});
