@@ -161,3 +161,46 @@ test("sign-out delegates to Firebase Auth without returning provider data", asyn
   assert.equal(result, undefined);
   assert.deepEqual(calls, [["signOut", "auth"]]);
 });
+
+
+test("getIdToken returns an ephemeral token only for current authenticated user", async () => {
+  const user = { uid: "uid-a" };
+  const adapter = createFirebaseAuthAdapter({
+    auth: { currentUser: user },
+    sdk: {
+      browserLocalPersistence: {},
+      async setPersistence() {},
+      onAuthStateChanged() {
+        return () => {};
+      },
+      async getIdToken(candidate) {
+        assert.equal(candidate, user);
+        return "fresh-token";
+      },
+    },
+  });
+
+  assert.equal(await adapter.getIdToken(), "fresh-token");
+  assert.equal(JSON.stringify(adapter).includes("fresh-token"), false);
+});
+
+test("getIdToken fails closed when no current Firebase user exists", async () => {
+  const adapter = createFirebaseAuthAdapter({
+    auth: { currentUser: null },
+    sdk: {
+      browserLocalPersistence: {},
+      async setPersistence() {},
+      onAuthStateChanged() {
+        return () => {};
+      },
+      async getIdToken() {
+        return "must-not-be-called";
+      },
+    },
+  });
+
+  await assert.rejects(
+    () => adapter.getIdToken(),
+    /authenticated Firebase user required/i,
+  );
+});
