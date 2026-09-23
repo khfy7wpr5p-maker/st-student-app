@@ -133,28 +133,47 @@ export function createPianoSampleBank({
       return true;
     }
 
+    let response;
+
     try {
-      const response = await fetchImpl(manifestUrl);
-
-      if (response?.ok !== true || typeof response?.json !== "function") {
-        throw new Error("manifest unavailable");
-      }
-
-      const normalized = normalizeManifest(await response.json());
-
-      if (normalized === null) {
-        throw new Error("manifest invalid");
-      }
-
-      manifest = normalized;
-      initialized = true;
-      return true;
+      response = await fetchImpl(manifestUrl);
     } catch {
+      manifest = null;
+      initialized = false;
+      return false;
+    }
+
+    if (
+      response?.ok !== true ||
+      typeof response?.json !== "function"
+    ) {
+      manifest = null;
+      initialized = false;
+      return false;
+    }
+
+    let rawManifest;
+
+    try {
+      rawManifest = await response.json();
+    } catch {
+      manifest = null;
+      initialized = false;
+      return false;
+    }
+
+    const normalized = normalizeManifest(rawManifest);
+
+    if (normalized === null) {
       failed = true;
       manifest = null;
       initialized = false;
       return false;
     }
+
+    manifest = normalized;
+    initialized = true;
+    return true;
   }
 
   async function loadNow(audioContext, capturedGeneration) {
@@ -181,16 +200,39 @@ export function createPianoSampleBank({
           throw staleError();
         }
 
-        const response = await fetchImpl(sampleUrl(manifestUrl, sample.file));
+        let response;
+
+        try {
+          response = await fetchImpl(
+            sampleUrl(manifestUrl, sample.file),
+          );
+        } catch {
+          throw Object.assign(
+            loadFailedError(),
+            { retryable: true },
+          );
+        }
 
         if (
           response?.ok !== true ||
           typeof response?.arrayBuffer !== "function"
         ) {
-          throw loadFailedError();
+          throw Object.assign(
+            loadFailedError(),
+            { retryable: true },
+          );
         }
 
-        const bytes = await response.arrayBuffer();
+        let bytes;
+
+        try {
+          bytes = await response.arrayBuffer();
+        } catch {
+          throw Object.assign(
+            loadFailedError(),
+            { retryable: true },
+          );
+        }
 
         if (generation !== capturedGeneration || disposed) {
           throw staleError();
@@ -226,7 +268,9 @@ export function createPianoSampleBank({
         throw staleError();
       }
 
-      failed = true;
+      if (error?.retryable !== true) {
+        failed = true;
+      }
       buffers.clear();
       throw loadFailedError();
     }
