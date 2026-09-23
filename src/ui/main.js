@@ -1,4 +1,6 @@
+import { createSecureDeliveryConfig } from "../config/secureDeliveryConfig.js";
 import { createDefaultOfflineInfrastructure } from "../offline/defaultOfflineInfrastructure.js";
+import { createForegroundSyncCoordinator } from "../offline/syncCoordinator.js";
 import { registerStudentAppServiceWorker } from "../offline/serviceWorkerRegistration.js";
 import { createStNotationAdapter } from "../practice/notationAdapter.js";
 import { createNotationRuntimeLoader } from "../practice/notationRuntimeLoader.js";
@@ -8,6 +10,7 @@ import { createWebAudioPianoEngine } from "../playback/webAudioPianoEngine.js";
 import { createStudentPlaybackPort } from "../playback/studentPlaybackPort.js";
 import { createFirebaseBrowserRuntime } from "../providers/firebase/firebaseBrowserRuntime.js";
 import { createStudentAppController } from "./studentAppController.js";
+import { createStudent08Composition } from "./student08Composition.js";
 import { mountStudentApp } from "./mountStudentApp.js";
 
 const root = document.querySelector("#app");
@@ -58,11 +61,41 @@ const offlineInfrastructure = createDefaultOfflineInfrastructure({
   onlineSharingService: firebaseRuntime.sharingService,
 });
 
+const secureDeliveryConfig =
+  createSecureDeliveryConfig();
+
+const student08Composition =
+  createStudent08Composition({
+    config: secureDeliveryConfig,
+    authAdapter: firebaseRuntime.authAdapter,
+    fetchImpl: globalThis.fetch,
+    connectivityPort:
+      offlineInfrastructure.connectivityPort,
+    offlineRepository:
+      offlineInfrastructure.offlineRepository,
+  });
+
+const syncCoordinator =
+  secureDeliveryConfig.enabled &&
+  offlineInfrastructure.offlineRepository !== null
+    ? createForegroundSyncCoordinator({
+        offlineRepository:
+          offlineInfrastructure.offlineRepository,
+        publicationStatusService:
+          firebaseRuntime.sharingService,
+        secureDeliveryStatusService:
+          student08Composition.secureDeliveryStatusService,
+      })
+    : null;
+
 const controller = createStudentAppController({
   sharingService: offlineInfrastructure.sharingService,
+  student08ReadService:
+    student08Composition.student08ReadService,
   initialSession,
   notationAdapter,
   playbackPort,
+  syncCoordinator,
 });
 
 const mounted = mountStudentApp({
