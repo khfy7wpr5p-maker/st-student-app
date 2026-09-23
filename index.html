@@ -137,6 +137,49 @@
         grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
       }
 
+      .work-folders {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: var(--st-space-2);
+      }
+
+      .work-folders button {
+        min-width: 0;
+      }
+
+      .work-folders button[aria-pressed="true"] {
+        border-width: 2px;
+        text-decoration: underline;
+        text-underline-offset: 0.2em;
+      }
+
+      .assignment-list {
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+      }
+
+      .assignment-card {
+        display: grid;
+        gap: var(--st-space-3);
+        align-content: start;
+      }
+
+      .assignment-type,
+      .assignment-unavailable {
+        color: var(--st-text-muted);
+        font-size: var(--st-font-size-sm);
+      }
+
+      .teacher-note {
+        color: var(--st-text-muted);
+        font-size: var(--st-font-size-sm);
+      }
+
+      .teacher-note-label {
+        display: block;
+        color: CanvasText;
+        font-weight: 600;
+        margin-bottom: var(--st-space-1);
+      }
+
       .pool-card {
         width: 100%;
         display: grid;
@@ -310,6 +353,12 @@
         }
 
         .student-navigation button {
+          min-width: 0;
+          padding-inline: var(--st-space-2);
+          font-size: var(--st-font-size-sm);
+        }
+
+        .work-folders button {
           min-width: 0;
           padding-inline: var(--st-space-2);
           font-size: var(--st-font-size-sm);
