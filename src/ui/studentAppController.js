@@ -513,6 +513,82 @@ export function createStudentAppController({
       });
     },
 
+    recoverActivePracticePlayback() {
+      if (
+        state.screen !==
+          STUDENT_APP_SCREENS.PRACTICE ||
+        state.practice === null ||
+        activePracticePackage === null ||
+        typeof playbackPort?.preparePackage !==
+          "function"
+      ) {
+        return state;
+      }
+
+      const pkg = activePracticePackage;
+      const packageId = pkg.packageId;
+      const result =
+        playbackPort.preparePackage(pkg);
+
+      const applyRecovery = (ready) => {
+        if (
+          ready !== true ||
+          state.screen !==
+            STUDENT_APP_SCREENS.PRACTICE ||
+          state.practice === null ||
+          activePracticePackage !== pkg ||
+          state.practice.packageId !== packageId
+        ) {
+          return state;
+        }
+
+        let practice =
+          withPracticeCapability(
+            state.practice,
+            "playback",
+            playbackPort.canPlayPackage?.(pkg) === true
+              ? PRACTICE_CAPABILITY_STATES.AVAILABLE
+              : PRACTICE_CAPABILITY_STATES.UNAVAILABLE,
+          );
+
+        practice =
+          withPracticeCapability(
+            practice,
+            "tempoChange",
+            playbackPort
+              .canChangeTempoForPackage?.(pkg) === true
+              ? PRACTICE_CAPABILITY_STATES.AVAILABLE
+              : PRACTICE_CAPABILITY_STATES.UNAVAILABLE,
+          );
+
+        practice =
+          withPracticeCapability(
+            practice,
+            "measureRepeat",
+            playbackPort
+              .canRepeatMeasureForPackage?.(pkg) === true
+              ? PRACTICE_CAPABILITY_STATES.AVAILABLE
+              : PRACTICE_CAPABILITY_STATES.UNAVAILABLE,
+          );
+
+        state = freezeState(
+          stateArgs({ practice }),
+        );
+        return state;
+      };
+
+      if (
+        result !== null &&
+        typeof result?.then === "function"
+      ) {
+        return Promise.resolve(result)
+          .then(applyRecovery)
+          .catch(() => state);
+      }
+
+      return applyRecovery(result);
+    },
+
     synchronizeOffline() {
       if (
         syncCoordinator === null ||
