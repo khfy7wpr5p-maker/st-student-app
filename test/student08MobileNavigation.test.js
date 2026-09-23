@@ -61,7 +61,7 @@ test("S08-4B mobile navigation exposes the current student section to VoiceOver"
   );
 });
 
-test("S08-4B mobile navigation keeps one-row access to Pool, My Work, and Sign Out", async () => {
+test("S08-4C mobile navigation keeps persistent sidebar access to Pool, My Work, and Sign Out", async () => {
   const html = await readFile(
     new URL("../index.html", import.meta.url),
     "utf8",
@@ -81,7 +81,7 @@ test("S08-4B mobile navigation keeps one-row access to Pool, My Work, and Sign O
   );
 });
 
-test("S08-4B mobile navigation uses safe-area-aware sticky presentation without reducing touch targets", async () => {
+test("S08-4C mobile sidebar uses safe-area-aware sticky presentation without reducing touch targets", async () => {
   const html = await readFile(
     new URL("../index.html", import.meta.url),
     "utf8",
