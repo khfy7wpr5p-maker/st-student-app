@@ -16,7 +16,7 @@ function renderNotation(practice) {
     return `
       <section class="practice-notation practice-primary" aria-labelledby="notation-heading">
         <h2 id="notation-heading">Nota</h2>
-        <div id="st-score-root" class="practice-score-root" role="region" aria-label="Nota"></div>
+        <div id="st-score-root" role="region" aria-label="Nota"></div>
       </section>
     `;
   }
