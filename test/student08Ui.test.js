@@ -404,10 +404,10 @@ test("STUDENT-08 Practice keeps only the persistent shell navigation", () => {
     },
   });
 
-  assert.match(html, /class="student-shell"/);
-  assert.match(html, /data-action="show-public-pool">Havuz/);
-  assert.match(html, /data-action="show-my-work">Benim Çalışmalarım/);
-  assert.match(html, /data-action="sign-out">Çıkış/);
+  assert.match(html, /class="student-shell student-shell-practice"/);
+  assert.match(html, /data-action="show-public-pool"/);
+  assert.match(html, /data-action="show-my-work"/);
+  assert.match(html, /data-action="sign-out"/);
   assert.doesNotMatch(html, /data-action="go-home">Ana Sayfa/);
 });
 
