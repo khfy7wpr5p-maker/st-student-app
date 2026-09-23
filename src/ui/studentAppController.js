@@ -1,4 +1,8 @@
 import { getAuthenticatedStudentId } from "../auth/session.js";
+import {
+  ASSIGNMENT_STATES,
+  PRACTICE_TYPES,
+} from "../contracts/privateAssignment.js";
 import { PRACTICE_CAPABILITY_STATES } from "../practice/practiceCapabilities.js";
 import {
   createPracticeWorkspace,
@@ -23,6 +27,9 @@ function freezeState({
   items = [],
   practice = null,
   syncState,
+  student08 = false,
+  poolDetail,
+  assignmentState,
 }) {
   const value = {
     screen,
@@ -33,6 +40,18 @@ function freezeState({
 
   if (syncState !== undefined) {
     value.syncState = syncState;
+  }
+
+  if (student08 === true) {
+    value.student08 = true;
+  }
+
+  if (poolDetail !== undefined) {
+    value.poolDetail = poolDetail;
+  }
+
+  if (assignmentState !== undefined) {
+    value.assignmentState = assignmentState;
   }
 
   return Object.freeze(value);
@@ -71,6 +90,46 @@ function toWorkSummary(item) {
   return Object.freeze(summary);
 }
 
+function toPoolSummary(item) {
+  return Object.freeze({
+    poolItemId: item.poolItemId,
+    title: item.title,
+    shortDescription: item.shortDescription ?? "",
+    publishedAt: item.publishedAt ?? "",
+  });
+}
+
+function toPoolDetail(item) {
+  return Object.freeze({
+    poolItemId: item.poolItemId,
+    title: item.title,
+    shortDescription: item.shortDescription ?? "",
+    detailText: item.detailText ?? "",
+    publishedAt: item.publishedAt ?? "",
+  });
+}
+
+function toAssignmentSummary(item) {
+  const practiceType = item.practiceType;
+  const fallbackTitle =
+    practiceType === PRACTICE_TYPES.CHORD_BOARD
+      ? "Akor çalışması"
+      : "Nota çalışması";
+
+  return Object.freeze({
+    assignmentId: item.assignmentId,
+    title:
+      typeof item.title === "string" && item.title.trim().length > 0
+        ? item.title
+        : fallbackTitle,
+    practiceType,
+    teacherNote:
+      typeof item.teacherNote === "string" ? item.teacherNote : "",
+    state: item.state,
+    assignedAt: item.assignedAt ?? "",
+  });
+}
+
 function withOfflinePracticeMetadata(viewModel, item) {
   if (item.offlineAvailability === undefined) {
     return viewModel;
@@ -87,11 +146,13 @@ function withOfflinePracticeMetadata(viewModel, item) {
 
 export function createStudentAppController({
   sharingService,
+  student08ReadService = null,
   initialSession = null,
   notationAdapter = null,
   playbackPort = null,
   syncCoordinator = null,
 }) {
+  const student08Enabled = student08ReadService !== null;
   let currentSyncState =
     syncCoordinator === null ? undefined : SYNC_STATES.IDLE;
 
@@ -127,6 +188,9 @@ export function createStudentAppController({
       items: state.items,
       practice: state.practice,
       syncState: currentSyncState,
+      student08: state.student08 === true,
+      poolDetail: state.poolDetail,
+      assignmentState: state.assignmentState,
       ...overrides,
     };
   }
@@ -136,6 +200,7 @@ export function createStudentAppController({
       screen: STUDENT_APP_SCREENS.HOME,
       session: requireSession(initialSession),
       syncState: currentSyncState,
+      student08: student08Enabled,
     });
   }
 
@@ -148,6 +213,39 @@ export function createStudentAppController({
       generation === sessionGeneration &&
       state.session?.studentId === session.studentId
     );
+  }
+
+  function activatePracticeItem({
+    item,
+    session,
+    requestGeneration,
+  }) {
+    if (!sessionRequestIsCurrent(session, requestGeneration)) {
+      return state;
+    }
+
+    const workspace = createPracticeWorkspace({
+      deliveryItem: item,
+      notationRuntimeAvailable:
+        notationAdapter?.isAvailable?.() === true,
+      playbackPort,
+    });
+
+    clearActivePractice();
+    activePracticeRenderSource = workspace.renderSource;
+    activePracticePackage = item.package;
+
+    state = freezeState({
+      screen: STUDENT_APP_SCREENS.PRACTICE,
+      session,
+      practice: withOfflinePracticeMetadata(
+        workspace.viewModel,
+        item,
+      ),
+      syncState: currentSyncState,
+      student08: student08Enabled,
+    });
+    return state;
   }
 
   function requirePracticeCapability(name) {
@@ -242,6 +340,7 @@ export function createStudentAppController({
         screen: STUDENT_APP_SCREENS.HOME,
         session: nextSession,
         syncState: currentSyncState,
+        student08: student08Enabled,
       });
       return state;
     },
@@ -254,6 +353,7 @@ export function createStudentAppController({
         screen: STUDENT_APP_SCREENS.HOME,
         session,
         syncState: currentSyncState,
+        student08: student08Enabled,
       });
       return state;
     },
@@ -261,7 +361,9 @@ export function createStudentAppController({
     showPublicPool() {
       const session = requireCurrentSession();
       const requestGeneration = sessionGeneration;
-      const result = sharingService.listPublicPool({ session });
+      const result = student08Enabled
+        ? student08ReadService.listPoolItems({ session })
+        : sharingService.listPublicPool({ session });
 
       return resolveMaybe(result, (items) => {
         if (!sessionRequestIsCurrent(session, requestGeneration)) {
@@ -272,17 +374,65 @@ export function createStudentAppController({
         state = freezeState({
           screen: STUDENT_APP_SCREENS.PUBLIC_POOL,
           session,
-          items: items.map(toWorkSummary),
+          items: student08Enabled
+            ? items.map(toPoolSummary)
+            : items.map(toWorkSummary),
           syncState: currentSyncState,
+          student08: student08Enabled,
         });
         return state;
       });
     },
 
-    showMyWork() {
+    openPoolItem(poolItemId) {
+      if (!student08Enabled) {
+        throw new Error("pool detail unavailable");
+      }
+
       const session = requireCurrentSession();
       const requestGeneration = sessionGeneration;
-      const result = sharingService.listMyWork({ session });
+      const result = student08ReadService.getPoolItem({
+        session,
+        poolItemId,
+      });
+
+      return resolveMaybe(result, (item) => {
+        if (!sessionRequestIsCurrent(session, requestGeneration)) {
+          return state;
+        }
+
+        clearActivePractice();
+        state = freezeState({
+          screen: STUDENT_APP_SCREENS.PUBLIC_POOL,
+          session,
+          items: state.items,
+          poolDetail: toPoolDetail(item),
+          syncState: currentSyncState,
+          student08: true,
+        });
+        return state;
+      });
+    },
+
+    showMyWork(
+      assignmentState = ASSIGNMENT_STATES.ACTIVE,
+    ) {
+      const session = requireCurrentSession();
+      const requestGeneration = sessionGeneration;
+
+      if (
+        student08Enabled &&
+        !Object.values(ASSIGNMENT_STATES).includes(assignmentState)
+      ) {
+        throw new TypeError("assignment state is invalid");
+      }
+
+      const result = student08Enabled
+        ? student08ReadService.listAssignments({
+            session,
+            state: assignmentState,
+          })
+        : sharingService.listMyWork({ session });
 
       return resolveMaybe(result, (items) => {
         if (!sessionRequestIsCurrent(session, requestGeneration)) {
@@ -293,8 +443,14 @@ export function createStudentAppController({
         state = freezeState({
           screen: STUDENT_APP_SCREENS.MY_WORK,
           session,
-          items: items.map(toWorkSummary),
+          items: student08Enabled
+            ? items.map(toAssignmentSummary)
+            : items.map(toWorkSummary),
           syncState: currentSyncState,
+          student08: student08Enabled,
+          assignmentState: student08Enabled
+            ? assignmentState
+            : undefined,
         });
         return state;
       });
@@ -308,32 +464,52 @@ export function createStudentAppController({
         publicationId,
       });
 
-      return resolveMaybe(result, (item) => {
+      return resolveMaybe(result, (item) =>
+        activatePracticeItem({
+          item,
+          session,
+          requestGeneration,
+        }),
+      );
+    },
+
+    openAssignment(assignmentId) {
+      if (!student08Enabled) {
+        throw new Error("assignment unavailable");
+      }
+
+      const session = requireCurrentSession();
+      const requestGeneration = sessionGeneration;
+      const assignmentResult = student08ReadService.getAssignment({
+        session,
+        assignmentId,
+      });
+
+      return resolveMaybe(assignmentResult, (assignment) => {
         if (!sessionRequestIsCurrent(session, requestGeneration)) {
           return state;
         }
 
-        const workspace = createPracticeWorkspace({
-          deliveryItem: item,
-          notationRuntimeAvailable:
-            notationAdapter?.isAvailable?.() === true,
-          playbackPort,
-        });
+        if (assignment.practiceType === PRACTICE_TYPES.CHORD_BOARD) {
+          throw new Error("chord board unavailable");
+        }
 
-        clearActivePractice();
-        activePracticeRenderSource = workspace.renderSource;
-        activePracticePackage = item.package;
+        if (assignment.practiceType !== PRACTICE_TYPES.SCORE) {
+          throw new Error("assignment type unavailable");
+        }
 
-        state = freezeState({
-          screen: STUDENT_APP_SCREENS.PRACTICE,
+        const itemResult = student08ReadService.getScorePracticeItem({
           session,
-          practice: withOfflinePracticeMetadata(
-            workspace.viewModel,
-            item,
-          ),
-          syncState: currentSyncState,
+          assignmentId,
         });
-        return state;
+
+        return resolveMaybe(itemResult, (item) =>
+          activatePracticeItem({
+            item,
+            session,
+            requestGeneration,
+          }),
+        );
       });
     },
 

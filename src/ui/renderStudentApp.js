@@ -1,3 +1,4 @@
+import { ASSIGNMENT_STATES, PRACTICE_TYPES } from "../contracts/privateAssignment.js";
 import { CONNECTIVITY_STATES } from "../offline/connectivityPort.js";
 import { STUDENT_APP_SCREENS } from "./studentAppController.js";
 import { escapeHtml } from "./escapeHtml.js";
@@ -72,6 +73,15 @@ function renderHome() {
   `;
 }
 
+function renderStudent08Home() {
+  return `
+    <section aria-labelledby="page-title">
+      <h1 id="page-title">Çalışmalar</h1>
+      <p>Havuzdan veya Benim Çalışmalarım bölümünden seçim yap.</p>
+    </section>
+  `;
+}
+
 function renderWorkList({ heading, items, emptyText }) {
   const content =
     items.length === 0
@@ -109,13 +119,165 @@ function renderWorkList({ heading, items, emptyText }) {
   `;
 }
 
-function renderPractice(practice) {
+function renderPool(state) {
+  const list =
+    state.items.length === 0
+      ? "<p>Havuzda henüz içerik yok.</p>"
+      : `
+        <ul class="pool-list">
+          ${state.items
+            .map(
+              (item) => `
+                <li>
+                  <button
+                    type="button"
+                    class="pool-card"
+                    data-action="open-pool-item"
+                    data-pool-item-id="${escapeHtml(item.poolItemId)}"
+                  >
+                    <strong>${escapeHtml(item.title)}</strong>
+                    ${
+                      item.shortDescription
+                        ? `<span>${escapeHtml(item.shortDescription)}</span>`
+                        : ""
+                    }
+                  </button>
+                </li>
+              `,
+            )
+            .join("")}
+        </ul>
+      `;
+
+  const detail =
+    state.poolDetail === undefined
+      ? ""
+      : `
+        <article class="pool-detail" aria-labelledby="pool-detail-title">
+          <h2 id="pool-detail-title">${escapeHtml(state.poolDetail.title)}</h2>
+          ${
+            state.poolDetail.detailText
+              ? `<p>${escapeHtml(state.poolDetail.detailText)}</p>`
+              : ""
+          }
+        </article>
+      `;
+
+  return `
+    <section aria-labelledby="page-title">
+      <h1 id="page-title">Havuz</h1>
+      ${list}
+      ${detail}
+    </section>
+  `;
+}
+
+function folderButton(state, value, label) {
+  const active = state.assignmentState === value;
+
+  return `
+    <button
+      type="button"
+      data-action="show-work-folder"
+      data-assignment-state="${value}"
+      aria-pressed="${active ? "true" : "false"}"
+    >${label}</button>
+  `;
+}
+
+function renderAssignmentItem(item) {
+  const note =
+    typeof item.teacherNote === "string" && item.teacherNote.length > 0
+      ? `<p class="teacher-note">${escapeHtml(item.teacherNote)}</p>`
+      : "";
+
+  if (item.practiceType === PRACTICE_TYPES.SCORE) {
+    return `
+      <li>
+        <article>
+          <h2>${escapeHtml(item.title)}</h2>
+          ${note}
+          <button
+            type="button"
+            data-action="open-assignment"
+            data-assignment-id="${escapeHtml(item.assignmentId)}"
+          >Çalışmayı Aç</button>
+        </article>
+      </li>
+    `;
+  }
+
+  return `
+    <li>
+      <article>
+        <h2>${escapeHtml(item.title)}</h2>
+        <p>Akor çalışması</p>
+        ${note}
+        <p>Bu akor çalışması henüz kullanıma hazır değil.</p>
+      </article>
+    </li>
+  `;
+}
+
+function renderMyWork(state) {
+  const items =
+    state.items.length === 0
+      ? "<p>Bu klasörde henüz çalışma yok.</p>"
+      : `<ul class="assignment-list">${state.items
+          .map(renderAssignmentItem)
+          .join("")}</ul>`;
+
+  return `
+    <section aria-labelledby="page-title">
+      <h1 id="page-title">Benim Çalışmalarım</h1>
+      <nav class="work-folders" aria-label="Çalışma klasörleri">
+        ${folderButton(
+          state,
+          ASSIGNMENT_STATES.ACTIVE,
+          "Aktif Çalışmalar",
+        )}
+        ${folderButton(
+          state,
+          ASSIGNMENT_STATES.COMPLETED,
+          "Bitmiş Çalışmalar",
+        )}
+        ${folderButton(
+          state,
+          ASSIGNMENT_STATES.REPERTOIRE,
+          "Repertuarım",
+        )}
+      </nav>
+      ${items}
+    </section>
+  `;
+}
+
+function renderPractice(practice, { showHomeAction = true } = {}) {
   const saveStatus =
     practice?.offlineSaveFailed === true
       ? '<p class="offline-save-status" role="status">Çevrimdışı kaydedilemedi.</p>'
       : "";
 
-  return `${saveStatus}${renderPracticeWorkspace(practice)}`;
+  return `${saveStatus}${renderPracticeWorkspace(practice, {
+    showHomeAction,
+  })}`;
+}
+
+function renderStudent08Shell(body) {
+  return `
+    <div class="student-shell">
+      <aside class="student-navigation">
+        <nav aria-label="Öğrenci menüsü">
+          <button type="button" data-action="show-public-pool">Havuz</button>
+          <button type="button" data-action="show-my-work">Benim Çalışmalarım</button>
+          <button type="button" data-action="sign-out">Çıkış</button>
+        </nav>
+      </aside>
+      <div class="student-content">
+        ${body}
+      </div>
+    </div>
+  `;
 }
 
 export function renderStudentApp(
@@ -128,32 +290,58 @@ export function renderStudentApp(
 ) {
   let body;
 
-  switch (state.screen) {
-    case STUDENT_APP_SCREENS.SIGN_IN:
-      body = renderSignIn({ signInAvailable });
-      break;
-    case STUDENT_APP_SCREENS.HOME:
-      body = renderHome();
-      break;
-    case STUDENT_APP_SCREENS.PUBLIC_POOL:
-      body = renderWorkList({
-        heading: "Havuz",
-        items: state.items,
-        emptyText: "Havuzda henüz çalışma yok.",
-      });
-      break;
-    case STUDENT_APP_SCREENS.MY_WORK:
-      body = renderWorkList({
-        heading: "Benim Çalışmalarım",
-        items: state.items,
-        emptyText: "Henüz atanmış çalışma yok.",
-      });
-      break;
-    case STUDENT_APP_SCREENS.PRACTICE:
-      body = renderPractice(state.practice);
-      break;
-    default:
-      throw new Error("unknown student app screen");
+  if (state.student08 === true) {
+    switch (state.screen) {
+      case STUDENT_APP_SCREENS.HOME:
+        body = renderStudent08Home();
+        break;
+      case STUDENT_APP_SCREENS.PUBLIC_POOL:
+        body = renderPool(state);
+        break;
+      case STUDENT_APP_SCREENS.MY_WORK:
+        body = renderMyWork(state);
+        break;
+      case STUDENT_APP_SCREENS.PRACTICE:
+        body = renderPractice(state.practice, { showHomeAction: false });
+        break;
+      case STUDENT_APP_SCREENS.SIGN_IN:
+        body = renderSignIn({ signInAvailable });
+        break;
+      default:
+        throw new Error("unknown student app screen");
+    }
+
+    if (state.screen !== STUDENT_APP_SCREENS.SIGN_IN) {
+      body = renderStudent08Shell(body);
+    }
+  } else {
+    switch (state.screen) {
+      case STUDENT_APP_SCREENS.SIGN_IN:
+        body = renderSignIn({ signInAvailable });
+        break;
+      case STUDENT_APP_SCREENS.HOME:
+        body = renderHome();
+        break;
+      case STUDENT_APP_SCREENS.PUBLIC_POOL:
+        body = renderWorkList({
+          heading: "Havuz",
+          items: state.items,
+          emptyText: "Havuzda henüz çalışma yok.",
+        });
+        break;
+      case STUDENT_APP_SCREENS.MY_WORK:
+        body = renderWorkList({
+          heading: "Benim Çalışmalarım",
+          items: state.items,
+          emptyText: "Henüz atanmış çalışma yok.",
+        });
+        break;
+      case STUDENT_APP_SCREENS.PRACTICE:
+        body = renderPractice(state.practice);
+        break;
+      default:
+        throw new Error("unknown student app screen");
+    }
   }
 
   return `<main class="student-app">${renderStatus(

@@ -119,15 +119,22 @@ function renderPlayback(practice) {
   `;
 }
 
-export function renderPracticeWorkspace(practice) {
+export function renderPracticeWorkspace(
+  practice,
+  { showHomeAction = true } = {},
+) {
   if (practice === null || typeof practice !== "object") {
     throw new TypeError("practice state is required");
   }
 
+  const homeAction = showHomeAction
+    ? '<button type="button" data-action="go-home">Ana Sayfa</button>'
+    : "";
+
   return `
     <section class="practice-workspace" aria-labelledby="page-title">
       <h1 id="page-title">${escapeHtml(practice.title ?? "Çalışma")}</h1>
-      <button type="button" data-action="go-home">Ana Sayfa</button>
+      ${homeAction}
       ${renderNotation(practice)}
       ${renderPlayback(practice)}
     </section>
