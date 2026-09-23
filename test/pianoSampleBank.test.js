@@ -284,3 +284,57 @@ test("dispose invalidates slow sample load completion", async () => {
   assert.equal(bank.isConfigured(), false);
   assert.throws(() => bank.resolveMidi(60), /piano sample bank unavailable/);
 });
+
+
+test("temporary manifest fetch failure retries after connectivity returns", async () => {
+  let online = false;
+  const bank = createPianoSampleBank({
+    fetchImpl: async (url) => {
+      if (!online) {
+        throw new TypeError("network offline");
+      }
+      assert.equal(url, "./vendor/st-piano/runtime-manifest.json");
+      return responseJson(makeRuntimeManifest());
+    },
+  });
+
+  assert.equal(await bank.initialize(), false);
+  assert.equal(bank.isConfigured(), false);
+
+  online = true;
+
+  assert.equal(await bank.initialize(), true);
+  assert.equal(bank.isConfigured(), true);
+});
+
+test("temporary sample fetch failure does not permanently poison the bank", async () => {
+  let online = false;
+  const bank = createPianoSampleBank({
+    fetchImpl: async (url) => {
+      if (url.endsWith("runtime-manifest.json")) {
+        return responseJson(makeRuntimeManifest());
+      }
+      if (!online) {
+        throw new TypeError("network offline");
+      }
+      return responseArrayBuffer(1);
+    },
+  });
+  const context = {
+    async decodeAudioData(buffer) {
+      return { bytes: buffer.byteLength };
+    },
+  };
+
+  assert.equal(await bank.initialize(), true);
+  await assert.rejects(
+    () => bank.load(context),
+    /piano sample load failed/,
+  );
+  assert.equal(bank.isConfigured(), true);
+
+  online = true;
+
+  await bank.load(context);
+  assert.equal(bank.resolveMidi(60).referenceMidi, 60);
+});
