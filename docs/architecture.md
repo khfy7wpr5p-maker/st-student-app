@@ -412,8 +412,10 @@ Cross-student cache okumaları fail-closed davranır.
 
 ### Sürüm ve revocation davranışı
 
-Offline cache kimliği `studentId + publicationId + packageId` bileşimidir.
+Offline cache kimliği `studentId + access identity + packageId` bileşimidir.
 
+- `PUBLICATION` erişiminde access identity `publicationId` değeridir.
+- `SECURE_DELIVERY` erişiminde access identity exact `deliveryId` değeridir.
 - Yeni approved `packageId`, eski immutable snapshot'ı overwrite etmez.
 - Aynı publication'ın birden fazla immutable package sürümü cihazda korunabilir.
 - Offline list/open yüzeyi yalnız en yeni ACTIVE cached sürümü sunar.
@@ -468,3 +470,137 @@ Runtime yalnız notation presentation authority'sine sahiptir. Student App:
 - private Practice Package'ı IndexedDB dışına taşımaz.
 
 STUDENT-07A playback authority eklemez. Playback, tempo ve measure-repeat için güvenilir timing/playback port keşfi ayrı STUDENT-07B kapsamındadır.
+
+
+## 15. STUDENT-08 — Secure Delivery CHORD_BOARD Consumer
+
+STUDENT-08 Secure Delivery consumer'ı iki öğrenci çalışma tipini strict discriminator ile ayırır:
+
+```text
+Secure Delivery assignment
+  -> practiceType = SCORE
+       -> mevcut SCORE Practice
+       -> MusicXML / notation / playback sınırı
+  -> practiceType = CHORD_BOARD
+       -> dedicated CHORD_BOARD workspace
+       -> exact immutable gitar akoru snapshot'ı
+```
+
+CHORD_BOARD, SCORE Practice Workspace'e veya MusicXML'e dönüştürülmez.
+
+### Secure Delivery package sınırı
+
+Secure Delivery assignment row artık yalnız şu iki tipi kabul eder:
+
+- `SCORE`: mevcut `StudentPracticePackageV1` sözleşmesi değişmeden doğrulanır.
+- `CHORD_BOARD`: `StudentChordBoardPackageV1` strict sözleşmesiyle doğrulanır ve restore edilir.
+
+CHORD_BOARD paketinde:
+
+- `schemaVersion === "1.0.0"`;
+- `packageType === "CHORD_BOARD"`;
+- `packageId === assignmentAuthority.assignmentId`;
+- `assignmentAuthority.state === "teacher_assigned"`;
+- `publication.scope === "student_private"`;
+- assignment row ile package assignment/teacher-note authority eşleşir;
+- unknown field, mixed SCORE/CHORD_BOARD payload, identity mismatch ve malformed voicing fail-closed olur.
+
+SCORE package'ına `packageType` alanı eklenmez. Yanlış discriminator ile bir package diğer tipe fallback etmez.
+
+### Exact akor otoritesi
+
+CHORD_BOARD müzikal otoritesi `content.chordBoard` içindeki immutable snapshot'tır.
+
+Snapshot:
+
+- altıncı telden birinci tele doğru altı exact fret/finger değeri taşır;
+- fret `-1` kapalı, `0` açık, `1..20` basılı tel anlamına gelir;
+- finger `-1` kapalı, `0` açık, `1..4` sol el parmağı anlamına gelir;
+- bare `finger/fret/fromString/toString` geometrisini exact korur;
+- symbol, catalog order veya voicing index üzerinden yeni pozisyon türetmez.
+
+Student UI provenance ve fingerprint internallerini göstermez.
+
+### Student08 read/controller ayrımı
+
+Online read service iki ayrı method kullanır:
+
+- `getScorePracticeItem({ session, assignmentId })`
+- `getChordBoardPracticeItem({ session, assignmentId })`
+
+Her iki envelope explicit `practiceType` taşır. SCORE methodu CHORD_BOARD'u; CHORD_BOARD methodu SCORE'u fail-closed reddeder.
+
+Controller:
+
+- SCORE assignment'ı mevcut `PRACTICE` ekranına açar;
+- CHORD_BOARD assignment'ı ayrı `CHORD_BOARD` ekranına açar;
+- CHORD_BOARD açılırken notation runtime, MusicXML parser veya SCORE playback ownership başlatmaz;
+- session-generation kontrolüyle önceki öğrenci oturumundan geç gelen async sonucu yok sayar;
+- renderer state'e raw package yerine yalnız student-safe chord view model taşır.
+
+### Öğrenci CHORD_BOARD workspace
+
+My Work içindeki desteklenen CHORD_BOARD kartı mevcut `open-assignment` read/navigation action'ıyla açılır.
+
+Dedicated workspace salt-okunurdur ve:
+
+- akor sembolü/başlığı;
+- altı telin exact muted/open/fretted durumu;
+- exact fret ve finger numarası;
+- exact bare geometrisi;
+- öğretmen notu;
+- bounded offline availability
+
+gösterir.
+
+Visual chord diagram `aria-hidden` sunum katmanıdır. Ayrı semantic listede her tel VoiceOver için metinle ifade edilir; bare bilgisi de finger/fret/string aralığıyla metinsel olarak sunulur. SCORE `#st-score-root`, tempo, measure-repeat ve playback kontrolleri bu workspace'e girmez.
+
+### Offline ve revocation
+
+SCORE ve CHORD_BOARD Secure Delivery package'ları aynı authorized IndexedDB repository'yi kullanır; ayrı CHORD_BOARD database/store oluşturulmaz.
+
+Yeni Secure Delivery offline kayıtları explicit `practiceType` taşır. Record kimliği değişmez:
+
+```text
+studentId + SECURE_DELIVERY:deliveryId + packageId
+```
+
+Kurallar:
+
+- online read sonrası authorized package best-effort cache edilir;
+- cache yazım hatası yetkili online açılışı engellemez;
+- offline reopen yalnız aynı authenticated local `studentId` + exact accessRef + ACTIVE kayıt ile mümkündür;
+- SCORE cache CHORD_BOARD read'i, CHORD_BOARD cache SCORE read'i karşılayamaz;
+- eski persisted Secure Delivery SCORE kaydı `practiceType` taşımıyorsa yalnız package'ın legacy SCORE sözleşmesine uyduğu durumda SCORE olarak restore edilir;
+- CHORD_BOARD tipi symbol/content tahminiyle infer edilmez;
+- exact 404/NOT_FOUND mevcut Secure Delivery status sözleşmesinde REVOKED olur;
+- transient provider failure revocation kanıtı değildir.
+
+IndexedDB store adı ve primary key formatı bu entegrasyonda değiştirilmez.
+
+Private SCORE/CHORD_BOARD package payload'ları Service Worker Cache Storage'a girmez. Service Worker yalnız static application shell/runtime asset'lerini cache'ler.
+
+### Güvenlik sınırı
+
+Student App assignment/lifecycle için salt-okunurdur.
+
+UI veya public controller state'e şunlar taşınmaz:
+
+- Firebase ID token / provider UID;
+- teacher ID veya recipient list;
+- Firestore path/evidence ID;
+- package provenance repository/commit/catalog fingerprint;
+- voicing fingerprint;
+- backend stack trace veya raw provider detail.
+
+Authorization request/body student ID'den değil authenticated server response + mevcut local session'dan gelir. Cross-student cache erişimi fail-closed davranır.
+
+### Bu aşamanın eklemediği davranışlar
+
+STUDENT-08 CHORD_BOARD consumer:
+
+- öğretmen editörü veya lifecycle write authority eklemez;
+- chord selection/editing eklemez;
+- yeni chord audio/playback eklemez;
+- SesliTab producer veya `st-guitar-chord-board` repository'sine runtime dependency eklemez;
+- production Firebase credential/rules/index/deployment değişikliği yapmaz.
