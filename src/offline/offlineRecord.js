@@ -2,6 +2,9 @@ import {
   PRACTICE_PACKAGE_SCOPES,
 } from "../contracts/practicePackage.js";
 import {
+  restoreSecureDeliveryPackage,
+} from "../contracts/secureDeliveryPackage.js";
+import {
   createPracticeAccessRef,
   practiceAccessKey,
 } from "../practice/practiceAccessRef.js";
@@ -68,11 +71,15 @@ function normalizePracticeItem({
       );
     }
 
-    assertPublishablePracticePackage(
-      practiceItem.package,
-    );
+    const pkg =
+      restoreSecureDeliveryPackage({
+        practiceType:
+          practiceItem.practiceType,
+        package: practiceItem.package,
+      });
+
     if (
-      practiceItem.package.publication.scope !==
+      pkg.publication.scope !==
       PRACTICE_PACKAGE_SCOPES.STUDENT_PRIVATE
     ) {
       throw new Error(
@@ -83,7 +90,9 @@ function normalizePracticeItem({
     return {
       accessRef,
       publication: null,
-      package: practiceItem.package,
+      practiceType:
+        practiceItem.practiceType,
+      package: pkg,
     };
   }
 
@@ -99,6 +108,7 @@ function normalizePracticeItem({
         normalized.publication.publicationId,
     }),
     publication: normalized.publication,
+    practiceType: null,
     package: normalized.package,
   };
 }
@@ -156,6 +166,14 @@ export function createOfflineRecord({
     lastVerifiedAt,
     accessState,
   };
+
+  if (
+    normalized.accessRef.kind ===
+    "SECURE_DELIVERY"
+  ) {
+    base.practiceType =
+      normalized.practiceType;
+  }
 
   if (
     normalized.accessRef.kind === "PUBLICATION"
