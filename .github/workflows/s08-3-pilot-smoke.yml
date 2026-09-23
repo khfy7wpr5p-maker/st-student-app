@@ -2,6 +2,16 @@ name: S08-3 Pilot Smoke
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - pilot/student-08-s08-3-device-acceptance
+    paths:
+      - ".github/workflows/s08-3-pilot-smoke.yml"
+      - "scripts/assemble-s08-3-pilot-preview.mjs"
+      - "service-worker.js"
+      - "src/**"
+      - "vendor/**"
+      - "index.html"
 
 permissions:
   contents: read
@@ -58,8 +68,19 @@ jobs:
       - name: Verify deployed Student preview exact head and script order
         run: |
           set -euo pipefail
-          curl -sS --fail-with-body             https://st-student-s08-3-pilot.onrender.com/pilot-head.txt             -o /tmp/pilot-head.txt
-          test "$(tr -d '\r\n' < /tmp/pilot-head.txt)" = "$GITHUB_SHA"
+          matched=0
+          for attempt in $(seq 1 36); do
+            if curl -sS --fail-with-body               https://st-student-s08-3-pilot.onrender.com/pilot-head.txt               -o /tmp/pilot-head.txt; then
+              deployed="$(tr -d '\r\n' < /tmp/pilot-head.txt)"
+              echo "attempt=$attempt deployed=$deployed expected=$GITHUB_SHA"
+              if [ "$deployed" = "$GITHUB_SHA" ]; then
+                matched=1
+                break
+              fi
+            fi
+            sleep 5
+          done
+          test "$matched" = "1"
 
           curl -sS --fail-with-body             https://st-student-s08-3-pilot.onrender.com/             -o /tmp/index.html
           runtime_line="$(grep -n 'runtime-config.js' /tmp/index.html | head -1 | cut -d: -f1)"
