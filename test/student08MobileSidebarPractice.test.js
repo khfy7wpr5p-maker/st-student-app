@@ -96,7 +96,7 @@ test("mobile Practice gives the notation workspace more width than the ordinary 
 
   assert.match(
     html,
-    /@media\s*\(max-width:\s*640px\)[\s\S]*?\.student-shell-practice\s*\{[^}]*grid-template-columns:\s*minmax\(4\.75rem,\s*20%\)\s+minmax\(0,\s*1fr\)/s,
+    /@media\s*\(max-width:\s*640px\)[\s\S]*?\.student-shell-practice\s*\{[^}]*grid-template-columns:\s*4\.5rem\s+minmax\(0,\s*1fr\)/s,
   );
   assert.match(
     html,
@@ -149,6 +149,6 @@ test("mobile Practice rail hides visible labels and centers icon controls", asyn
   );
   assert.match(
     html,
-    /\.student-shell-practice \.student-navigation button\[data-action="sign-out"\]::before\s*\{[^}]*content:\s*"↪"/s,
+    /\.student-shell-practice\s+\.student-navigation\s+button\[data-action="sign-out"\]::before\s*\{[^}]*content:\s*"↪"/s,
   );
 });
