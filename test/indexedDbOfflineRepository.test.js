@@ -4,6 +4,7 @@ import { indexedDB } from "fake-indexeddb";
 
 import { createIndexedDbOfflineRepository } from "../src/offline/indexedDbOfflineRepository.js";
 import {
+  makeApprovedPracticePackage,
   makeDelivery,
   makePrivateDelivery,
   makePutArgs,
@@ -185,4 +186,173 @@ test("IndexedDB exact package verification refreshes only the matching immutable
 
   assert.equal(oldRecord.lastVerifiedAt, "2026-09-21T12:00:00Z");
   assert.equal(newRecord.lastVerifiedAt, "2026-09-21T15:00:00Z");
+});
+
+
+function makeSecurePractice(
+  deliveryId = "assignment-a",
+  packageId = "pkg-secure",
+) {
+  return {
+    accessRef: {
+      kind: "SECURE_DELIVERY",
+      deliveryId,
+    },
+    package: makeApprovedPracticePackage({
+      packageId,
+      scope: "student_private",
+      recipientStudentId: "server-student-a",
+    }),
+  };
+}
+
+async function seedLegacyV1Database(name) {
+  const delivery = makeDelivery(
+    "pub-legacy",
+    "pkg-legacy",
+  );
+  const request = indexedDB.open(name, 1);
+
+  const db = await new Promise(
+    (resolve, reject) => {
+      request.onupgradeneeded = () => {
+        const created =
+          request.result.createObjectStore(
+            "practicePackages",
+            {
+              keyPath: "cacheKey",
+            },
+          );
+        created.createIndex(
+          "byStudent",
+          "studentId",
+          { unique: false },
+        );
+        created.createIndex(
+          "byStudentScope",
+          "studentScopeKey",
+          { unique: false },
+        );
+        created.createIndex(
+          "byStudentPublication",
+          "studentPublicationKey",
+          { unique: false },
+        );
+      };
+      request.onsuccess = () =>
+        resolve(request.result);
+      request.onerror = () =>
+        reject(request.error);
+    },
+  );
+
+  const tx = db.transaction(
+    "practicePackages",
+    "readwrite",
+  );
+  tx.objectStore("practicePackages").put({
+    studentId: "student-a",
+    publicationId: "pub-legacy",
+    packageId: "pkg-legacy",
+    scope: "public_pool",
+    publication: delivery.publication,
+    package: delivery.package,
+    cachedAt: "2026-09-21T12:00:00Z",
+    lastVerifiedAt:
+      "2026-09-21T12:00:00Z",
+    accessState: "ACTIVE",
+    cacheKey:
+      "student-a\u0000pub-legacy\u0000pkg-legacy",
+    studentScopeKey:
+      "student-a\u0000public_pool",
+    studentPublicationKey:
+      "student-a\u0000pub-legacy",
+  });
+
+  await new Promise((resolve, reject) => {
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+
+  db.close();
+}
+
+test("IndexedDB persists Secure Delivery accessRef without cross-account leakage", async () => {
+  const name = dbName("secure-delivery");
+  const first =
+    createIndexedDbOfflineRepository({
+      indexedDB,
+      dbName: name,
+    });
+
+  await first.putAuthorized({
+    studentId: "firebase-uid-a",
+    practiceItem: makeSecurePractice(),
+    cachedAt: "2026-09-23T11:00:00Z",
+    lastVerifiedAt:
+      "2026-09-23T11:00:00Z",
+  });
+
+  const reopened =
+    createIndexedDbOfflineRepository({
+      indexedDB,
+      dbName: name,
+    });
+
+  const cached =
+    await reopened.getActiveByAccessRef({
+      studentId: "firebase-uid-a",
+      accessRef: {
+        kind: "SECURE_DELIVERY",
+        deliveryId: "assignment-a",
+      },
+    });
+
+  assert.equal(cached.packageId, "pkg-secure");
+  assert.deepEqual(cached.accessRef, {
+    kind: "SECURE_DELIVERY",
+    deliveryId: "assignment-a",
+  });
+  assert.equal(
+    await reopened.getActiveByAccessRef({
+      studentId: "firebase-uid-b",
+      accessRef: cached.accessRef,
+    }),
+    null,
+  );
+});
+
+test("IndexedDB v1 publication cache migrates additively to PUBLICATION accessRef", async () => {
+  const name = dbName("v1-migration");
+  await seedLegacyV1Database(name);
+
+  const reopened =
+    createIndexedDbOfflineRepository({
+      indexedDB,
+      dbName: name,
+    });
+
+  const legacy =
+    await reopened.getActiveByPublicationId({
+      studentId: "student-a",
+      publicationId: "pub-legacy",
+    });
+
+  assert.equal(legacy.packageId, "pkg-legacy");
+  assert.deepEqual(legacy.accessRef, {
+    kind: "PUBLICATION",
+    publicationId: "pub-legacy",
+  });
+
+  const generic =
+    await reopened.getActiveByAccessRef({
+      studentId: "student-a",
+      accessRef: {
+        kind: "PUBLICATION",
+        publicationId: "pub-legacy",
+      },
+    });
+
+  assert.equal(generic.packageId, "pkg-legacy");
 });
