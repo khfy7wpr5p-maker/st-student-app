@@ -102,3 +102,82 @@ test("Secure Delivery client rejects malformed success payload", async () => {
     /Secure Delivery request failed/,
   );
 });
+
+
+test("Secure Delivery client bounds token-provider exceptions", async () => {
+  const client = createSecureDeliveryApiClient({
+    baseUrl:
+      "https://student-api.example.test/api/secure-delivery/v1",
+    getIdToken: async () => {
+      throw new Error(
+        "provider-internal-secret-token-diagnostic",
+      );
+    },
+    fetchImpl: async () => {
+      throw new Error("must not run");
+    },
+  });
+
+  await assert.rejects(
+    () => client.listStudentPool(),
+    (error) => {
+      assert.equal(
+        error instanceof SecureDeliveryApiError,
+        true,
+      );
+      assert.equal(
+        error.code,
+        "UNAUTHENTICATED",
+      );
+      assert.equal(
+        error.message,
+        "Secure Delivery authentication unavailable",
+      );
+      assert.doesNotMatch(
+        JSON.stringify(error),
+        /provider-internal-secret-token-diagnostic/,
+      );
+      return true;
+    },
+  );
+});
+
+test("Secure Delivery client bounds fetch exceptions", async () => {
+  const client = createSecureDeliveryApiClient({
+    baseUrl:
+      "https://student-api.example.test/api/secure-delivery/v1",
+    getIdToken: async () => "fresh-token",
+    fetchImpl: async () => {
+      throw new Error(
+        "provider-network-secret-diagnostic",
+      );
+    },
+  });
+
+  await assert.rejects(
+    () => client.listStudentAssignments(),
+    (error) => {
+      assert.equal(
+        error instanceof SecureDeliveryApiError,
+        true,
+      );
+      assert.equal(
+        error.status,
+        0,
+      );
+      assert.equal(
+        error.code,
+        "SECURE_DELIVERY_UNAVAILABLE",
+      );
+      assert.equal(
+        error.message,
+        "Secure Delivery request failed",
+      );
+      assert.doesNotMatch(
+        JSON.stringify(error),
+        /provider-network-secret-diagnostic|fresh-token/,
+      );
+      return true;
+    },
+  );
+});
