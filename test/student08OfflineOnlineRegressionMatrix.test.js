@@ -69,6 +69,7 @@ function practiceItem(
       kind: "SECURE_DELIVERY",
       deliveryId: assignmentId,
     }),
+    practiceType: "SCORE",
     package: makeApprovedPracticePackage({
       packageId: "pkg-a",
       scope: "student_private",
@@ -113,6 +114,9 @@ test("S08-4B offline matrix: warm ONLINE cache keeps My Work SCORE readable OFFL
           return practiceItem(
             assignmentId,
           );
+        },
+        async getChordBoardPracticeItem() {
+          throw new Error("unused");
         },
       },
       offlineRepository,
@@ -217,6 +221,8 @@ test("S08-4B offline matrix: cold OFFLINE stays bounded and never invents Pool o
           onlineMustNotRun,
         getScorePracticeItem:
           onlineMustNotRun,
+        getChordBoardPracticeItem:
+          onlineMustNotRun,
       },
       offlineRepository:
         createInMemoryOfflineRepository(),
@@ -277,6 +283,9 @@ test("S08-4B offline matrix: online cache-save failure never blocks SCORE openin
           return practiceItem(
             assignmentId,
           );
+        },
+        async getChordBoardPracticeItem() {
+          throw new Error("unused");
         },
       },
       offlineRepository: {
