@@ -68,6 +68,9 @@ function renderAccessibilityDescription(
 
 export function renderChordBoardWorkspace(
   viewModel,
+  {
+    showTeacherNote = true,
+  } = {},
 ) {
   if (
     viewModel === null ||
@@ -79,6 +82,7 @@ export function renderChordBoardWorkspace(
   }
 
   const teacherNote =
+    showTeacherNote &&
     typeof viewModel.teacherNote ===
       "string" &&
     viewModel.teacherNote.length > 0
