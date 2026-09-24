@@ -21,6 +21,33 @@ const isRecord = (value) =>
 
 const hasText = (value) => typeof value === "string" && value.trim().length > 0;
 
+function validateMusicXmlPayload(value, label, errors) {
+  if (!isRecord(value)) {
+    errors.push(`${label} must be an object`);
+    return false;
+  }
+
+  const keys = Object.keys(value);
+  for (const key of keys) {
+    if (key !== "format" && key !== "data") {
+      errors.push(`unsupported ${label} field: ${key}`);
+    }
+  }
+
+  if (value.format !== "musicxml") {
+    errors.push(`${label}.format must be musicxml`);
+  }
+  if (!hasText(value.data)) {
+    errors.push(`${label}.data must be a non-empty string`);
+  }
+
+  return (
+    keys.every((key) => key === "format" || key === "data") &&
+    value.format === "musicxml" &&
+    hasText(value.data)
+  );
+}
+
 export function validatePracticePackage(value) {
   const errors = [];
 
@@ -94,15 +121,21 @@ export function validatePracticePackage(value) {
   if (!isRecord(content)) {
     errors.push("content must be an object");
   } else {
-    if (!isRecord(content.score)) {
-      errors.push("content.score must be an object");
-    } else {
-      if (content.score.format !== "musicxml") {
-        errors.push("content.score.format must be musicxml");
-      }
-      if (!hasText(content.score.data)) {
-        errors.push("content.score.data must be a non-empty string");
-      }
+    validateMusicXmlPayload(
+      content.score,
+      "content.score",
+      errors,
+    );
+
+    if (
+      content.guitarTab !== undefined &&
+      content.guitarTab !== null
+    ) {
+      validateMusicXmlPayload(
+        content.guitarTab,
+        "content.guitarTab",
+        errors,
+      );
     }
 
     if (!Array.isArray(content.canonicalEvents)) {
