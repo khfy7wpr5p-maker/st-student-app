@@ -28,9 +28,46 @@ jobs:
           git diff --exit-code -- vendor/st-piano
       - name: Check whitespace
         run: git diff --check
+
+  renderer-runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      RENDERER_SHA: 387fa014ef751b7e4c717b50ffac762c71e67fa8
+    steps:
+      - name: Checkout Rendering Layer at approved revision
+        uses: actions/checkout@v5
+        with:
+          repository: khfy7wpr5p-maker/st-score-rendering-layer
+          ref: ${{ env.RENDERER_SHA }}
+          path: renderer
+      - name: Use Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+      - name: Build approved renderer
+        working-directory: renderer
+        run: npm install && npm run build
+      - name: Export browser runtime
+        working-directory: renderer
+        env:
+          ST_SCORE_RENDERER_SOURCE_REVISION: ${{ env.RENDERER_SHA }}
+        run: node scripts/export-browser-runtime.mjs browser-runtime
+      - name: Verify exported provenance
+        working-directory: renderer
+        run: |
+          node -e 'const m=require("./browser-runtime/runtime-manifest.json"); if(m.runtimeTarget!=="browser" || m.rendererSourceRevision!==process.env.RENDERER_SHA || m.scoreRendererContractVersion!=="0.2.0") process.exit(1)'
+      - name: Upload approved browser runtime
+        uses: actions/upload-artifact@v4
+        with:
+          name: ses6-browser-runtime
+          path: renderer/browser-runtime
+          if-no-files-found: error
+
   tab-browser:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    needs: renderer-runtime
     strategy:
       fail-fast: false
       matrix:
@@ -44,6 +81,16 @@ jobs:
           node-version: "24"
       - name: Install dependencies
         run: npm ci --ignore-scripts
+      - name: Download approved browser runtime
+        uses: actions/download-artifact@v5
+        with:
+          name: ses6-browser-runtime
+          path: vendor/st-score-runtime
+      - name: Verify runtime provenance
+        env:
+          RENDERER_SHA: 387fa014ef751b7e4c717b50ffac762c71e67fa8
+        run: |
+          node -e 'const m=require("./vendor/st-score-runtime/runtime-manifest.json"); if(m.runtimeTarget!=="browser" || m.rendererSourceRevision!==process.env.RENDERER_SHA || m.scoreRendererContractVersion!=="0.2.0") process.exit(1)'
       - name: Install browser
         run: npx playwright install --with-deps ${{ matrix.browser }}
       - name: Render pilot TAB at iPhone viewport
