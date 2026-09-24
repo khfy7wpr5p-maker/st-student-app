@@ -52,8 +52,12 @@ function freezeState({
     items: Object.freeze([...items]),
     practice,
     chordBoard,
-    pieceWorkspace,
   };
+
+  if (pieceWorkspace !== null) {
+    value.pieceWorkspace =
+      pieceWorkspace;
+  }
 
   if (returnContext !== undefined) {
     value.returnContext = returnContext;
