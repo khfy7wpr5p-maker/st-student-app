@@ -1,5 +1,6 @@
 export const PIECE_WORKSPACE_VIEWS = Object.freeze({
   SCORE: "SCORE",
+  TAB: "TAB",
   CHORDS: "CHORDS",
 });
 
@@ -55,6 +56,9 @@ export function createPieceWorkspaceViewModel({
   ]);
   const scoreAvailable =
     scorePractice !== null;
+  const tabAvailable =
+    scorePractice?.capabilities?.guitarTab ===
+    "AVAILABLE";
   const chordsAvailable =
     chords.length > 0;
 
@@ -86,6 +90,7 @@ export function createPieceWorkspaceViewModel({
         : null,
     availableViews: Object.freeze({
       score: scoreAvailable,
+      tab: tabAvailable,
       chords: chordsAvailable,
     }),
     returnContext:
@@ -126,7 +131,9 @@ export function withPieceSelectedView(
   const available =
     view === PIECE_WORKSPACE_VIEWS.SCORE
       ? workspace.availableViews.score
-      : workspace.availableViews.chords;
+      : view === PIECE_WORKSPACE_VIEWS.TAB
+        ? workspace.availableViews.tab
+        : workspace.availableViews.chords;
 
   if (!available) {
     throw new Error(

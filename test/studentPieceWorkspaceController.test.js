@@ -203,6 +203,7 @@ test("Piece opens one workspace with SCORE default and return context", async ()
     state.pieceWorkspace.availableViews,
     {
       score: true,
+      tab: false,
       chords: true,
     },
   );
@@ -431,5 +432,77 @@ test("My Work groups Piece children under one Piece summary while preserving leg
           "assignment-chord-a",
     ),
     false,
+  );
+});
+
+
+test("Piece TAB view uses the exact package TAB MusicXML and preserves playback ownership", async () => {
+  const tabXml = "<score-partwise>TAB EXACT</score-partwise>";
+  const packageWithTab = makeApprovedPracticePackage({
+    packageId: "pkg-score-a",
+    scope: "student_private",
+    recipientStudentId: "server-student-a",
+    guitarTabMusicXml: tabXml,
+  });
+  const score = Object.freeze({
+    accessRef: Object.freeze({
+      kind: "SECURE_DELIVERY",
+      deliveryId: "assignment-score-a",
+    }),
+    practiceType: "SCORE",
+    package: packageWithTab,
+  });
+  const { service } = makeService({ score });
+  const pauses = [];
+
+  const controller = createStudentAppController({
+    sharingService: legacySharing(),
+    student08ReadService: service,
+    initialSession: studentA,
+    notationAdapter: {
+      isAvailable: () => true,
+    },
+    playbackPort: {
+      canPlayPackage: () => true,
+      playPackage() {},
+      pausePackage(pkg) {
+        pauses.push(pkg.packageId);
+      },
+      restartPackage() {},
+      canChangeTempoForPackage: () => false,
+      canRepeatMeasureForPackage: () => false,
+      disposePackage() {},
+    },
+  });
+
+  await controller.openPiece("piece-a");
+  assert.deepEqual(
+    controller.getState().pieceWorkspace.availableViews,
+    { score: true, tab: true, chords: true },
+  );
+  assert.equal(
+    controller.getPracticeRenderSource().sourceId,
+    "pkg-score-a",
+  );
+
+  controller.selectPieceView("TAB");
+  assert.equal(
+    controller.getPracticeRenderSource().musicXml,
+    tabXml,
+  );
+  assert.equal(
+    controller.getPracticeRenderSource().sourceId,
+    "pkg-score-a:guitar-tab",
+  );
+  assert.deepEqual(pauses, []);
+
+  controller.selectPieceView("CHORDS");
+  assert.equal(controller.getPracticeRenderSource(), null);
+  assert.deepEqual(pauses, ["pkg-score-a"]);
+
+  controller.selectPieceView("TAB");
+  assert.equal(
+    controller.getPracticeRenderSource().sourceId,
+    "pkg-score-a:guitar-tab",
   );
 });

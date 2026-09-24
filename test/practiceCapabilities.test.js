@@ -104,3 +104,35 @@ test("missing control methods keep advertised playback capabilities unavailable"
   assert.equal(result.tempoChange, PRACTICE_CAPABILITY_STATES.UNAVAILABLE);
   assert.equal(result.measureRepeat, PRACTICE_CAPABILITY_STATES.UNAVAILABLE);
 });
+
+
+test("validated guitar TAB MusicXML enables TAB only when notation runtime is available", () => {
+  const tabPackage = {
+    ...pkg,
+    content: {
+      ...pkg.content,
+      guitarTab: {
+        format: "musicxml",
+        data: "<score-partwise><part-list/></score-partwise>",
+      },
+    },
+  };
+
+  assert.equal(
+    derivePracticeCapabilities({
+      pkg: tabPackage,
+      notationRuntimeAvailable: true,
+      playbackPort: null,
+    }).guitarTab,
+    PRACTICE_CAPABILITY_STATES.AVAILABLE,
+  );
+
+  assert.equal(
+    derivePracticeCapabilities({
+      pkg: tabPackage,
+      notationRuntimeAvailable: false,
+      playbackPort: null,
+    }).guitarTab,
+    PRACTICE_CAPABILITY_STATES.UNAVAILABLE,
+  );
+});

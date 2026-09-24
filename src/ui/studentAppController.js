@@ -208,12 +208,14 @@ export function createStudentAppController({
 
   let state = emptyState();
   let activePracticeRenderSource = null;
+  let activePracticeTabRenderSource = null;
   let activePracticePackage = null;
   let sessionGeneration = 0;
 
   function clearActivePractice() {
     const previous = activePracticePackage;
     activePracticeRenderSource = null;
+    activePracticeTabRenderSource = null;
     activePracticePackage = null;
 
     if (previous !== null) {
@@ -318,12 +320,16 @@ export function createStudentAppController({
     );
   }
 
-  function pieceScoreIsSelected() {
+  function piecePracticeIsSelected() {
     return (
       state.screen ===
         STUDENT_APP_SCREENS.PIECE_WORKSPACE &&
-      state.pieceWorkspace?.selectedView ===
-        PIECE_WORKSPACE_VIEWS.SCORE
+      (
+        state.pieceWorkspace?.selectedView ===
+          PIECE_WORKSPACE_VIEWS.SCORE ||
+        state.pieceWorkspace?.selectedView ===
+          PIECE_WORKSPACE_VIEWS.TAB
+      )
     );
   }
 
@@ -345,6 +351,8 @@ export function createStudentAppController({
 
     clearActivePractice();
     activePracticeRenderSource = workspace.renderSource;
+    activePracticeTabRenderSource =
+      workspace.tabRenderSource;
     activePracticePackage = item.package;
 
     state = freezeState({
@@ -392,7 +400,7 @@ export function createStudentAppController({
       (
         state.screen ===
           STUDENT_APP_SCREENS.PIECE_WORKSPACE &&
-        !pieceScoreIsSelected()
+        !piecePracticeIsSelected()
       ) ||
       practice.capabilities?.[name] !==
         PRACTICE_CAPABILITY_STATES.AVAILABLE
@@ -456,14 +464,33 @@ export function createStudentAppController({
     },
 
     getPracticeRenderSource() {
-      return (
+      if (
         state.screen ===
-          STUDENT_APP_SCREENS.PRACTICE ||
+          STUDENT_APP_SCREENS.PRACTICE
+      ) {
+        return activePracticeRenderSource;
+      }
+
+      if (
         state.screen ===
           STUDENT_APP_SCREENS.PIECE_WORKSPACE
-      )
-        ? activePracticeRenderSource
-        : null;
+      ) {
+        if (
+          state.pieceWorkspace?.selectedView ===
+            PIECE_WORKSPACE_VIEWS.TAB
+        ) {
+          return activePracticeTabRenderSource;
+        }
+
+        if (
+          state.pieceWorkspace?.selectedView ===
+            PIECE_WORKSPACE_VIEWS.SCORE
+        ) {
+          return activePracticeRenderSource;
+        }
+      }
+
+      return null;
     },
 
     disposeActivePractice() {
@@ -815,6 +842,7 @@ export function createStudentAppController({
 
       let scorePractice = null;
       let scoreRenderSource = null;
+      let tabRenderSource = null;
       let scorePackage = null;
       let chordItems = [];
 
@@ -855,10 +883,13 @@ export function createStudentAppController({
             );
           scoreRenderSource =
             workspace.renderSource;
+          tabRenderSource =
+            workspace.tabRenderSource;
           scorePackage = item.package;
         } catch {
           scorePractice = null;
           scoreRenderSource = null;
+          tabRenderSource = null;
           scorePackage = null;
         }
       }
@@ -912,6 +943,8 @@ export function createStudentAppController({
       clearActivePractice();
       activePracticeRenderSource =
         scoreRenderSource;
+      activePracticeTabRenderSource =
+        tabRenderSource;
       activePracticePackage =
         scorePackage;
 
@@ -946,9 +979,7 @@ export function createStudentAppController({
       }
 
       if (
-        state.pieceWorkspace
-          .selectedView ===
-          PIECE_WORKSPACE_VIEWS.SCORE &&
+        piecePracticeIsSelected() &&
         view ===
           PIECE_WORKSPACE_VIEWS.CHORDS &&
         activePracticePackage !== null
@@ -1040,7 +1071,7 @@ export function createStudentAppController({
         (
           state.screen ===
             STUDENT_APP_SCREENS.PIECE_WORKSPACE &&
-          !pieceScoreIsSelected()
+          !piecePracticeIsSelected()
         ) ||
         typeof playbackPort?.preparePackage !==
           "function"
@@ -1060,7 +1091,7 @@ export function createStudentAppController({
           (
             state.screen ===
               STUDENT_APP_SCREENS.PIECE_WORKSPACE &&
-            !pieceScoreIsSelected()
+            !piecePracticeIsSelected()
           ) ||
           activePracticePackage !== pkg ||
           activePracticeViewModel()

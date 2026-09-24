@@ -8,6 +8,7 @@ export function makeApprovedPracticePackage({
   title = "Etüt A",
   scope = "public_pool",
   recipientStudentId,
+  guitarTabMusicXml = null,
 } = {}) {
   return {
     schemaVersion: "1.0.0",
@@ -29,6 +30,13 @@ export function makeApprovedPracticePackage({
         data: "<score-partwise><part-list/></score-partwise>",
       },
       canonicalEvents: [],
+      guitarTab:
+        typeof guitarTabMusicXml === "string"
+          ? {
+              format: "musicxml",
+              data: guitarTabMusicXml,
+            }
+          : null,
     },
     practice: {
       tempoBpm: 80,

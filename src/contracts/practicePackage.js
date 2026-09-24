@@ -105,6 +105,16 @@ export function validatePracticePackage(value) {
       }
     }
 
+    if (
+      content.guitarTab !== undefined &&
+      content.guitarTab !== null &&
+      !isRecord(content.guitarTab)
+    ) {
+      errors.push(
+        "content.guitarTab must be an object or null",
+      );
+    }
+
     if (!Array.isArray(content.canonicalEvents)) {
       errors.push("content.canonicalEvents must be an array");
     }

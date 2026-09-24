@@ -115,3 +115,23 @@ test("canonical event collection is required", () => {
   assert.equal(result.ok, false);
   assert.match(result.errors.join("\n"), /canonicalEvents/);
 });
+
+
+test("PracticePackage accepts exact guitar TAB MusicXML while legacy object shapes remain inert-compatible", () => {
+  const valid = makePackage();
+  valid.content.guitarTab = {
+    format: "musicxml",
+    data: "<score-partwise><part-list/></score-partwise>",
+  };
+  assert.equal(validatePracticePackage(valid).ok, true);
+
+  const legacy = makePackage();
+  legacy.content.guitarTab = { unknown: true };
+  assert.equal(validatePracticePackage(legacy).ok, true);
+
+  const invalid = makePackage();
+  invalid.content.guitarTab = "ascii";
+  const result = validatePracticePackage(invalid);
+  assert.equal(result.ok, false);
+  assert.match(result.errors.join("\n"), /guitarTab/i);
+});

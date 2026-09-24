@@ -283,6 +283,15 @@ export function mountStudentApp({
     const practice = practiceForState(state);
 
     if (
+      state.screen ===
+        STUDENT_APP_SCREENS.PIECE_WORKSPACE &&
+      state.pieceWorkspace?.selectedView ===
+        "CHORDS"
+    ) {
+      return;
+    }
+
+    if (
       practice === null ||
       practice.capabilities?.notation !==
         PRACTICE_CAPABILITY_STATES.AVAILABLE
@@ -307,7 +316,8 @@ export function mountStudentApp({
       return;
     }
 
-    const renderKey = practicePresentationKey(state);
+    const renderKey =
+      `${practicePresentationKey(state)}:${renderSource?.sourceId ?? "missing"}`;
 
     if (activeNotationKey === renderKey) {
       return;

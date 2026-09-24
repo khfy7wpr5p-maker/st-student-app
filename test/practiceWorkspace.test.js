@@ -343,3 +343,31 @@ test("legacy Practice workspace keeps publicationId compatibility", () => {
   });
   assert.equal(workspace.viewModel.publicationId, "pub-1");
 });
+
+
+test("workspace exposes TAB MusicXML only as a renderer source, never in the view model", () => {
+  const item = makeDeliveryItem();
+  item.package.content.guitarTab = {
+    format: "musicxml",
+    data: "<score-partwise>TAB RENDER INPUT</score-partwise>",
+  };
+
+  const result = createPracticeWorkspace({
+    deliveryItem: item,
+    notationRuntimeAvailable: true,
+  });
+
+  assert.equal(
+    result.viewModel.capabilities.guitarTab,
+    PRACTICE_CAPABILITY_STATES.AVAILABLE,
+  );
+  assert.deepEqual(result.tabRenderSource, {
+    kind: "musicxml",
+    musicXml: "<score-partwise>TAB RENDER INPUT</score-partwise>",
+    sourceId: "pkg-1:guitar-tab",
+  });
+  assert.equal(
+    JSON.stringify(result.viewModel).includes("TAB RENDER INPUT"),
+    false,
+  );
+});
