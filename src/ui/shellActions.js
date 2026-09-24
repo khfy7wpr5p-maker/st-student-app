@@ -7,6 +7,9 @@ export async function dispatchStudentAppAction({
   poolItemId,
   assignmentId,
   assignmentState,
+  pieceAssignmentId,
+  pieceView,
+  scrollPosition,
   tempoBpm,
   repeatEnabled,
   credentials,
@@ -38,6 +41,44 @@ export async function dispatchStudentAppAction({
         throw new Error("assignment id required");
       }
       return controller.openAssignment(assignmentId);
+
+    case "open-piece":
+      if (!hasText(pieceAssignmentId)) {
+        throw new Error("piece assignment id required");
+      }
+      if (!hasText(assignmentState)) {
+        throw new Error("assignment state required");
+      }
+      return controller.openPiece(
+        pieceAssignmentId,
+        {
+          folderState: assignmentState.trim(),
+          scrollPosition:
+            Number.isFinite(scrollPosition) &&
+            scrollPosition >= 0
+              ? scrollPosition
+              : 0,
+        },
+      );
+
+    case "select-piece-view":
+      if (!hasText(pieceView)) {
+        throw new Error("piece view required");
+      }
+      return controller.selectPieceView(
+        pieceView.trim(),
+      );
+
+    case "select-piece-chord":
+      if (!hasText(assignmentId)) {
+        throw new Error("assignment id required");
+      }
+      return controller.selectPieceChord(
+        assignmentId.trim(),
+      );
+
+    case "back-from-piece":
+      return controller.backFromPiece();
 
     case "go-home":
       return controller.showHome();
