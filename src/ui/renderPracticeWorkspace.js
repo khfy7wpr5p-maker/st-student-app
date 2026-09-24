@@ -80,7 +80,14 @@ function renderPlayback(practice) {
             inputmode="numeric"
             value="${escapeHtml(tempoValue(practice))}"
           >
-          <button type="button" data-action="set-practice-tempo">Tempoyu Uygula</button>
+          <span class="practice-tempo-unit" aria-hidden="true">BPM</span>
+          <button
+            type="button"
+            class="practice-tempo-apply"
+            data-action="set-practice-tempo"
+            aria-label="Tempoyu uygula"
+            title="Tempoyu uygula"
+          ><span aria-hidden="true">✓</span></button>
         </div>
       `
       : "";
@@ -106,14 +113,34 @@ function renderPlayback(practice) {
 
   return `
     <section class="practice-playback practice-secondary" aria-labelledby="playback-heading">
-      <h2 id="playback-heading">Dinleme</h2>
-      ${quality}
-      <div class="practice-playback-controls" role="group" aria-label="Dinleme kontrolleri">
-        <button type="button" data-action="play-practice">Dinle</button>
-        <button type="button" data-action="pause-practice">Duraklat</button>
-        <button type="button" data-action="restart-practice">Baştan</button>
+      <h2 id="playback-heading" class="sr-only">Dinleme</h2>
+      <div class="practice-playback-toolbar">
+        ${quality}
+        <div class="practice-playback-controls" role="group" aria-label="Dinleme kontrolleri">
+          <button
+            type="button"
+            class="practice-control-button"
+            data-action="play-practice"
+            aria-label="Dinle"
+            title="Dinle"
+          ><span aria-hidden="true">▶</span></button>
+          <button
+            type="button"
+            class="practice-control-button"
+            data-action="pause-practice"
+            aria-label="Duraklat"
+            title="Duraklat"
+          ><span aria-hidden="true">⏸</span></button>
+          <button
+            type="button"
+            class="practice-control-button"
+            data-action="restart-practice"
+            aria-label="Baştan"
+            title="Baştan"
+          ><span aria-hidden="true">↺</span></button>
+        </div>
+        ${tempo}
       </div>
-      ${tempo}
       ${repeat}
     </section>
   `;

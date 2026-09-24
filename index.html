@@ -453,23 +453,56 @@
 
       .practice-playback {
         background: var(--st-surface-panel);
+        padding: var(--st-space-2) var(--st-space-3) !important;
       }
 
-      .practice-playback-controls {
+      .practice-playback-toolbar {
         display: flex;
+        align-items: center;
         flex-wrap: wrap;
         gap: var(--st-space-2);
       }
 
+      .practice-playback-controls {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: var(--st-space-1);
+      }
+
+      .practice-control-button,
+      .practice-tempo-apply {
+        width: 2.75rem;
+        min-width: 2.75rem;
+        height: 2.75rem;
+        min-height: 2.75rem;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+      }
+
       .practice-tempo {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        gap: var(--st-space-2);
-        align-items: end;
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: var(--st-space-1);
       }
 
       .practice-tempo label {
-        grid-column: 1 / -1;
+        font-size: var(--st-font-size-sm);
+        font-weight: 600;
+      }
+
+      .practice-tempo input {
+        width: 4.5rem;
+        min-height: 2.75rem;
+        padding: var(--st-space-2);
+      }
+
+      .practice-tempo-unit {
+        color: var(--st-text-muted);
+        font-size: var(--st-font-size-sm);
       }
 
       .practice-repeat {
@@ -695,16 +728,21 @@
         }
 
         .practice-playback-controls {
-          display: grid;
-          grid-template-columns: 1fr;
+          display: flex;
+          grid-template-columns: none;
+        }
+
+        .practice-playback-toolbar {
+          gap: var(--st-space-1);
         }
 
         .practice-tempo {
-          grid-template-columns: 1fr;
+          display: flex;
+          margin-left: 0;
         }
 
-        .practice-tempo label {
-          grid-column: auto;
+        .practice-playback-quality {
+          flex: 1 0 100%;
         }
       }
 
