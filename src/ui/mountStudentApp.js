@@ -323,8 +323,6 @@ export function mountStudentApp({
       return;
     }
 
-    await disposeActiveNotation();
-
     if (
       renderSource === null ||
       renderSource?.kind !== "musicxml" ||
