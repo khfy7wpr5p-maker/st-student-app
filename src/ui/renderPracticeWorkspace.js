@@ -121,7 +121,10 @@ function renderPlayback(practice) {
 
 export function renderPracticeWorkspace(
   practice,
-  { showHomeAction = true } = {},
+  {
+    showHomeAction = true,
+    showTitle = true,
+  } = {},
 ) {
   if (practice === null || typeof practice !== "object") {
     throw new TypeError("practice state is required");
@@ -130,10 +133,18 @@ export function renderPracticeWorkspace(
   const homeAction = showHomeAction
     ? '<button type="button" data-action="go-home">Ana Sayfa</button>'
     : "";
+  const title = showTitle
+    ? `<h1 id="page-title">${escapeHtml(
+        practice.title ?? "Çalışma",
+      )}</h1>`
+    : "";
+  const sectionLabel = showTitle
+    ? 'aria-labelledby="page-title"'
+    : 'aria-label="Nota çalışması"';
 
   return `
-    <section class="practice-workspace" aria-labelledby="page-title">
-      <h1 id="page-title">${escapeHtml(practice.title ?? "Çalışma")}</h1>
+    <section class="practice-workspace" ${sectionLabel}>
+      ${title}
       ${homeAction}
       ${renderNotation(practice)}
       ${renderPlayback(practice)}
