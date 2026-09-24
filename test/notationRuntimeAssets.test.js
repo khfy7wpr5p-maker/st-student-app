@@ -43,8 +43,8 @@ test("vendored browser bootstrap remains local, root-bound, and contract-ready",
   assert.match(source, /st-score-render-host-ready/);
   assert.match(source, /contractVersion:\s*SCORE_RENDERER_CONTRACT_VERSION/);
   assert.doesNotMatch(source, /fetch\s*\(|XMLHttpRequest|WebSocket|https?:\/\//i);
-  assert.doesNotMatch(source, /activeHost\s*\?\?\s*createHost\(\)/);
-  assert.match(
+  assert.match(source, /activeHost\s*\?\?\s*createHost\(\)/);
+  assert.doesNotMatch(
     source,
     /await clearActiveHost\(\);\s*const nextHost = createHost\(\);\s*activeHost = nextHost/,
   );
