@@ -8,6 +8,9 @@ import {
 import {
   makeApprovedPracticePackage,
 } from "./support/practiceFixtures.js";
+import {
+  makeChordBoardRow,
+} from "./support/chordBoardFixtures.js";
 
 const studentA = createStudentSession({
   studentId: "firebase-uid-a",
@@ -180,5 +183,228 @@ test("Secure Delivery Student08ReadPort fails closed on exact assignment mismatc
         state: "UNKNOWN",
       }),
     /state filter/i,
+  );
+});
+
+
+function pieceManifest({
+  pieceAssignmentId = "piece-a",
+  pieceId = "work-a",
+  arrangementId = "arr-a",
+  title = "Cambaz",
+  state = "ACTIVE",
+  scoreAssignmentId = "assignment-score-a",
+  chordAssignmentIds = [
+    "assignment-chord-a",
+    "assignment-chord-b",
+  ],
+} = {}) {
+  return {
+    schemaVersion: "1.0.0",
+    pieceAssignmentId,
+    pieceId,
+    arrangementId,
+    title,
+    teacherNote: "Parçayı yavaş çalış.",
+    state,
+    assignedAt: "2026-09-24T08:00:00Z",
+    contentRefs: {
+      scoreAssignmentId,
+      chordAssignmentIds,
+    },
+  };
+}
+
+function scorePieceRow(
+  assignmentId = "assignment-score-a",
+) {
+  return assignmentRow(
+    assignmentId,
+    "ACTIVE",
+  );
+}
+
+test("Piece list preserves same-title authority identities and state filter", async () => {
+  const service =
+    createSecureDeliveryStudent08ReadService({
+      apiClient: {
+        async listStudentPool() {
+          return [];
+        },
+        async listStudentAssignments() {
+          return [];
+        },
+        async getStudentAssignment(id) {
+          return scorePieceRow(id);
+        },
+        async listStudentPieces() {
+          return [
+            pieceManifest(),
+            pieceManifest({
+              pieceAssignmentId: "piece-b",
+              pieceId: "work-b",
+              arrangementId: "arr-b",
+              title: "Cambaz",
+              state: "COMPLETED",
+              scoreAssignmentId: "assignment-score-b",
+              chordAssignmentIds: [],
+            }),
+          ];
+        },
+        async getStudentPiece(id) {
+          return pieceManifest({
+            pieceAssignmentId: id,
+          });
+        },
+      },
+    });
+
+  const active = await service.listPieces({
+    session: studentA,
+    state: "ACTIVE",
+  });
+  assert.deepEqual(
+    active.map((piece) => [
+      piece.pieceAssignmentId,
+      piece.pieceId,
+      piece.title,
+    ]),
+    [["piece-a", "work-a", "Cambaz"]],
+  );
+
+  const all = await service.listPieces({
+    session: studentA,
+  });
+  assert.equal(all.length, 2);
+  assert.notEqual(all[0].pieceId, all[1].pieceId);
+});
+
+test("Piece SCORE and chord reads resolve only exact manifest child IDs", async () => {
+  const calls = [];
+  const manifest = pieceManifest();
+  const service =
+    createSecureDeliveryStudent08ReadService({
+      apiClient: {
+        async listStudentPool() {
+          return [];
+        },
+        async listStudentAssignments() {
+          return [];
+        },
+        async listStudentPieces() {
+          return [manifest];
+        },
+        async getStudentPiece(id) {
+          calls.push(["piece", id]);
+          return manifest;
+        },
+        async getStudentAssignment(id) {
+          calls.push(["assignment", id]);
+          if (id === "assignment-score-a") {
+            return scorePieceRow(id);
+          }
+          return makeChordBoardRow({
+            assignmentId: id,
+          });
+        },
+      },
+    });
+
+  const score =
+    await service.getPieceScoreItem({
+      session: studentA,
+      pieceAssignmentId: "piece-a",
+    });
+  assert.equal(
+    score.accessRef.deliveryId,
+    "assignment-score-a",
+  );
+
+  const chords =
+    await service.listPieceChordItems({
+      session: studentA,
+      pieceAssignmentId: "piece-a",
+    });
+  assert.deepEqual(
+    chords.map(
+      (item) => item.accessRef.deliveryId,
+    ),
+    [
+      "assignment-chord-a",
+      "assignment-chord-b",
+    ],
+  );
+
+  assert.deepEqual(calls, [
+    ["piece", "piece-a"],
+    ["assignment", "assignment-score-a"],
+    ["piece", "piece-a"],
+    ["assignment", "assignment-chord-a"],
+    ["assignment", "assignment-chord-b"],
+  ]);
+});
+
+test("Piece exact read fails closed on manifest identity mismatch and wrong child type", async () => {
+  const mismatch =
+    createSecureDeliveryStudent08ReadService({
+      apiClient: {
+        async listStudentPool() {
+          return [];
+        },
+        async listStudentAssignments() {
+          return [];
+        },
+        async getStudentAssignment(id) {
+          return scorePieceRow(id);
+        },
+        async listStudentPieces() {
+          return [];
+        },
+        async getStudentPiece() {
+          return pieceManifest({
+            pieceAssignmentId:
+              "piece-other",
+          });
+        },
+      },
+    });
+
+  await assert.rejects(
+    () =>
+      mismatch.getPiece({
+        session: studentA,
+        pieceAssignmentId: "piece-a",
+      }),
+    /identity mismatch/i,
+  );
+
+  const wrongType =
+    createSecureDeliveryStudent08ReadService({
+      apiClient: {
+        async listStudentPool() {
+          return [];
+        },
+        async listStudentAssignments() {
+          return [];
+        },
+        async listStudentPieces() {
+          return [];
+        },
+        async getStudentPiece() {
+          return pieceManifest();
+        },
+        async getStudentAssignment(id) {
+          return scorePieceRow(id);
+        },
+      },
+    });
+
+  await assert.rejects(
+    () =>
+      wrongType.listPieceChordItems({
+        session: studentA,
+        pieceAssignmentId: "piece-a",
+      }),
+    /assignment type unavailable/i,
   );
 });
