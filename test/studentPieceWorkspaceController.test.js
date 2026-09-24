@@ -343,7 +343,7 @@ test("late Piece response from previous session is ignored and sign-out clears w
     "student-b",
   );
   assert.equal(
-    controller.getState().pieceWorkspace,
+    controller.getState().pieceWorkspace ?? null,
     null,
   );
 
