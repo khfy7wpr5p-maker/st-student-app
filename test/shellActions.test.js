@@ -21,6 +21,25 @@ function makeController() {
       openPractice(publicationId) {
         calls.push(["openPractice", publicationId]);
       },
+      openPiece(pieceAssignmentId, returnContext) {
+        calls.push([
+          "openPiece",
+          pieceAssignmentId,
+          returnContext,
+        ]);
+      },
+      selectPieceView(view) {
+        calls.push(["selectPieceView", view]);
+      },
+      selectPieceChord(assignmentId) {
+        calls.push([
+          "selectPieceChord",
+          assignmentId,
+        ]);
+      },
+      backFromPiece() {
+        calls.push(["backFromPiece"]);
+      },
       signOut() {
         calls.push(["signOut"]);
       },
@@ -217,4 +236,48 @@ test("sign-out clears local state even when a provider sign-out callback is pres
 
   assert.deepEqual(providerCalls, ["signOut"]);
   assert.deepEqual(calls, [["signOut"]]);
+});
+
+
+test("Piece Workspace actions forward only explicit Piece navigation values", async () => {
+  const { controller, calls } = makeController();
+
+  await dispatchStudentAppAction({
+    action: "open-piece",
+    pieceAssignmentId: "piece-a",
+    assignmentState: "ACTIVE",
+    scrollPosition: 420,
+    controller,
+  });
+  await dispatchStudentAppAction({
+    action: "select-piece-view",
+    pieceView: "CHORDS",
+    controller,
+  });
+  await dispatchStudentAppAction({
+    action: "select-piece-chord",
+    assignmentId: "assignment-chord-a",
+    controller,
+  });
+  await dispatchStudentAppAction({
+    action: "back-from-piece",
+    controller,
+  });
+
+  assert.deepEqual(calls, [
+    [
+      "openPiece",
+      "piece-a",
+      {
+        folderState: "ACTIVE",
+        scrollPosition: 420,
+      },
+    ],
+    ["selectPieceView", "CHORDS"],
+    [
+      "selectPieceChord",
+      "assignment-chord-a",
+    ],
+    ["backFromPiece"],
+  ]);
 });
