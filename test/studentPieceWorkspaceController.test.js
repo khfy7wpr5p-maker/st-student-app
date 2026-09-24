@@ -203,6 +203,7 @@ test("Piece opens one workspace with SCORE default and return context", async ()
     state.pieceWorkspace.availableViews,
     {
       score: true,
+      tab: false,
       chords: true,
     },
   );
