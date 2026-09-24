@@ -323,7 +323,10 @@ export function mountStudentApp({
       return;
     }
 
-    await disposeActiveNotation();
+    // Do not dispose the browser score host when replacing SCORE with TAB
+    // (or TAB with SCORE). BrowserScoreHost.renderMusicXml() owns safe
+    // renderer replacement; dispose() permanently closes the host.
+    activeNotationKey = null;
 
     if (
       renderSource === null ||
