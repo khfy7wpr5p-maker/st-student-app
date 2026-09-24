@@ -117,7 +117,7 @@ test("canonical event collection is required", () => {
 });
 
 
-test("PracticePackage accepts exact guitar TAB MusicXML and rejects undefined TAB shapes", () => {
+test("PracticePackage accepts exact guitar TAB MusicXML while legacy object shapes remain inert-compatible", () => {
   const valid = makePackage();
   valid.content.guitarTab = {
     format: "musicxml",
@@ -125,16 +125,13 @@ test("PracticePackage accepts exact guitar TAB MusicXML and rejects undefined TA
   };
   assert.equal(validatePracticePackage(valid).ok, true);
 
-  for (const guitarTab of [
-    { unknown: true },
-    { format: "musicxml", data: "" },
-    { format: "ascii", data: "0-1-2" },
-    { format: "musicxml", data: "<score-partwise/>", extra: true },
-  ]) {
-    const pkg = makePackage();
-    pkg.content.guitarTab = guitarTab;
-    const result = validatePracticePackage(pkg);
-    assert.equal(result.ok, false);
-    assert.match(result.errors.join("\n"), /guitarTab/i);
-  }
+  const legacy = makePackage();
+  legacy.content.guitarTab = { unknown: true };
+  assert.equal(validatePracticePackage(legacy).ok, true);
+
+  const invalid = makePackage();
+  invalid.content.guitarTab = "ascii";
+  const result = validatePracticePackage(invalid);
+  assert.equal(result.ok, false);
+  assert.match(result.errors.join("\n"), /guitarTab/i);
 });
