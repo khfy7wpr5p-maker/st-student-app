@@ -445,3 +445,109 @@ test("Piece SCORE -> TAB -> CHORDS -> TAB preserves the exact notation root and 
 
   await mounted.destroy();
 });
+
+
+test("TAB render failure does not poison Nota and Nota can render again", async () => {
+  const withTab = (view) => {
+    const base = workspace(view);
+    return {
+      ...base,
+      availableViews: {
+        score: true,
+        tab: true,
+        chords: true,
+      },
+      score: {
+        ...base.score,
+        practice: {
+          ...base.score.practice,
+          capabilities: {
+            ...base.score.practice.capabilities,
+            guitarTab: "AVAILABLE",
+          },
+        },
+      },
+    };
+  };
+
+  let state = {
+    student08: true,
+    screen: STUDENT_APP_SCREENS.PIECE_WORKSPACE,
+    session: { studentId: "student-a" },
+    items: [],
+    practice: null,
+    chordBoard: null,
+    pieceWorkspace: withTab("SCORE"),
+  };
+  const root = makeRoot();
+  const rendered = [];
+  const capabilityUpdates = [];
+
+  const controller = {
+    getState() {
+      return state;
+    },
+    getPracticeRenderSource() {
+      const tab =
+        state.pieceWorkspace.selectedView === "TAB";
+      return {
+        kind: "musicxml",
+        musicXml: tab
+          ? "<score-partwise>TAB</score-partwise>"
+          : "<score-partwise>SCORE</score-partwise>",
+        sourceId: tab
+          ? "pkg-score-a:guitar-tab"
+          : "pkg-score-a",
+      };
+    },
+    setNotationCapability(value) {
+      capabilityUpdates.push(value);
+    },
+    disposeActivePractice() {},
+  };
+
+  const notationAdapter = {
+    async render({ musicXml }) {
+      rendered.push(musicXml);
+      return {
+        capability: musicXml.includes("TAB")
+          ? "ERROR"
+          : "AVAILABLE",
+      };
+    },
+    async dispose() {},
+  };
+
+  const mounted = mountStudentApp({
+    root,
+    controller,
+    notationAdapter,
+  });
+
+  await mounted.render();
+
+  state = {
+    ...state,
+    pieceWorkspace: withTab("TAB"),
+  };
+  await mounted.render();
+
+  assert.deepEqual(capabilityUpdates, []);
+  assert.notEqual(root.querySelector("#st-score-root"), null);
+
+  state = {
+    ...state,
+    pieceWorkspace: withTab("SCORE"),
+  };
+  await mounted.render();
+
+  assert.deepEqual(rendered, [
+    "<score-partwise>SCORE</score-partwise>",
+    "<score-partwise>TAB</score-partwise>",
+    "<score-partwise>SCORE</score-partwise>",
+  ]);
+  assert.deepEqual(capabilityUpdates, []);
+  assert.notEqual(root.querySelector("#st-score-root"), null);
+
+  await mounted.destroy();
+});
