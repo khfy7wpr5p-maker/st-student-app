@@ -97,3 +97,56 @@ jobs:
         env:
           ST_BROWSER: ${{ matrix.browser }}
         run: npm run test:browser
+
+
+  refresh-vendored-runtime:
+    if: github.event_name == 'push' && github.actor != 'github-actions[bot]'
+    needs: [renderer-runtime, tab-browser]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Student App branch
+        uses: actions/checkout@v5
+      - name: Use Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+      - name: Download approved browser runtime
+        uses: actions/download-artifact@v5
+        with:
+          name: ses6-browser-runtime
+          path: .ses6-runtime
+      - name: Replace vendored runtime from approved export
+        run: |
+          rm -rf vendor/st-score-runtime
+          mkdir -p vendor/st-score-runtime
+          cp -a .ses6-runtime/. vendor/st-score-runtime/
+      - name: Verify generated runtime integrity and bounded diff
+        run: |
+          node --test test/notationRuntimeAssets.test.js
+          node - <<'NODE'
+          const { execFileSync } = require("node:child_process");
+          const actual = execFileSync("git", ["diff", "--name-only", "--", "vendor/st-score-runtime"], { encoding: "utf8" })
+            .trim()
+            .split("\n")
+            .filter(Boolean)
+            .sort();
+          const expected = [
+            "vendor/st-score-runtime/browser-bootstrap.mjs",
+            "vendor/st-score-runtime/modules/adapter-osmd.js",
+            "vendor/st-score-runtime/runtime-manifest.json",
+          ].sort();
+          if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+            console.error({ actual, expected });
+            process.exit(1);
+          }
+          NODE
+      - name: Commit generated runtime only
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add vendor/st-score-runtime
+          git commit -m "chore: refresh approved score runtime [skip ci]"
+          git push origin HEAD:${GITHUB_REF_NAME}
