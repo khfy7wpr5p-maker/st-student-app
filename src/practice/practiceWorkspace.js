@@ -126,9 +126,22 @@ export function createPracticeWorkspace({
     sourceId: pkg.packageId,
   });
 
+  const tabRenderSource =
+    capabilities.guitarTab ===
+      PRACTICE_CAPABILITY_STATES.AVAILABLE
+      ? Object.freeze({
+          kind: "musicxml",
+          musicXml:
+            pkg.content.guitarTab.data,
+          sourceId:
+            `${pkg.packageId}:guitar-tab`,
+        })
+      : null;
+
   return Object.freeze({
     viewModel,
     renderSource,
+    tabRenderSource,
   });
 }
 
