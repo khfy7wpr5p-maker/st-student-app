@@ -1,4 +1,4 @@
-const CACHE_NAME = "st-student-shell-v7";
+const CACHE_NAME = "st-student-shell-v8";
 
 const FIREBASE_RUNTIME_ASSETS = Object.freeze([
   "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js",
@@ -136,23 +136,27 @@ self.addEventListener("install", (event) => {
           }
         }),
       );
+
+      await self.skipWaiting();
     }),
   );
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((names) =>
-      Promise.all(
-        names
-          .filter(
-            (name) =>
-              name.startsWith("st-student-shell-") &&
-              name !== CACHE_NAME,
-          )
-          .map((name) => caches.delete(name)),
-      ),
-    ),
+    caches.keys()
+      .then((names) =>
+        Promise.all(
+          names
+            .filter(
+              (name) =>
+                name.startsWith("st-student-shell-") &&
+                name !== CACHE_NAME,
+            )
+            .map((name) => caches.delete(name)),
+        ),
+      )
+      .then(() => self.clients.claim()),
   );
 });
 
