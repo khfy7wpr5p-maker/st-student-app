@@ -323,9 +323,16 @@ export function mountStudentApp({
     const renderKey =
       `${presentationKey}:${renderSource?.sourceId ?? "missing"}`;
 
+    const notationRootHasObservableChildren =
+      persistentNotationRoot !== null &&
+      (
+        persistentNotationRoot.childNodes !== undefined ||
+        persistentNotationRoot.children !== undefined
+      );
     const notationRootHasContent =
       persistentNotationRoot !== null &&
       (
+        !notationRootHasObservableChildren ||
         persistentNotationRoot.childNodes?.length > 0 ||
         persistentNotationRoot.children?.length > 0
       );
