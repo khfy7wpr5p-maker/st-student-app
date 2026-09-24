@@ -166,6 +166,7 @@ export function mountStudentApp({
   let lastPresentationKey = null;
   let domGeneration = 0;
   let activeNotationKey = null;
+  let activeNotationPresentationKey = null;
   let persistentNotationRoot = null;
   let lifecycle = Promise.resolve();
   let destroyed = false;
@@ -246,6 +247,7 @@ export function mountStudentApp({
     }
 
     activeNotationKey = null;
+    activeNotationPresentationKey = null;
 
     if (typeof notationAdapter?.dispose === "function") {
       try {
@@ -316,11 +318,21 @@ export function mountStudentApp({
       return;
     }
 
+    const presentationKey =
+      practicePresentationKey(state);
     const renderKey =
-      `${practicePresentationKey(state)}:${renderSource?.sourceId ?? "missing"}`;
+      `${presentationKey}:${renderSource?.sourceId ?? "missing"}`;
 
     if (activeNotationKey === renderKey) {
       return;
+    }
+
+    if (
+      activeNotationKey !== null &&
+      activeNotationPresentationKey !==
+        presentationKey
+    ) {
+      await disposeActiveNotation();
     }
 
     if (
@@ -370,6 +382,8 @@ export function mountStudentApp({
         // Viewport fitting is presentation-only.
       }
       activeNotationKey = renderKey;
+      activeNotationPresentationKey =
+        presentationKey;
       return;
     }
 
