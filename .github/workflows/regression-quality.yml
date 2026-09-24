@@ -54,7 +54,7 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-          SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
+          SONAR_ORGANIZATION: khfy7wpr5p-maker
         run: |
           set -euo pipefail
           clean_organization="$(printf '%s' "$SONAR_ORGANIZATION" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
