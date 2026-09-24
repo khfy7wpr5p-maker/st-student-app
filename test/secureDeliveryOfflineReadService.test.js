@@ -363,3 +363,145 @@ test("Secure Delivery status maps exact 404 to REVOKED and preserves transient f
     /Secure Delivery request failed/,
   );
 });
+
+
+function pieceView(
+  pieceAssignmentId = "piece-a",
+) {
+  return Object.freeze({
+    schemaVersion: "1.0.0",
+    pieceAssignmentId,
+    pieceId: "work-a",
+    arrangementId: "arr-a",
+    title: "Cambaz",
+    teacherNote: "",
+    state: "ACTIVE",
+    assignedAt: "2026-09-24T08:00:00Z",
+    contentRefs: Object.freeze({
+      scoreAssignmentId: "assignment-a",
+      chordAssignmentIds: Object.freeze([]),
+    }),
+  });
+}
+
+test("warm offline Piece uses cached manifest and SCORE package only for current local UID", async () => {
+  const offlineRepository =
+    createInMemoryOfflineRepository();
+  const connectivityPort =
+    mutableConnectivity();
+  const calls = [];
+
+  const onlineReadService = {
+    async listPoolItems() {
+      return [];
+    },
+    async getPoolItem() {
+      throw new Error("unused");
+    },
+    async listAssignments() {
+      return [];
+    },
+    async getAssignment() {
+      throw new Error("unused");
+    },
+    async getScorePracticeItem({
+      assignmentId,
+    }) {
+      return practiceItem(
+        assignmentId,
+      );
+    },
+    async getChordBoardPracticeItem() {
+      throw new Error("unused");
+    },
+    async listPieces() {
+      calls.push("piece-list");
+      return [pieceView()];
+    },
+    async getPiece({
+      pieceAssignmentId,
+    }) {
+      calls.push("piece-get");
+      return pieceView(
+        pieceAssignmentId,
+      );
+    },
+    async getPieceScoreItem() {
+      calls.push("piece-score");
+      return practiceItem(
+        "assignment-a",
+      );
+    },
+    async listPieceChordItems() {
+      return [];
+    },
+  };
+
+  const service =
+    createSecureDeliveryOfflineReadService({
+      onlineReadService,
+      offlineRepository,
+      connectivityPort,
+      clock: () =>
+        "2026-09-24T09:00:00Z",
+    });
+
+  assert.equal(
+    (
+      await service.listPieces({
+        session: studentA,
+        state: "ACTIVE",
+      })
+    )[0].pieceAssignmentId,
+    "piece-a",
+  );
+
+  const onlineScore =
+    await service.getPieceScoreItem({
+      session: studentA,
+      pieceAssignmentId: "piece-a",
+    });
+  assert.equal(
+    onlineScore.offlineAvailability
+      .deviceAvailable,
+    true,
+  );
+
+  connectivityPort.setState(
+    CONNECTIVITY_STATES.OFFLINE,
+  );
+
+  assert.equal(
+    (
+      await service.getPiece({
+        session: studentA,
+        pieceAssignmentId: "piece-a",
+      })
+    ).pieceId,
+    "work-a",
+  );
+
+  const offlineScore =
+    await service.getPieceScoreItem({
+      session: studentA,
+      pieceAssignmentId: "piece-a",
+    });
+  assert.equal(
+    offlineScore.offlineAvailability.source,
+    "offline",
+  );
+
+  await assert.rejects(
+    () =>
+      service.getPiece({
+        session: studentB,
+        pieceAssignmentId: "piece-a",
+      }),
+    /offline Piece manifest unavailable/i,
+  );
+
+  assert.deepEqual(
+    calls,
+    ["piece-list", "piece-score"],
+  );
+});
