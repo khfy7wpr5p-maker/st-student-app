@@ -361,3 +361,75 @@ test("late Piece response from previous session is ignored and sign-out clears w
     null,
   );
 });
+
+
+test("My Work groups Piece children under one Piece summary while preserving legacy assignments", async () => {
+  const { service } = makeService();
+  service.listPieces = () => [
+    pieceManifest(),
+  ];
+  service.listAssignments = () => [
+    Object.freeze({
+      assignmentId: "assignment-score-a",
+      title: "Cambaz Nota",
+      practiceType: "SCORE",
+      teacherNote: "",
+      state: "ACTIVE",
+      assignedAt: "2026-09-24T08:00:00Z",
+    }),
+    Object.freeze({
+      assignmentId: "assignment-chord-a",
+      title: "Am",
+      practiceType: "CHORD_BOARD",
+      teacherNote: "",
+      state: "ACTIVE",
+      assignedAt: "2026-09-24T08:00:00Z",
+    }),
+    Object.freeze({
+      assignmentId: "legacy-score",
+      title: "Eski Etüt",
+      practiceType: "SCORE",
+      teacherNote: "",
+      state: "ACTIVE",
+      assignedAt: "2026-09-24T07:00:00Z",
+    }),
+  ];
+
+  const controller =
+    createStudentAppController({
+      sharingService: legacySharing(),
+      student08ReadService: service,
+      initialSession: studentA,
+    });
+
+  await controller.showMyWork("ACTIVE");
+  const state = controller.getState();
+
+  assert.equal(
+    state.screen,
+    STUDENT_APP_SCREENS.MY_WORK,
+  );
+  assert.equal(state.items.length, 2);
+  assert.equal(
+    state.items[0].pieceAssignmentId,
+    "piece-a",
+  );
+  assert.equal(
+    state.items[0].itemKind,
+    "PIECE",
+  );
+  assert.equal(
+    state.items[1].assignmentId,
+    "legacy-score",
+  );
+  assert.equal(
+    state.items.some(
+      (item) =>
+        item.assignmentId ===
+          "assignment-score-a" ||
+        item.assignmentId ===
+          "assignment-chord-a",
+    ),
+    false,
+  );
+});
