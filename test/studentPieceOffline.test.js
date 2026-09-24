@@ -2,7 +2,14 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { createStudentSession } from "../src/auth/session.js";
+import { PRACTICE_TYPES } from "../src/contracts/privateAssignment.js";
+import {
+  CONNECTIVITY_STATES,
+} from "../src/offline/connectivityPort.js";
 import { createInMemoryOfflineRepository } from "../src/offline/inMemoryOfflineRepository.js";
+import {
+  createSecureDeliveryOfflineReadService,
+} from "../src/offline/secureDeliveryOfflineReadService.js";
 import {
   createSecureDeliveryStatusService,
 } from "../src/offline/secureDeliveryStatusService.js";
@@ -13,6 +20,12 @@ import {
 import {
   SecureDeliveryApiError,
 } from "../src/providers/secureDelivery/secureDeliveryApiClient.js";
+import {
+  makeApprovedPracticePackage,
+} from "./support/practiceFixtures.js";
+import {
+  makeChordBoardPracticeItem,
+} from "./support/chordBoardFixtures.js";
 
 const session = createStudentSession({
   studentId: "student-a",
@@ -20,6 +33,10 @@ const session = createStudentSession({
 
 function pieceManifest({
   state = "ACTIVE",
+  scoreAssignmentId = "assignment-score-a",
+  chordAssignmentIds = [
+    "assignment-chord-a",
+  ],
 } = {}) {
   return {
     schemaVersion: "1.0.0",
@@ -31,10 +48,8 @@ function pieceManifest({
     state,
     assignedAt: "2026-09-24T08:00:00Z",
     contentRefs: {
-      scoreAssignmentId: "assignment-score-a",
-      chordAssignmentIds: [
-        "assignment-chord-a",
-      ],
+      scoreAssignmentId,
+      chordAssignmentIds,
     },
   };
 }
@@ -287,5 +302,231 @@ test("ACTIVE Piece status refreshes lifecycle metadata without changing authorit
   assert.equal(
     active.lastVerifiedAt,
     "2026-09-24T09:00:00Z",
+  );
+});
+
+
+function scorePracticeItem(
+  assignmentId = "assignment-score-a",
+) {
+  return Object.freeze({
+    accessRef: Object.freeze({
+      kind: "SECURE_DELIVERY",
+      deliveryId: assignmentId,
+    }),
+    practiceType: PRACTICE_TYPES.SCORE,
+    package: makeApprovedPracticePackage({
+      packageId: "pkg-score-a",
+      scope: "student_private",
+      recipientStudentId:
+        "server-student-a",
+    }),
+  });
+}
+
+function offlineOnlyReadService(
+  repository,
+) {
+  const mustNotRun = async () => {
+    throw new Error(
+      "network must not run while offline",
+    );
+  };
+
+  return createSecureDeliveryOfflineReadService({
+    onlineReadService: {
+      listPoolItems: mustNotRun,
+      getPoolItem: mustNotRun,
+      listAssignments: mustNotRun,
+      getAssignment: mustNotRun,
+      getScorePracticeItem: mustNotRun,
+      getChordBoardPracticeItem:
+        mustNotRun,
+      listPieces: mustNotRun,
+      getPiece: mustNotRun,
+      getPieceScoreItem: mustNotRun,
+      listPieceChordItems: mustNotRun,
+    },
+    offlineRepository: repository,
+    connectivityPort: {
+      getState() {
+        return CONNECTIVITY_STATES.OFFLINE;
+      },
+    },
+  });
+}
+
+async function seedOfflinePiece({
+  score = false,
+  chord = false,
+  scoreAssignmentId =
+    "assignment-score-a",
+  chordAssignmentIds = [
+    "assignment-chord-a",
+  ],
+} = {}) {
+  const repository =
+    createInMemoryOfflineRepository();
+  await repository.putPieceManifest({
+    studentId: "student-a",
+    piece: pieceManifest({
+      scoreAssignmentId,
+      chordAssignmentIds,
+    }),
+    cachedAt:
+      "2026-09-24T08:30:00Z",
+    lastVerifiedAt:
+      "2026-09-24T08:30:00Z",
+  });
+
+  if (score) {
+    await repository.putAuthorized({
+      studentId: "student-a",
+      practiceItem:
+        scorePracticeItem(
+          scoreAssignmentId,
+        ),
+      cachedAt:
+        "2026-09-24T08:30:00Z",
+      lastVerifiedAt:
+        "2026-09-24T08:30:00Z",
+    });
+  }
+
+  if (chord) {
+    for (
+      const assignmentId of
+      chordAssignmentIds
+    ) {
+      await repository.putAuthorized({
+        studentId: "student-a",
+        practiceItem:
+          makeChordBoardPracticeItem({
+            assignmentId,
+          }),
+        cachedAt:
+          "2026-09-24T08:30:00Z",
+        lastVerifiedAt:
+          "2026-09-24T08:30:00Z",
+      });
+    }
+  }
+
+  return {
+    repository,
+    service:
+      offlineOnlyReadService(
+        repository,
+      ),
+  };
+}
+
+test("warm offline Piece with SCORE cache keeps Nota usable when chords are absent", async () => {
+  const { service } =
+    await seedOfflinePiece({
+      score: true,
+      chord: false,
+    });
+
+  const score =
+    await service.getPieceScoreItem({
+      session,
+      pieceAssignmentId: "piece-a",
+    });
+
+  assert.equal(
+    score.practiceType,
+    PRACTICE_TYPES.SCORE,
+  );
+  await assert.rejects(
+    () =>
+      service.listPieceChordItems({
+        session,
+        pieceAssignmentId:
+          "piece-a",
+      }),
+    /offline practice unavailable/i,
+  );
+});
+
+test("warm offline Piece with chord cache keeps Akorlar usable without SCORE", async () => {
+  const { service } =
+    await seedOfflinePiece({
+      score: false,
+      chord: true,
+      scoreAssignmentId: null,
+    });
+
+  const chords =
+    await service.listPieceChordItems({
+      session,
+      pieceAssignmentId: "piece-a",
+    });
+
+  assert.equal(chords.length, 1);
+  assert.equal(
+    chords[0].practiceType,
+    PRACTICE_TYPES.CHORD_BOARD,
+  );
+  await assert.rejects(
+    () =>
+      service.getPieceScoreItem({
+        session,
+        pieceAssignmentId:
+          "piece-a",
+      }),
+    /piece score unavailable/i,
+  );
+});
+
+test("warm offline Piece with both child caches exposes both authorized views", async () => {
+  const { service } =
+    await seedOfflinePiece({
+      score: true,
+      chord: true,
+    });
+
+  const [score, chords] =
+    await Promise.all([
+      service.getPieceScoreItem({
+        session,
+        pieceAssignmentId:
+          "piece-a",
+      }),
+      service.listPieceChordItems({
+        session,
+        pieceAssignmentId:
+          "piece-a",
+      }),
+    ]);
+
+  assert.equal(
+    score.practiceType,
+    PRACTICE_TYPES.SCORE,
+  );
+  assert.equal(chords.length, 1);
+});
+
+test("cached Piece with zero usable child caches fails boundedly per view", async () => {
+  const { service } =
+    await seedOfflinePiece();
+
+  await assert.rejects(
+    () =>
+      service.getPieceScoreItem({
+        session,
+        pieceAssignmentId:
+          "piece-a",
+      }),
+    /offline practice unavailable/i,
+  );
+  await assert.rejects(
+    () =>
+      service.listPieceChordItems({
+        session,
+        pieceAssignmentId:
+          "piece-a",
+      }),
+    /offline practice unavailable/i,
   );
 });
