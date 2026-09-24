@@ -222,7 +222,7 @@ function folderButton(state, value, label) {
   `;
 }
 
-function renderAssignmentItem(item) {
+function renderScoreAssignmentItem(item) {
   const note =
     typeof item.teacherNote === "string" && item.teacherNote.length > 0
       ? `<p class="teacher-note"><span class="teacher-note-label">Öğretmen notu</span>${escapeHtml(
@@ -230,27 +230,10 @@ function renderAssignmentItem(item) {
         )}</p>`
       : "";
 
-  if (item.practiceType === PRACTICE_TYPES.SCORE) {
-    return `
-      <li>
-        <article class="assignment-card assignment-card-score">
-          <span class="assignment-type">Nota çalışması</span>
-          <h2>${escapeHtml(item.title)}</h2>
-          ${note}
-          <button
-            type="button"
-            data-action="open-assignment"
-            data-assignment-id="${escapeHtml(item.assignmentId)}"
-          >Çalışmayı Aç</button>
-        </article>
-      </li>
-    `;
-  }
-
   return `
     <li>
-      <article class="assignment-card assignment-card-chord-board">
-        <span class="assignment-type">Akor çalışması</span>
+      <article class="assignment-card assignment-card-score">
+        <span class="assignment-type">Nota çalışması</span>
         <h2>${escapeHtml(item.title)}</h2>
         ${note}
         <button
@@ -263,13 +246,69 @@ function renderAssignmentItem(item) {
   `;
 }
 
+function renderChordAssignmentGroup(items) {
+  if (items.length === 0) {
+    return "";
+  }
+
+  return `
+    <li class="assignment-group-item">
+      <details class="chord-assignment-group">
+        <summary>
+          <span>Akor çalışması</span>
+          <span class="chord-assignment-count">${items.length} akor</span>
+        </summary>
+        <div class="chord-assignment-options">
+          ${items
+            .map(
+              (item) => `
+                <button
+                  type="button"
+                  class="chord-assignment-option"
+                  data-action="open-assignment"
+                  data-assignment-id="${escapeHtml(item.assignmentId)}"
+                >
+                  <strong>${escapeHtml(item.title)}</strong>
+                  ${
+                    item.teacherNote
+                      ? `<span>${escapeHtml(item.teacherNote)}</span>`
+                      : ""
+                  }
+                </button>
+              `,
+            )
+            .join("")}
+        </div>
+      </details>
+    </li>
+  `;
+}
+
 function renderMyWork(state) {
-  const items =
+  const scoreItems = state.items.filter(
+    (item) =>
+      item.practiceType ===
+      PRACTICE_TYPES.SCORE,
+  );
+  const chordItems = state.items.filter(
+    (item) =>
+      item.practiceType ===
+      PRACTICE_TYPES.CHORD_BOARD,
+  );
+
+  const content =
     state.items.length === 0
       ? "<p>Bu klasörde henüz çalışma yok.</p>"
-      : `<ul class="assignment-list">${state.items
-          .map(renderAssignmentItem)
-          .join("")}</ul>`;
+      : `
+        <ul class="assignment-list">
+          ${scoreItems
+            .map(renderScoreAssignmentItem)
+            .join("")}
+          ${renderChordAssignmentGroup(
+            chordItems,
+          )}
+        </ul>
+      `;
 
   return `
     <section aria-labelledby="page-title">
@@ -291,7 +330,7 @@ function renderMyWork(state) {
           "Repertuarım",
         )}
       </nav>
-      ${items}
+      ${content}
     </section>
   `;
 }
