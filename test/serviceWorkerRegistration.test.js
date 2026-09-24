@@ -35,7 +35,9 @@ test("service worker caches explicit app-shell and playback assets plus pinned F
     "utf8",
   );
 
-  assert.match(source, /st-student-shell-v7/);
+  assert.match(source, /st-student-shell-v8/);
+  assert.match(source, /self\.skipWaiting\(\)/);
+  assert.match(source, /self\.clients\.claim\(\)/);
   assert.match(source, /index\.html/);
   assert.match(source, /src\/ui\/main\.js/);
   assert.match(source, /request\.method\s*!==\s*["']GET["']/);
@@ -87,4 +89,37 @@ test("service worker pins the local ST score runtime asset graph without private
     assert.equal(source.includes(asset), true);
   }
   assert.doesNotMatch(source, /practicePackages|accessToken|refreshToken/i);
+});
+
+
+test("an already controlled page reloads once when the fresh service worker takes control", async () => {
+  let controllerChangeListener = null;
+  let reloadCount = 0;
+
+  const result = await registerStudentAppServiceWorker({
+    navigatorObject: {
+      serviceWorker: {
+        controller: {},
+        addEventListener(type, listener) {
+          if (type === "controllerchange") {
+            controllerChangeListener = listener;
+          }
+        },
+        removeEventListener() {},
+        async register() {
+          controllerChangeListener?.();
+          controllerChangeListener?.();
+          return {};
+        },
+      },
+    },
+    locationObject: {
+      reload() {
+        reloadCount += 1;
+      },
+    },
+  });
+
+  assert.deepEqual(result, { registered: true });
+  assert.equal(reloadCount, 1);
 });
