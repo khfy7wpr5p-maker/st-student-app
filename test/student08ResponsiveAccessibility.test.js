@@ -98,7 +98,7 @@ test("CHORD_BOARD workspace stays bounded on phone widths without changing Pract
   );
   assert.match(
     html,
-    /\.chord-diagram\s*\{[^}]*width:\s*min\(100%,\s*24rem\)[^}]*overflow-x:\s*auto/s,
+    /\.chord-diagram\s*\{[^}]*width:\s*min\(100%,\s*25rem\)[^}]*height:\s*auto[^}]*display:\s*block[^}]*overflow:\s*visible/s,
   );
   assert.match(
     html,
