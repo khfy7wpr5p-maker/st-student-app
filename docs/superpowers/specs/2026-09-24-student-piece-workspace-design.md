@@ -93,6 +93,19 @@ Therefore the Student App must not group assignments by:
 
 The missing authority is a Piece-level identity and Piece-level assignment manifest.
 
+### 3.1 Branch and dependency rule
+
+This design branch is documentation-only and is based on the current PR #29 head only so the spec can describe the already-built CHORD_BOARD consumer accurately.
+
+Future Piece Workspace product implementation must not use this documentation branch as an implicit production base.
+
+Implementation must start on a dedicated implementation branch from one of these explicitly verified states:
+
+1. current `main` after the prerequisite CHORD_BOARD consumer has merged; or
+2. an explicitly approved stacked branch whose dependency on the still-open CHORD_BOARD PR is documented and later rebased before merge.
+
+In either case, the implementation branch must be fresh-read immediately before coding and must preserve the human merge/deploy gates.
+
 ## 4. Architectural choice
 
 ### Chosen approach
