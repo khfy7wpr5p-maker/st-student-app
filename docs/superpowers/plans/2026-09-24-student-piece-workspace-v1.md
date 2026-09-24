@@ -363,7 +363,7 @@ git commit -m "feat: validate Piece child assignment authority"
 - Modify: `backend/delivery/http/router.js`
 - Test: `tests/studentDeliveryReadService.test.js`
 - Test: `tests/secureDeliveryHttp.test.js`
-- Modify composition/bootstrap file that currently constructs `createSecureDeliveryRouter()` so `teacherPieceService` is injected; use the actual fresh-read composition path discovered at implementation time and record it in the PR.
+- Modify: `backend/delivery/composition.js` to construct `createTeacherPieceService({ authorization, store, now })` and inject it into `createSecureDeliveryRouter()`.
 
 **Interfaces:**
 - Student service produces:
@@ -524,7 +524,7 @@ git commit -m "feat: add Student Piece manifest contract"
 - Modify: `src/ui/student08Composition.js`
 - Test: `test/secureDeliveryStudent08ReadService.test.js`
 - Test: `test/student08SecureDeliveryComposition.test.js`
-- Create support fixture if needed: `test/support/pieceFixtures.js`
+- Create: `test/support/pieceFixtures.js`
 
 **Interfaces:**
 - Add:
