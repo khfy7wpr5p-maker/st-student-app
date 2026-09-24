@@ -416,7 +416,7 @@ test("Piece SCORE -> TAB -> CHORDS -> TAB preserves the exact notation root and 
     "<score-partwise>SCORE</score-partwise>",
     "<score-partwise>TAB</score-partwise>",
   ]);
-  assert.equal(disposeCalls, 1);
+  assert.equal(disposeCalls, 0);
 
   state = {
     ...state,
@@ -441,7 +441,7 @@ test("Piece SCORE -> TAB -> CHORDS -> TAB preserves the exact notation root and 
   await mounted.render();
   assert.equal(root.querySelector("#st-score-root"), firstRoot);
   assert.equal(rendered.length, 3);
-  assert.equal(disposeCalls, 2);
+  assert.equal(disposeCalls, 0);
 
   await mounted.destroy();
 });
@@ -506,8 +506,12 @@ test("TAB render failure does not poison Nota and Nota can render again", async 
     disposeActivePractice() {},
   };
 
+  let hostDisposed = false;
   const notationAdapter = {
     async render({ musicXml }) {
+      if (hostDisposed) {
+        return { capability: "ERROR" };
+      }
       rendered.push(musicXml);
       return {
         capability: musicXml.includes("TAB")
@@ -515,7 +519,9 @@ test("TAB render failure does not poison Nota and Nota can render again", async 
           : "AVAILABLE",
       };
     },
-    async dispose() {},
+    async dispose() {
+      hostDisposed = true;
+    },
   };
 
   const mounted = mountStudentApp({
@@ -548,6 +554,8 @@ test("TAB render failure does not poison Nota and Nota can render again", async 
   ]);
   assert.deepEqual(capabilityUpdates, []);
   assert.notEqual(root.querySelector("#st-score-root"), null);
+  assert.equal(hostDisposed, false);
 
   await mounted.destroy();
+  assert.equal(hostDisposed, true);
 });
