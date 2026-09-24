@@ -9,6 +9,9 @@ import {
   createStudentPoolView,
 } from "../contracts/studentPoolView.js";
 import {
+  createStudentPieceManifest,
+} from "../contracts/pieceAssignment.js";
+import {
   createSecureDeliveryAssignmentRow,
   toStudentAssignmentView,
 } from "../contracts/secureDeliveryAssignment.js";
@@ -135,9 +138,191 @@ export function createSecureDeliveryStudent08ReadService({
     return row;
   }
 
+
+  async function normalizedPieces(session) {
+    requireSession(session);
+
+    if (
+      typeof apiClient.listStudentPieces !==
+      "function"
+    ) {
+      throw new TypeError(
+        "Secure Delivery Piece list API is unavailable",
+      );
+    }
+
+    const raw =
+      await apiClient.listStudentPieces();
+
+    if (!Array.isArray(raw)) {
+      throw new TypeError(
+        "student Piece response must be an array",
+      );
+    }
+
+    return uniqueById(
+      raw.map(createStudentPieceManifest),
+      "pieceAssignmentId",
+      "Piece",
+    );
+  }
+
+  async function exactPiece({
+    session,
+    pieceAssignmentId,
+  } = {}) {
+    requireSession(session);
+
+    if (
+      typeof apiClient.getStudentPiece !==
+      "function"
+    ) {
+      throw new TypeError(
+        "Secure Delivery Piece detail API is unavailable",
+      );
+    }
+
+    const id = requiredText(
+      pieceAssignmentId,
+      "pieceAssignmentId",
+    );
+    const piece = createStudentPieceManifest(
+      await apiClient.getStudentPiece(id),
+    );
+
+    if (piece.pieceAssignmentId !== id) {
+      throw new Error(
+        "Piece identity mismatch",
+      );
+    }
+
+    return piece;
+  }
+
   return Object.freeze({
     listPoolItems,
     getPoolItem,
+
+    async listPieces({
+      session,
+      state,
+    } = {}) {
+      if (
+        state !== undefined &&
+        !Object.values(
+          ASSIGNMENT_STATES,
+        ).includes(state)
+      ) {
+        throw new TypeError(
+          "Piece state filter is invalid",
+        );
+      }
+
+      const pieces =
+        await normalizedPieces(session);
+
+      return Object.freeze(
+        pieces.filter(
+          (piece) =>
+            state === undefined ||
+            piece.state === state,
+        ),
+      );
+    },
+
+    async getPiece(args = {}) {
+      return exactPiece(args);
+    },
+
+    async getPieceScoreItem({
+      session,
+      pieceAssignmentId,
+    } = {}) {
+      const piece = await exactPiece({
+        session,
+        pieceAssignmentId,
+      });
+
+      const assignmentId =
+        piece.contentRefs
+          .scoreAssignmentId;
+
+      if (assignmentId === null) {
+        throw new Error(
+          "piece score unavailable",
+        );
+      }
+
+      const row = await exactAssignment({
+        session,
+        assignmentId,
+      });
+
+      if (
+        row.practiceType !==
+        PRACTICE_TYPES.SCORE
+      ) {
+        throw new Error(
+          "assignment type unavailable",
+        );
+      }
+
+      return Object.freeze({
+        accessRef: Object.freeze({
+          kind: "SECURE_DELIVERY",
+          deliveryId: row.deliveryId,
+        }),
+        practiceType:
+          PRACTICE_TYPES.SCORE,
+        package: row.package,
+      });
+    },
+
+    async listPieceChordItems({
+      session,
+      pieceAssignmentId,
+    } = {}) {
+      const piece = await exactPiece({
+        session,
+        pieceAssignmentId,
+      });
+
+      const items = [];
+      for (
+        const assignmentId
+        of piece.contentRefs
+          .chordAssignmentIds
+      ) {
+        const row = await exactAssignment({
+          session,
+          assignmentId,
+        });
+
+        if (
+          row.practiceType !==
+          PRACTICE_TYPES.CHORD_BOARD
+        ) {
+          throw new Error(
+            "assignment type unavailable",
+          );
+        }
+
+        items.push(
+          Object.freeze({
+            accessRef: Object.freeze({
+              kind: "SECURE_DELIVERY",
+              deliveryId:
+                row.deliveryId,
+            }),
+            practiceType:
+              PRACTICE_TYPES.CHORD_BOARD,
+            package: row.package,
+          }),
+        );
+      }
+
+      return Object.freeze(items);
+    },
 
     async listAssignments({
       session,
