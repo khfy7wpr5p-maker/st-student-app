@@ -54,41 +54,55 @@ function renderPieceTeacherNote(
   }
 
   return `
-    <p class="piece-teacher-note">
-      <span class="sr-only">Öğretmen notu: </span>
-      ${escapeHtml(
+    <aside
+      class="piece-teacher-note"
+      aria-label="Öğretmen notu"
+    >
+      <strong>Öğretmen notu</strong>
+      <p>${escapeHtml(
         viewModel.teacherNote,
-      )}
-    </p>
+      )}</p>
+    </aside>
   `;
 }
 
-function renderScorePanel(viewModel) {
+function renderMusicPanel(viewModel) {
   if (
-    viewModel.availableViews.score !==
-      true ||
+    viewModel.availableViews.score !== true ||
     viewModel.score?.practice === null
   ) {
     return "";
   }
 
-  const hidden = selected(
-    viewModel,
-    PIECE_WORKSPACE_VIEWS.SCORE,
-  )
-    ? ""
-    : " hidden";
+  const musicSelected =
+    selected(
+      viewModel,
+      PIECE_WORKSPACE_VIEWS.SCORE,
+    ) ||
+    selected(
+      viewModel,
+      PIECE_WORKSPACE_VIEWS.TAB,
+    );
+  const hidden = musicSelected ? "" : " hidden";
+  const notationHeading =
+    selected(
+      viewModel,
+      PIECE_WORKSPACE_VIEWS.TAB,
+    )
+      ? "TAB"
+      : "Nota";
 
   return `
     <div
       class="piece-score-panel"
-      data-piece-panel="SCORE"${hidden}
+      data-piece-panel="${notationHeading === "TAB" ? "TAB" : "SCORE"}"${hidden}
     >
       ${renderPracticeWorkspace(
         viewModel.score.practice,
         {
           showHomeAction: false,
           showTitle: false,
+          notationHeading,
         },
       )}
     </div>
@@ -203,6 +217,19 @@ export function renderPieceWorkspace(
   }
 
   if (
+    viewModel.availableViews?.tab ===
+    true
+  ) {
+    viewButtons.push(
+      renderViewButton(
+        viewModel,
+        PIECE_WORKSPACE_VIEWS.TAB,
+        "TAB",
+      ),
+    );
+  }
+
+  if (
     viewModel.availableViews?.chords ===
     true
   ) {
@@ -250,7 +277,7 @@ export function renderPieceWorkspace(
       </div>
 
       <div class="piece-workspace-content">
-        ${renderScorePanel(
+        ${renderMusicPanel(
           viewModel,
         )}
         ${renderChordPanel(
