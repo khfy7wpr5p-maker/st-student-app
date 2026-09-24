@@ -33,19 +33,19 @@ test("playback toolbar uses compact icon controls with accessible names", () => 
   assert.match(html, /class="practice-playback-toolbar"/);
   assert.match(
     html,
-    /data-action="play-practice"[^>]*aria-label="Dinle"[^>]*title="Dinle"[^>]*>[sS]*?▶/,
+    /data-action="play-practice"[\s\S]*?aria-label="Dinle"[\s\S]*?title="Dinle"[\s\S]*?▶/,
   );
   assert.match(
     html,
-    /data-action="pause-practice"[^>]*aria-label="Duraklat"[^>]*title="Duraklat"[^>]*>[sS]*?⏸/,
+    /data-action="pause-practice"[\s\S]*?aria-label="Duraklat"[\s\S]*?title="Duraklat"[\s\S]*?⏸/,
   );
   assert.match(
     html,
-    /data-action="restart-practice"[^>]*aria-label="Baştan"[^>]*title="Baştan"[^>]*>[sS]*?↺/,
+    /data-action="restart-practice"[\s\S]*?aria-label="Baştan"[\s\S]*?title="Baştan"[\s\S]*?↺/,
   );
   assert.doesNotMatch(
     html,
-    /data-action="play-practice"[^>]*>s*Dinles*</button>/,
+    /data-action="play-practice"[^>]*>\s*Dinle\s*<\/button>/,
   );
 });
 
@@ -61,7 +61,7 @@ test("tempo stays visible inside the compact playback toolbar", () => {
   assert.match(html, />BPM</);
   assert.match(
     html,
-    /data-action="set-practice-tempo"[^>]*aria-label="Tempoyu uygula"[^>]*>[sS]*?✓/,
+    /data-action="set-practice-tempo"[\s\S]*?aria-label="Tempoyu uygula"[\s\S]*?✓/,
   );
 });
 
@@ -73,18 +73,18 @@ test("mobile CSS keeps playback controls compact instead of full-width stacked b
 
   assert.match(
     html,
-    /.practice-playback-toolbars*{[^}]*display:s*flex[^}]*align-items:s*center/s,
+    /\.practice-playback-toolbar\s*\{[^}]*display:\s*flex[^}]*align-items:\s*center/s,
   );
   assert.match(
     html,
-    /.practice-control-buttons*{[^}]*width:s*2.75rem[^}]*min-height:s*2.75rem[^}]*padding:s*0/s,
+    /\.practice-control-button,[\s\S]*?\.practice-tempo-apply\s*\{[^}]*width:\s*2\.75rem[^}]*min-height:\s*2\.75rem[^}]*padding:\s*0/s,
   );
   assert.match(
     html,
-    /@medias*(max-width:s*640px)[sS]*?.practice-playback-controlss*{[^}]*display:s*flex[^}]*grid-template-columns:s*none/s,
+    /@media\s*\(max-width:\s*640px\)[\s\S]*?\.practice-playback-controls\s*\{[^}]*display:\s*flex[^}]*grid-template-columns:\s*none/s,
   );
   assert.match(
     html,
-    /@medias*(max-width:s*640px)[sS]*?.practice-tempos*{[^}]*display:s*flex/s,
+    /@media\s*\(max-width:\s*640px\)[\s\S]*?\.practice-tempo\s*\{[^}]*display:\s*flex/s,
   );
 });

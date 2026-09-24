@@ -193,9 +193,9 @@ test("APPROXIMATE playback renders bounded quality and teacher-gated controls", 
     html,
     /<p class="practice-playback-quality">Yaklaşık çalma<\/p>/,
   );
-  assert.match(html, /data-action="play-practice">Dinle/);
-  assert.match(html, /data-action="pause-practice">Duraklat/);
-  assert.match(html, /data-action="restart-practice">Baştan/);
+  assert.match(html, /data-action="play-practice"[\s\S]*?aria-label="Dinle"/);
+  assert.match(html, /data-action="pause-practice"[\s\S]*?aria-label="Duraklat"/);
+  assert.match(html, /data-action="restart-practice"[\s\S]*?aria-label="Baştan"/);
   assert.match(html, /min="20"/);
   assert.match(html, /max="300"/);
   assert.match(
@@ -208,7 +208,7 @@ test("FULL playback does not render approximate quality claim", () => {
   const html = renderStudentApp(playbackPracticeState({ quality: "FULL" }));
 
   assert.doesNotMatch(html, /Yaklaşık çalma/);
-  assert.match(html, /<h2 id="playback-heading">Dinleme<\/h2>/);
+  assert.match(html, /<h2 id="playback-heading" class="sr-only">Dinleme<\/h2>/);
 });
 
 test("playback renderer never exposes private plan or provider detail", () => {

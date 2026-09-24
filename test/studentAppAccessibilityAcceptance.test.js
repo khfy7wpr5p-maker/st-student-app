@@ -67,7 +67,7 @@ test("Practice exposes semantic headings and a labeled notation region", () => {
     html,
     /id="st-score-root" role="region" aria-label="Nota"/,
   );
-  assert.match(html, /<h2 id="playback-heading">Dinleme<\/h2>/);
+  assert.match(html, /<h2 id="playback-heading" class="sr-only">Dinleme<\/h2>/);
   assert.match(html, /<label for="practice-tempo">Tempo<\/label>/);
   assert.match(
     html,

@@ -42,7 +42,7 @@ test("S08-4B Practice keeps notation as the primary workspace and preserves the 
   );
 });
 
-test("S08-4B Practice keeps playback actions compact and unchanged", () => {
+test("S08-4B Practice keeps playback actions compact and accessible", () => {
   const html = renderPracticeWorkspace(practice(), { showHomeAction: false });
 
   assert.match(
@@ -57,7 +57,7 @@ test("S08-4B Practice keeps playback actions compact and unchanged", () => {
   ]) {
     assert.match(
       html,
-      new RegExp(`data-action="${action}">${label}<`),
+      new RegExp(`data-action="${action}"[\\s\\S]*?aria-label="${label}"`),
     );
   }
 });
