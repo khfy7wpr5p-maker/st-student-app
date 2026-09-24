@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "rendererSourceRevision": "78eec1d958923e871b5069f5026eed9e4ead2c33",
+  "rendererSourceRevision": "8eed67d40b0e3365a2bf804ec2f17c64471e95ff",
   "scoreRendererContractVersion": "0.2.0",
   "packages": {
     "contracts": "0.1.0",
@@ -23,8 +23,8 @@
     },
     {
       "path": "browser-bootstrap.mjs",
-      "bytes": 10924,
-      "sha256": "05f7f6b81916dc2d08f501eee5d95c6343ce5056d914816677cbeda8980855b7"
+      "bytes": 10907,
+      "sha256": "9532fcfabaf9a735fabe88b0cad927a9558bfa46e5a36a779e00eb3c70d0fe23"
     },
     {
       "path": "index.html",
@@ -43,8 +43,8 @@
     },
     {
       "path": "modules/browser-host.js",
-      "bytes": 17184,
-      "sha256": "5631c3a089b4150a0f7c1274e372907ba1b0530959763dfaa4bac331ede60212"
+      "bytes": 17339,
+      "sha256": "e7528bc78dfc02610529cd24f93cade2e5680b6254beba12ade5816cdfef3544"
     },
     {
       "path": "modules/contracts.js",
