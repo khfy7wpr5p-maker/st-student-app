@@ -155,6 +155,8 @@ test("Piece Workspace is focus-mode with explicit back and capability-driven vie
     /data-action="select-piece-view"[^>]*data-piece-view="CHORDS"[^>]*>Akorlar<\/button>/s,
   );
   assert.doesNotMatch(html, />TAB<\/button>/);
+  assert.match(html, /<strong>Öğretmen notu<\/strong>/);
+  assert.match(html, /Parçayı yavaş çalış\./);
   assert.match(html, /id="st-score-root"/);
   assert.doesNotMatch(html, /class="student-navigation"/);
 });
@@ -196,5 +198,57 @@ test("Piece Akorlar view lists every authorized chord and reuses exact chord ren
   assert.match(
     html,
     /class="piece-score-panel"[^>]*hidden/s,
+  );
+});
+
+
+test("Piece Workspace shows TAB between Nota and Akorlar when exact TAB MusicXML is available", () => {
+  const base = workspace("SCORE");
+  const pieceWorkspace = Object.freeze({
+    ...base,
+    selectedView: "TAB",
+    availableViews: Object.freeze({
+      score: true,
+      tab: true,
+      chords: true,
+    }),
+    score: Object.freeze({
+      ...base.score,
+      practice: Object.freeze({
+        ...base.score.practice,
+        capabilities: Object.freeze({
+          ...base.score.practice.capabilities,
+          guitarTab: "AVAILABLE",
+        }),
+      }),
+    }),
+  });
+
+  const html = renderStudentApp({
+    student08: true,
+    screen: STUDENT_APP_SCREENS.PIECE_WORKSPACE,
+    session: { studentId: "student-a" },
+    items: [],
+    practice: null,
+    chordBoard: null,
+    pieceWorkspace,
+  });
+
+  const nota = html.indexOf(">Nota</button>");
+  const tab = html.indexOf(">TAB</button>");
+  const chords = html.indexOf(">Akorlar</button>");
+
+  assert.ok(nota >= 0);
+  assert.ok(tab > nota);
+  assert.ok(chords > tab);
+  assert.match(
+    html,
+    /data-piece-view="TAB"[^>]*aria-selected="true"/s,
+  );
+  assert.match(html, /<h2 id="notation-heading">TAB<\/h2>/);
+  assert.match(html, /aria-label="TAB"/);
+  assert.equal(
+    (html.match(/id="st-score-root"/g) ?? []).length,
+    1,
   );
 });
