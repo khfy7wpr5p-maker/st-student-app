@@ -88,7 +88,7 @@ test("Piece chord selector uses authorized assignment IDs, not package IDs", () 
     html,
     /data-assignment-id="pkg-(?:am|f)"/,
   );
-  assert.match(html, />F<\\/strong>/);
+  assert.equal(html.includes(">F</strong>"), true);
 });
 
 test("invalid Piece chord selection falls back only to an authorized chord", () => {
@@ -103,5 +103,5 @@ test("invalid Piece chord selection falls back only to an authorized chord", () 
     /data-assignment-id="assignment-am"[^>]*aria-pressed="true"/s,
   );
   assert.doesNotMatch(html, /not-authorized/);
-  assert.match(html, />Am<\\/strong>/);
+  assert.equal(html.includes(">Am</strong>"), true);
 });
