@@ -6,56 +6,12 @@ import {
   restoreStudentChordBoardPackageV1,
   validateStudentChordBoardPackageV1,
 } from "../src/contracts/studentChordBoardPackage.js";
+import {
+  makeChordBoardPackage,
+} from "./support/chordBoardFixtures.js";
 
 function validChordPackage() {
-  return {
-    schemaVersion: "1.0.0",
-    packageType: "CHORD_BOARD",
-    packageId: "assignment-chord-a",
-    title: "Am Akor Çalışması",
-    assignmentAuthority: {
-      assignmentId: "assignment-chord-a",
-      state: "teacher_assigned",
-      assignedAt: "2026-09-23T10:00:00Z",
-    },
-    publication: {
-      scope: "student_private",
-      recipientStudentId: "server-student-a",
-    },
-    content: {
-      chordBoard: {
-        schemaVersion: 1,
-        sourceKind: "chord_board_exact_voicing",
-        chord: {
-          canonicalSymbol: "Am",
-          canonicalRoot: "A",
-          quality: "minor",
-          displayRoot: "A",
-          displaySymbol: "Am",
-        },
-        voicing: {
-          frets: [-1, 0, 2, 2, 1, 0],
-          fingers: [-1, 0, 2, 3, 1, 0],
-          barres: [],
-          shape: "open",
-          generated: false,
-          curated: true,
-        },
-        provenance: {
-          sourceRepository: "st-guitar-chord-board",
-          sourceCommit:
-            "1111111111111111111111111111111111111111",
-          catalogFingerprint:
-            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        },
-        voicingFingerprint:
-          "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-      },
-    },
-    practice: {
-      teacherNote: "60 BPM ile çalış.",
-    },
-  };
+  return makeChordBoardPackage();
 }
 
 test("valid StudentChordBoardPackageV1 restores exact deeply frozen data", () => {
