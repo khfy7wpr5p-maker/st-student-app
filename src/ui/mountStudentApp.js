@@ -376,7 +376,16 @@ export function mountStudentApp({
     }
 
     activeNotationKey = null;
-    updateNotationCapability(capability);
+
+    const tabRenderFailed =
+      state.screen ===
+        STUDENT_APP_SCREENS.PIECE_WORKSPACE &&
+      state.pieceWorkspace?.selectedView ===
+        "TAB";
+
+    if (!tabRenderFailed) {
+      updateNotationCapability(capability);
+    }
   }
 
   function render() {
