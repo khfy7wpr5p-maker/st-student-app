@@ -1,4 +1,4 @@
-const CACHE_NAME = "st-student-shell-v12";
+const CACHE_NAME = "st-student-shell-v13";
 
 const FIREBASE_RUNTIME_ASSETS = Object.freeze([
   "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js",

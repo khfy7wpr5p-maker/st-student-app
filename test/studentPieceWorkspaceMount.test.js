@@ -57,6 +57,7 @@ function makeRoot() {
 
   function makeNotationRoot() {
     const node = {
+      childNodes: [{}],
       parentNode: {
         replaceChild(next, current) {
           if (current === notationRoot) {
@@ -548,6 +549,85 @@ test("TAB render failure does not poison Nota and Nota can render again", async 
   ]);
   assert.deepEqual(capabilityUpdates, []);
   assert.notEqual(root.querySelector("#st-score-root"), null);
+
+  await mounted.destroy();
+});
+
+
+test("Piece TAB rerenders the same source when playback repaint leaves the persistent notation root empty", async () => {
+  const base = workspace("TAB");
+  let state = {
+    student08: true,
+    screen: STUDENT_APP_SCREENS.PIECE_WORKSPACE,
+    session: { studentId: "student-a" },
+    items: [],
+    practice: null,
+    chordBoard: null,
+    pieceWorkspace: {
+      ...base,
+      availableViews: {
+        score: true,
+        tab: true,
+        chords: true,
+      },
+      score: {
+        ...base.score,
+        practice: {
+          ...base.score.practice,
+          capabilities: {
+            ...base.score.practice.capabilities,
+            guitarTab: "AVAILABLE",
+          },
+        },
+      },
+    },
+  };
+  const root = makeRoot();
+  let renderCalls = 0;
+
+  const controller = {
+    getState() {
+      return state;
+    },
+    getPracticeRenderSource() {
+      return {
+        kind: "musicxml",
+        musicXml: "<score-partwise>TAB</score-partwise>",
+        sourceId: "pkg-score-a:guitar-tab",
+      };
+    },
+    setNotationCapability() {},
+    disposeActivePractice() {},
+  };
+
+  const notationAdapter = {
+    async render() {
+      renderCalls += 1;
+      return { capability: "AVAILABLE" };
+    },
+    async dispose() {},
+  };
+
+  const mounted = mountStudentApp({
+    root,
+    controller,
+    notationAdapter,
+  });
+
+  await mounted.render();
+  assert.equal(renderCalls, 1);
+
+  const notationRoot =
+    root.querySelector("#st-score-root");
+  notationRoot.childNodes.length = 0;
+
+  await mounted.render();
+
+  assert.equal(
+    root.querySelector("#st-score-root"),
+    notationRoot,
+  );
+  assert.equal(renderCalls, 2);
 
   await mounted.destroy();
 });
