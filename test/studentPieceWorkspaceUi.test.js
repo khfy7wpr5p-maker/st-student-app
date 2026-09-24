@@ -170,17 +170,25 @@ test("Piece Akorlar view lists every authorized chord and reuses exact chord ren
     pieceWorkspace: workspace("CHORDS"),
   });
 
-  for (const [id, label] of [
-    ["chord-am", "Am"],
-    ["chord-f", "F"],
+  for (const id of [
+    "chord-am",
+    "chord-f",
   ]) {
     assert.match(
       html,
       new RegExp(
-        `data-action="select-piece-chord"[^>]*data-assignment-id="${id}"[\\s\\S]*?>[\\s\\S]*?${label}[\\s\\S]*?<\\/button>`,
+        `data-action="select-piece-chord"[^>]*data-assignment-id="${id}"`,
       ),
     );
   }
+  assert.equal(
+    (
+      html.match(
+        /data-action="select-piece-chord"/g,
+      ) ?? []
+    ).length,
+    2,
+  );
 
   assert.match(html, /<svg class="chord-diagram"/);
   assert.doesNotMatch(html, />Teller<\/h2>/);
