@@ -115,3 +115,26 @@ test("canonical event collection is required", () => {
   assert.equal(result.ok, false);
   assert.match(result.errors.join("\n"), /canonicalEvents/);
 });
+
+
+test("PracticePackage accepts exact guitar TAB MusicXML and rejects undefined TAB shapes", () => {
+  const valid = makePackage();
+  valid.content.guitarTab = {
+    format: "musicxml",
+    data: "<score-partwise><part-list/></score-partwise>",
+  };
+  assert.equal(validatePracticePackage(valid).ok, true);
+
+  for (const guitarTab of [
+    { unknown: true },
+    { format: "musicxml", data: "" },
+    { format: "ascii", data: "0-1-2" },
+    { format: "musicxml", data: "<score-partwise/>", extra: true },
+  ]) {
+    const pkg = makePackage();
+    pkg.content.guitarTab = guitarTab;
+    const result = validatePracticePackage(pkg);
+    assert.equal(result.ok, false);
+    assert.match(result.errors.join("\n"), /guitarTab/i);
+  }
+});
