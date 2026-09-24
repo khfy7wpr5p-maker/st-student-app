@@ -56,12 +56,12 @@ jobs:
       - name: Verify exported provenance
         working-directory: renderer
         run: |
-          node -e 'const m=require("./browser-runtime/runtime-manifest.json"); if(m.runtimeTarget!=="browser" || m.rendererSourceRevision!==process.env.RENDERER_SHA || m.scoreRendererContractVersion!=="0.2.0") process.exit(1)'
+          node -e 'const m=require("./dist/browser-runtime/runtime-manifest.json"); if(m.runtimeTarget!=="browser" || m.rendererSourceRevision!==process.env.RENDERER_SHA || m.scoreRendererContractVersion!=="0.2.0") process.exit(1)'
       - name: Upload approved browser runtime
         uses: actions/upload-artifact@v4
         with:
           name: ses6-browser-runtime
-          path: renderer/browser-runtime
+          path: renderer/dist/browser-runtime
           if-no-files-found: error
 
   tab-browser:
