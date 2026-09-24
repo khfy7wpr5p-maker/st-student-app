@@ -13,7 +13,7 @@ test("vendored ST score runtime matches its pinned provenance and integrity mani
   assert.equal(manifest.schemaVersion, 1);
   assert.equal(
     manifest.rendererSourceRevision,
-    "387fa014ef751b7e4c717b50ffac762c71e67fa8",
+    "375cb5f134a91606eeac59df9cbe33dedbe57e47",
   );
   assert.equal(manifest.scoreRendererContractVersion, "0.2.0");
   assert.equal(manifest.runtimeTarget, "browser");
