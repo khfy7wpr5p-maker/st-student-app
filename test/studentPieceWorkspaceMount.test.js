@@ -182,3 +182,141 @@ test("Piece SCORE keeps the exact notation root across SCORE -> CHORDS -> SCORE"
 
   await mounted.destroy();
 });
+
+
+function makeActionRoot() {
+  let listener = null;
+  let markup = "";
+
+  return {
+    root: {
+      ownerDocument: {
+        activeElement: null,
+        defaultView: {
+          scrollY: 360,
+        },
+      },
+      addEventListener(type, callback) {
+        if (type === "click") {
+          listener = callback;
+        }
+      },
+      removeEventListener(type, callback) {
+        if (
+          type === "click" &&
+          listener === callback
+        ) {
+          listener = null;
+        }
+      },
+      contains() {
+        return true;
+      },
+      querySelector() {
+        return null;
+      },
+      querySelectorAll() {
+        return [];
+      },
+      get innerHTML() {
+        return markup;
+      },
+      set innerHTML(value) {
+        markup = value;
+      },
+    },
+    async click(dataset) {
+      if (listener === null) {
+        throw new Error(
+          "click listener unavailable",
+        );
+      }
+
+      const actionElement = {
+        dataset,
+      };
+      await listener({
+        target: {
+          closest() {
+            return actionElement;
+          },
+        },
+      });
+    },
+  };
+}
+
+test("Piece click wiring forwards Piece identity, view, and return scroll context", async () => {
+  const actionRoot =
+    makeActionRoot();
+  const calls = [];
+  const state = {
+    student08: true,
+    screen: STUDENT_APP_SCREENS.MY_WORK,
+    session: {
+      studentId: "student-a",
+    },
+    assignmentState: "ACTIVE",
+    items: [],
+    practice: null,
+    chordBoard: null,
+  };
+  const controller = {
+    getState() {
+      return state;
+    },
+    getPracticeRenderSource() {
+      return null;
+    },
+    async openPiece(
+      pieceAssignmentId,
+      returnContext,
+    ) {
+      calls.push([
+        "open",
+        pieceAssignmentId,
+        returnContext,
+      ]);
+    },
+    selectPieceView(view) {
+      calls.push([
+        "view",
+        view,
+      ]);
+    },
+    disposeActivePractice() {},
+  };
+
+  const mounted = mountStudentApp({
+    root: actionRoot.root,
+    controller,
+  });
+  await mounted.render();
+
+  await actionRoot.click({
+    action: "open-piece",
+    pieceAssignmentId: "piece-a",
+    assignmentState: "ACTIVE",
+  });
+  await actionRoot.click({
+    action: "select-piece-view",
+    pieceView: "CHORDS",
+  });
+
+  assert.deepEqual(calls, [
+    [
+      "open",
+      "piece-a",
+      {
+        folderState: "ACTIVE",
+        scrollPosition: 360,
+      },
+    ],
+    [
+      "view",
+      "CHORDS",
+    ],
+  ]);
+
+  await mounted.destroy();
+});
