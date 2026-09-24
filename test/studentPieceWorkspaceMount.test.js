@@ -416,7 +416,7 @@ test("Piece SCORE -> TAB -> CHORDS -> TAB preserves the exact notation root and 
     "<score-partwise>SCORE</score-partwise>",
     "<score-partwise>TAB</score-partwise>",
   ]);
-  assert.equal(disposeCalls, 1);
+  assert.equal(disposeCalls, 0);
 
   state = {
     ...state,
@@ -424,7 +424,7 @@ test("Piece SCORE -> TAB -> CHORDS -> TAB preserves the exact notation root and 
   };
   await mounted.render();
   assert.equal(root.querySelector("#st-score-root"), firstRoot);
-  assert.equal(disposeCalls, 1);
+  assert.equal(disposeCalls, 0);
 
   state = {
     ...state,
@@ -441,7 +441,7 @@ test("Piece SCORE -> TAB -> CHORDS -> TAB preserves the exact notation root and 
   await mounted.render();
   assert.equal(root.querySelector("#st-score-root"), firstRoot);
   assert.equal(rendered.length, 3);
-  assert.equal(disposeCalls, 2);
+  assert.equal(disposeCalls, 0);
 
   await mounted.destroy();
 });
