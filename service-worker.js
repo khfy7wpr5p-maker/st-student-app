@@ -1,4 +1,4 @@
-const CACHE_NAME = "st-student-shell-v9";
+const CACHE_NAME = "st-student-shell-v10";
 
 const FIREBASE_RUNTIME_ASSETS = Object.freeze([
   "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js",
@@ -24,6 +24,7 @@ const SHELL_ASSETS = Object.freeze([
   "./src/ui/shellActions.js",
   "./src/ui/escapeHtml.js",
   "./src/practice/notationAdapter.js",
+  "./src/practice/notationViewport.js",
   "./src/practice/notationRuntimeLoader.js",
   "./src/playback/playbackPlan.js",
   "./src/playback/musicXmlPlaybackDom.js",

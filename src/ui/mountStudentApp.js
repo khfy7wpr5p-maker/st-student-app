@@ -1,5 +1,6 @@
 import { CONNECTIVITY_STATES } from "../offline/connectivityPort.js";
 import { PRACTICE_CAPABILITY_STATES } from "../practice/practiceCapabilities.js";
+import { fitNotationViewport } from "../practice/notationViewport.js";
 import { STUDENT_APP_SCREENS } from "./studentAppController.js";
 import { renderStudentApp } from "./renderStudentApp.js";
 import { dispatchStudentAppAction } from "./shellActions.js";
@@ -353,6 +354,13 @@ export function mountStudentApp({
       : PRACTICE_CAPABILITY_STATES.ERROR;
 
     if (capability === PRACTICE_CAPABILITY_STATES.AVAILABLE) {
+      try {
+        fitNotationViewport(persistentNotationRoot, {
+          viewportWidth: root.ownerDocument?.defaultView?.innerWidth,
+        });
+      } catch {
+        // Viewport fitting is presentation-only.
+      }
       activeNotationKey = renderKey;
       return;
     }
