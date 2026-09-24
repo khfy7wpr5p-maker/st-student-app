@@ -18,6 +18,9 @@ import {
 import {
   makeApprovedPracticePackage,
 } from "./support/practiceFixtures.js";
+import {
+  makeChordBoardPracticeItem,
+} from "./support/chordBoardFixtures.js";
 
 const studentA = createStudentSession({
   studentId: "firebase-uid-a",
@@ -41,70 +44,11 @@ function mutableConnectivity(
   };
 }
 
-function chordPackage(
-  assignmentId = "assignment-chord-a",
-) {
-  return {
-    schemaVersion: "1.0.0",
-    packageType: "CHORD_BOARD",
-    packageId: assignmentId,
-    title: "Am Akor Çalışması",
-    assignmentAuthority: {
-      assignmentId,
-      state: "teacher_assigned",
-      assignedAt: "2026-09-23T10:00:00Z",
-    },
-    publication: {
-      scope: "student_private",
-      recipientStudentId: "server-student-a",
-    },
-    content: {
-      chordBoard: {
-        schemaVersion: 1,
-        sourceKind: "chord_board_exact_voicing",
-        chord: {
-          canonicalSymbol: "Am",
-          canonicalRoot: "A",
-          quality: "minor",
-          displayRoot: "A",
-          displaySymbol: "Am",
-        },
-        voicing: {
-          frets: [-1, 0, 2, 2, 1, 0],
-          fingers: [-1, 0, 2, 3, 1, 0],
-          barres: [],
-          shape: "open",
-          generated: false,
-          curated: true,
-        },
-        provenance: {
-          sourceRepository: "st-guitar-chord-board",
-          sourceCommit:
-            "1111111111111111111111111111111111111111",
-          catalogFingerprint:
-            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        },
-        voicingFingerprint:
-          "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-      },
-    },
-    practice: {
-      teacherNote: "60 BPM ile çalış.",
-    },
-  };
-}
-
 function chordItem(
   assignmentId = "assignment-chord-a",
 ) {
-  return Object.freeze({
-    accessRef: Object.freeze({
-      kind: "SECURE_DELIVERY",
-      deliveryId: assignmentId,
-    }),
-    practiceType:
-      PRACTICE_TYPES.CHORD_BOARD,
-    package: chordPackage(assignmentId),
+  return makeChordBoardPracticeItem({
+    assignmentId,
   });
 }
 
