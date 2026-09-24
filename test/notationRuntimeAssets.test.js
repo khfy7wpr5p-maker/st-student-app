@@ -13,7 +13,7 @@ test("vendored ST score runtime matches its pinned provenance and integrity mani
   assert.equal(manifest.schemaVersion, 1);
   assert.equal(
     manifest.rendererSourceRevision,
-    "78eec1d958923e871b5069f5026eed9e4ead2c33",
+    "8eed67d40b0e3365a2bf804ec2f17c64471e95ff",
   );
   assert.equal(manifest.scoreRendererContractVersion, "0.2.0");
   assert.equal(manifest.runtimeTarget, "browser");
@@ -43,6 +43,11 @@ test("vendored browser bootstrap remains local, root-bound, and contract-ready",
   assert.match(source, /st-score-render-host-ready/);
   assert.match(source, /contractVersion:\s*SCORE_RENDERER_CONTRACT_VERSION/);
   assert.doesNotMatch(source, /fetch\s*\(|XMLHttpRequest|WebSocket|https?:\/\//i);
+  assert.match(source, /activeHost\s*\?\?\s*createHost\(\)/);
+  assert.doesNotMatch(
+    source,
+    /await clearActiveHost\(\);\s*const nextHost = createHost\(\)/,
+  );
 });
 
 
@@ -56,4 +61,21 @@ test("vendored runtime CSP rejects unsafe-inline and pins generated hashes", asy
   assert.match(source, /script-src 'self' 'sha256-[^']+'/);
   assert.match(source, /style-src 'sha256-[^']+'/);
   assert.doesNotMatch(source, /'unsafe-inline'/);
+});
+
+
+test("vendored browser host keeps one renderer warm across valid replacement renders", async () => {
+  const source = await readFile(
+    new URL("modules/browser-host.js", RUNTIME_ROOT),
+    "utf8",
+  );
+
+  assert.match(
+    source,
+    /this\.#renderer\s*\?\?\s*this\.#rendererFactory\(this\.#container\)/,
+  );
+  assert.doesNotMatch(
+    source,
+    /await this\.#resetCurrentRenderer\(\);\s*this\.#requireAvailable\(\);\s*try\s*\{\s*const renderer = this\.#rendererFactory/,
+  );
 });
