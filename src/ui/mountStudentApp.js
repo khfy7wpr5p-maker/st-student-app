@@ -187,21 +187,13 @@ export function mountStudentApp({
           ? focusedActionIdentity(root)
           : null;
 
-      const preserveNotationRoot =
-        presentationKey === lastPresentationKey;
       const liveNotationRoot = root.querySelector?.("#st-score-root") ?? null;
 
-      if (!preserveNotationRoot) {
-        persistentNotationRoot = null;
-      } else if (
-        persistentNotationRoot === null &&
-        liveNotationRoot !== null
-      ) {
+      if (persistentNotationRoot === null && liveNotationRoot !== null) {
         persistentNotationRoot = liveNotationRoot;
       }
 
       if (
-        preserveNotationRoot &&
         liveNotationRoot !== null &&
         liveNotationRoot === persistentNotationRoot
       ) {
@@ -223,10 +215,7 @@ export function mountStudentApp({
       if (replacementNotationRoot !== null) {
         if (persistentNotationRoot === null) {
           persistentNotationRoot = replacementNotationRoot;
-        } else if (
-          preserveNotationRoot &&
-          replacementNotationRoot !== persistentNotationRoot
-        ) {
+        } else if (replacementNotationRoot !== persistentNotationRoot) {
           if (typeof replacementNotationRoot.replaceWith === "function") {
             replacementNotationRoot.replaceWith(persistentNotationRoot);
           } else if (typeof replacementNotationRoot.parentNode?.replaceChild === "function") {
