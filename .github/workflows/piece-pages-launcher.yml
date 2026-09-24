@@ -24,13 +24,16 @@ jobs:
       - name: Checkout exact Piece preview head
         uses: actions/checkout@v5
         with:
-          ref: 0b946c3f9b23cee65e1883e8f4aaede11a830898
+          ref: ff0a0d35768e7926a7979c8134c109ee3dc73388
 
       - name: Verify exact preview head
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "0b946c3f9b23cee65e1883e8f4aaede11a830898"
+          test "$(git rev-parse HEAD)" = "ff0a0d35768e7926a7979c8134c109ee3dc73388"
+
+      - name: Validate preview fixture syntax
+        run: node --check .github/preview/piece-workspace-preview.js
 
       - name: Prepare bounded UI-only preview
         shell: bash
@@ -58,7 +61,7 @@ jobs:
               raise SystemExit("preview service worker bootstrap marker missing")
           sw.write_text(text.replace(old, new))
           PY
-          printf '%s\n' "0b946c3f9b23cee65e1883e8f4aaede11a830898" > _site/preview-head.txt
+          printf '%s\n' "ff0a0d35768e7926a7979c8134c109ee3dc73388" > _site/preview-head.txt
           touch _site/.nojekyll
 
       - name: Configure Pages
