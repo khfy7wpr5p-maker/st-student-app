@@ -1,4 +1,7 @@
 import { escapeHtml } from "./escapeHtml.js";
+import {
+  renderChordDiagramSvg,
+} from "./chordDiagramSvg.js";
 
 function stringDescription(item) {
   if (item.state === "MUTED") {
@@ -25,96 +28,41 @@ function barreDescription(barre) {
   );
 }
 
-function fretWindow(viewModel) {
-  const positiveFrets = [
-    ...viewModel.strings
-      .map((item) => item.fret)
-      .filter((fret) => fret > 0),
-    ...viewModel.barres.map(
-      (barre) => barre.fret,
-    ),
-  ];
-
-  if (positiveFrets.length === 0) {
-    return Object.freeze({
-      firstFret: 1,
-      lastFret: 5,
-    });
-  }
-
-  const minimum = Math.min(...positiveFrets);
-  const firstFret =
-    minimum > 4 ? minimum : 1;
-
-  return Object.freeze({
-    firstFret,
-    lastFret: firstFret + 4,
-  });
-}
-
-function renderVisualString(
-  item,
-  firstFret,
+function renderAccessibilityDescription(
+  viewModel,
 ) {
-  const marker =
-    item.state === "MUTED"
-      ? "×"
-      : item.state === "OPEN"
-        ? "○"
-        : String(item.finger);
+  const strings = viewModel.strings
+    .map(
+      (item) =>
+        `<li>${escapeHtml(
+          stringDescription(item),
+        )}</li>`,
+    )
+    .join("");
 
-  const displayFret =
-    item.fret > 0
-      ? item.fret - firstFret + 1
-      : 0;
+  const barres = viewModel.barres
+    .map(
+      (barre) =>
+        `<li>${escapeHtml(
+          barreDescription(barre),
+        )}</li>`,
+    )
+    .join("");
 
   return `
-    <div
-      class="chord-string chord-string-${escapeHtml(
-        item.state.toLowerCase(),
-      )}"
-      data-string-number="${item.stringNumber}"
-      data-fret="${item.fret}"
-      data-finger="${item.finger}"
-      style="--string-column: ${7 - item.stringNumber}; --display-fret: ${displayFret};"
-    >
-      <span class="chord-string-state">${escapeHtml(
-        marker,
-      )}</span>
-      <span class="chord-string-line"></span>
+    <div class="sr-only chord-accessibility-description">
+      <p>${escapeHtml(
+        viewModel.chord.displaySymbol,
+      )} akorunun parmak düzeni.</p>
+      <ol aria-label="Gitar telleri">
+        ${strings}
+      </ol>
       ${
-        item.state === "FRETTED"
-          ? `<span class="chord-fret-marker">${escapeHtml(
-              item.finger,
-            )}</span>`
+        barres.length > 0
+          ? `<ul aria-label="Bare bilgisi">${barres}</ul>`
           : ""
       }
     </div>
-  `;
-}
-
-function renderVisualBarre(
-  barre,
-  firstFret,
-) {
-  const startColumn =
-    7 - barre.fromString;
-  const span =
-    barre.fromString -
-    barre.toString +
-    1;
-  const displayFret =
-    barre.fret - firstFret + 1;
-
-  return `
-    <span
-      class="chord-barre"
-      data-fret="${barre.fret}"
-      data-finger="${barre.finger}"
-      data-from-string="${barre.fromString}"
-      data-to-string="${barre.toString}"
-      style="--barre-column: ${startColumn}; --barre-span: ${span}; --barre-fret: ${displayFret};"
-    >${escapeHtml(barre.finger)}</span>
   `;
 }
 
@@ -129,40 +77,6 @@ export function renderChordBoardWorkspace(
       "CHORD_BOARD view model required",
     );
   }
-
-  const window = fretWindow(viewModel);
-  const fretWindowLabel =
-    window.firstFret === 1
-      ? ""
-      : `<p class="chord-fret-window" aria-hidden="true">Perdeler ${window.firstFret}–${window.lastFret}</p>`;
-
-  const strings = viewModel.strings
-    .map(
-      (item) =>
-        `<li>${escapeHtml(
-          stringDescription(item),
-        )}</li>`,
-    )
-    .join("");
-
-  const barres =
-    viewModel.barres.length === 0
-      ? ""
-      : `
-        <section class="chord-barres" aria-labelledby="chord-barres-title">
-          <h2 id="chord-barres-title">Bareler</h2>
-          <ul class="chord-barre-list">
-            ${viewModel.barres
-              .map(
-                (barre) =>
-                  `<li>${escapeHtml(
-                    barreDescription(barre),
-                  )}</li>`,
-              )
-              .join("")}
-          </ul>
-        </section>
-      `;
 
   const teacherNote =
     typeof viewModel.teacherNote ===
@@ -197,36 +111,13 @@ export function renderChordBoardWorkspace(
         ${offlineStatus}
       </header>
 
-      <div class="chord-diagram" aria-hidden="true">
-        ${fretWindowLabel}
-        <div class="chord-diagram-grid">
-          ${viewModel.strings
-            .map((item) =>
-              renderVisualString(
-                item,
-                window.firstFret,
-              ),
-            )
-            .join("")}
-          ${viewModel.barres
-            .map((barre) =>
-              renderVisualBarre(
-                barre,
-                window.firstFret,
-              ),
-            )
-            .join("")}
-        </div>
+      <div class="chord-diagram-card">
+        ${renderChordDiagramSvg(viewModel)}
       </div>
 
-      <section class="chord-string-semantics" aria-labelledby="chord-strings-title">
-        <h2 id="chord-strings-title">Teller</h2>
-        <ol class="chord-string-list" aria-label="Gitar telleri">
-          ${strings}
-        </ol>
-      </section>
-
-      ${barres}
+      ${renderAccessibilityDescription(
+        viewModel,
+      )}
       ${teacherNote}
     </section>
   `;
