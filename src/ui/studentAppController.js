@@ -15,6 +15,13 @@ import { SYNC_STATES } from "../offline/syncCoordinator.js";
 import {
   createChordBoardViewModel,
 } from "./chordBoardViewModel.js";
+import {
+  PIECE_WORKSPACE_VIEWS,
+  createPieceWorkspaceViewModel,
+  withPieceScorePractice,
+  withPieceSelectedChord,
+  withPieceSelectedView,
+} from "./pieceWorkspaceViewModel.js";
 
 export const STUDENT_APP_SCREENS = Object.freeze({
   SIGN_IN: "sign_in",
@@ -23,6 +30,7 @@ export const STUDENT_APP_SCREENS = Object.freeze({
   MY_WORK: "my_work",
   PRACTICE: "practice",
   CHORD_BOARD: "chord_board",
+  PIECE_WORKSPACE: "piece_workspace",
 });
 
 function freezeState({
@@ -31,6 +39,8 @@ function freezeState({
   items = [],
   practice = null,
   chordBoard = null,
+  pieceWorkspace = null,
+  returnContext,
   syncState,
   student08 = false,
   poolDetail,
@@ -42,7 +52,12 @@ function freezeState({
     items: Object.freeze([...items]),
     practice,
     chordBoard,
+    pieceWorkspace,
   };
+
+  if (returnContext !== undefined) {
+    value.returnContext = returnContext;
+  }
 
   if (syncState !== undefined) {
     value.syncState = syncState;
@@ -194,6 +209,8 @@ export function createStudentAppController({
       items: state.items,
       practice: state.practice,
       chordBoard: state.chordBoard,
+      pieceWorkspace: state.pieceWorkspace,
+      returnContext: state.returnContext,
       syncState: currentSyncState,
       student08: state.student08 === true,
       poolDetail: state.poolDetail,
@@ -219,6 +236,71 @@ export function createStudentAppController({
     return (
       generation === sessionGeneration &&
       state.session?.studentId === session.studentId
+    );
+  }
+
+  function activePracticeViewModel() {
+    if (
+      state.screen ===
+        STUDENT_APP_SCREENS.PRACTICE
+    ) {
+      return state.practice;
+    }
+
+    if (
+      state.screen ===
+        STUDENT_APP_SCREENS.PIECE_WORKSPACE
+    ) {
+      return (
+        state.pieceWorkspace?.score
+          ?.practice ?? null
+      );
+    }
+
+    return null;
+  }
+
+  function replaceActivePracticeViewModel(
+    practice,
+  ) {
+    if (
+      state.screen ===
+        STUDENT_APP_SCREENS.PRACTICE
+    ) {
+      state = freezeState(
+        stateArgs({ practice }),
+      );
+      return state;
+    }
+
+    if (
+      state.screen ===
+        STUDENT_APP_SCREENS.PIECE_WORKSPACE &&
+      state.pieceWorkspace !== null
+    ) {
+      state = freezeState(
+        stateArgs({
+          pieceWorkspace:
+            withPieceScorePractice(
+              state.pieceWorkspace,
+              practice,
+            ),
+        }),
+      );
+      return state;
+    }
+
+    throw new Error(
+      "practice workspace is not active",
+    );
+  }
+
+  function pieceScoreIsSelected() {
+    return (
+      state.screen ===
+        STUDENT_APP_SCREENS.PIECE_WORKSPACE &&
+      state.pieceWorkspace?.selectedView ===
+        PIECE_WORKSPACE_VIEWS.SCORE
     );
   }
 
@@ -278,11 +360,18 @@ export function createStudentAppController({
   }
 
   function requirePracticeCapability(name) {
+    const practice =
+      activePracticeViewModel();
+
     if (
-      state.screen !== STUDENT_APP_SCREENS.PRACTICE ||
-      state.practice === null ||
+      practice === null ||
       activePracticePackage === null ||
-      state.practice.capabilities?.[name] !==
+      (
+        state.screen ===
+          STUDENT_APP_SCREENS.PIECE_WORKSPACE &&
+        !pieceScoreIsSelected()
+      ) ||
+      practice.capabilities?.[name] !==
         PRACTICE_CAPABILITY_STATES.AVAILABLE
     ) {
       throw new Error(`${name} capability unavailable`);
@@ -292,21 +381,19 @@ export function createStudentAppController({
   }
 
   function setPracticeCapability(capabilityName, capability) {
-    if (
-      state.screen !== STUDENT_APP_SCREENS.PRACTICE ||
-      state.practice === null
-    ) {
+    const practice =
+      activePracticeViewModel();
+
+    if (practice === null) {
       throw new Error("practice workspace is not active");
     }
 
-    state = freezeState(
-      stateArgs({
-        practice: withPracticeCapability(
-          state.practice,
-          capabilityName,
-          capability,
-        ),
-      }),
+    replaceActivePracticeViewModel(
+      withPracticeCapability(
+        practice,
+        capabilityName,
+        capability,
+      ),
     );
   }
 
@@ -346,7 +433,12 @@ export function createStudentAppController({
     },
 
     getPracticeRenderSource() {
-      return state.screen === STUDENT_APP_SCREENS.PRACTICE
+      return (
+        state.screen ===
+          STUDENT_APP_SCREENS.PRACTICE ||
+        state.screen ===
+          STUDENT_APP_SCREENS.PIECE_WORKSPACE
+      )
         ? activePracticeRenderSource
         : null;
     },
@@ -560,12 +652,276 @@ export function createStudentAppController({
       });
     },
 
-    recoverActivePracticePlayback() {
+    async openPiece(
+      pieceAssignmentId,
+      returnContext = {},
+    ) {
+      if (!student08Enabled) {
+        throw new Error("Piece unavailable");
+      }
+
+      const session =
+        requireCurrentSession();
+      const requestGeneration =
+        sessionGeneration;
+      const previousItems = state.items;
+      const id =
+        typeof pieceAssignmentId ===
+          "string" &&
+        pieceAssignmentId.trim().length > 0
+          ? pieceAssignmentId.trim()
+          : null;
+
+      if (id === null) {
+        throw new TypeError(
+          "pieceAssignmentId must be a non-empty string",
+        );
+      }
+
+      const piece =
+        await student08ReadService.getPiece({
+          session,
+          pieceAssignmentId: id,
+        });
+
+      if (
+        !sessionRequestIsCurrent(
+          session,
+          requestGeneration,
+        )
+      ) {
+        return state;
+      }
+
+      let scorePractice = null;
+      let scoreRenderSource = null;
+      let scorePackage = null;
+      let chordItems = [];
+
+      if (
+        piece.contentRefs
+          .scoreAssignmentId !== null
+      ) {
+        try {
+          const item =
+            await student08ReadService
+              .getPieceScoreItem({
+                session,
+                pieceAssignmentId: id,
+              });
+
+          if (
+            !sessionRequestIsCurrent(
+              session,
+              requestGeneration,
+            )
+          ) {
+            return state;
+          }
+
+          const workspace =
+            createPracticeWorkspace({
+              deliveryItem: item,
+              notationRuntimeAvailable:
+                notationAdapter?.isAvailable?.() ===
+                true,
+              playbackPort,
+            });
+
+          scorePractice =
+            withOfflinePracticeMetadata(
+              workspace.viewModel,
+              item,
+            );
+          scoreRenderSource =
+            workspace.renderSource;
+          scorePackage = item.package;
+        } catch {
+          scorePractice = null;
+          scoreRenderSource = null;
+          scorePackage = null;
+        }
+      }
+
+      if (
+        piece.contentRefs
+          .chordAssignmentIds.length > 0
+      ) {
+        try {
+          const items =
+            await student08ReadService
+              .listPieceChordItems({
+                session,
+                pieceAssignmentId: id,
+              });
+
+          if (
+            !sessionRequestIsCurrent(
+              session,
+              requestGeneration,
+            )
+          ) {
+            return state;
+          }
+
+          chordItems = items.map(
+            createChordBoardViewModel,
+          );
+        } catch {
+          chordItems = [];
+        }
+      }
+
+      if (
+        !sessionRequestIsCurrent(
+          session,
+          requestGeneration,
+        )
+      ) {
+        return state;
+      }
+
+      const pieceWorkspace =
+        createPieceWorkspaceViewModel({
+          piece,
+          scorePractice,
+          chordItems,
+          returnContext,
+        });
+
+      clearActivePractice();
+      activePracticeRenderSource =
+        scoreRenderSource;
+      activePracticePackage =
+        scorePackage;
+
+      state = freezeState({
+        screen:
+          STUDENT_APP_SCREENS.PIECE_WORKSPACE,
+        session,
+        items: previousItems,
+        practice: null,
+        chordBoard: null,
+        pieceWorkspace,
+        returnContext:
+          pieceWorkspace.returnContext,
+        assignmentState:
+          pieceWorkspace.returnContext
+            .folderState,
+        syncState: currentSyncState,
+        student08: true,
+      });
+      return state;
+    },
+
+    selectPieceView(view) {
       if (
         state.screen !==
-          STUDENT_APP_SCREENS.PRACTICE ||
-        state.practice === null ||
+          STUDENT_APP_SCREENS.PIECE_WORKSPACE ||
+        state.pieceWorkspace === null
+      ) {
+        throw new Error(
+          "Piece Workspace is not active",
+        );
+      }
+
+      if (
+        state.pieceWorkspace
+          .selectedView ===
+          PIECE_WORKSPACE_VIEWS.SCORE &&
+        view ===
+          PIECE_WORKSPACE_VIEWS.CHORDS &&
+        activePracticePackage !== null
+      ) {
+        try {
+          playbackPort?.pausePackage?.(
+            activePracticePackage,
+          );
+        } catch {
+          // Hidden playback must not block view navigation.
+        }
+      }
+
+      state = freezeState(
+        stateArgs({
+          pieceWorkspace:
+            withPieceSelectedView(
+              state.pieceWorkspace,
+              view,
+            ),
+        }),
+      );
+      return state;
+    },
+
+    selectPieceChord(assignmentId) {
+      if (
+        state.screen !==
+          STUDENT_APP_SCREENS.PIECE_WORKSPACE ||
+        state.pieceWorkspace === null
+      ) {
+        throw new Error(
+          "Piece Workspace is not active",
+        );
+      }
+
+      state = freezeState(
+        stateArgs({
+          pieceWorkspace:
+            withPieceSelectedChord(
+              state.pieceWorkspace,
+              assignmentId,
+            ),
+        }),
+      );
+      return state;
+    },
+
+    backFromPiece() {
+      if (
+        state.screen !==
+          STUDENT_APP_SCREENS.PIECE_WORKSPACE ||
+        state.pieceWorkspace === null
+      ) {
+        throw new Error(
+          "Piece Workspace is not active",
+        );
+      }
+
+      const returnContext =
+        state.pieceWorkspace.returnContext;
+      const items = state.items;
+      const session =
+        requireCurrentSession();
+
+      clearActivePractice();
+
+      state = freezeState({
+        screen:
+          STUDENT_APP_SCREENS.MY_WORK,
+        session,
+        items,
+        returnContext,
+        assignmentState:
+          returnContext.folderState,
+        syncState: currentSyncState,
+        student08: true,
+      });
+      return state;
+    },
+
+    recoverActivePracticePlayback() {
+      const practice =
+        activePracticeViewModel();
+
+      if (
+        practice === null ||
         activePracticePackage === null ||
+        (
+          state.screen ===
+            STUDENT_APP_SCREENS.PIECE_WORKSPACE &&
+          !pieceScoreIsSelected()
+        ) ||
         typeof playbackPort?.preparePackage !==
           "function"
       ) {
@@ -580,18 +936,22 @@ export function createStudentAppController({
       const applyRecovery = (ready) => {
         if (
           ready !== true ||
-          state.screen !==
-            STUDENT_APP_SCREENS.PRACTICE ||
-          state.practice === null ||
+          activePracticeViewModel() === null ||
+          (
+            state.screen ===
+              STUDENT_APP_SCREENS.PIECE_WORKSPACE &&
+            !pieceScoreIsSelected()
+          ) ||
           activePracticePackage !== pkg ||
-          state.practice.packageId !== packageId
+          activePracticeViewModel()
+            ?.packageId !== packageId
         ) {
           return state;
         }
 
         let practice =
           withPracticeCapability(
-            state.practice,
+            activePracticeViewModel(),
             "playback",
             playbackPort.canPlayPackage?.(pkg) === true
               ? PRACTICE_CAPABILITY_STATES.AVAILABLE
@@ -618,8 +978,8 @@ export function createStudentAppController({
               : PRACTICE_CAPABILITY_STATES.UNAVAILABLE,
           );
 
-        state = freezeState(
-          stateArgs({ practice }),
+        replaceActivePracticeViewModel(
+          practice,
         );
         return state;
       };
@@ -677,20 +1037,18 @@ export function createStudentAppController({
     },
 
     setNotationCapability(capability) {
-      if (
-        state.screen !== STUDENT_APP_SCREENS.PRACTICE ||
-        state.practice === null
-      ) {
+      const practice =
+        activePracticeViewModel();
+
+      if (practice === null) {
         throw new Error("practice workspace is not active");
       }
 
-      state = freezeState(
-        stateArgs({
-          practice: withNotationCapability(
-            state.practice,
-            capability,
-          ),
-        }),
+      replaceActivePracticeViewModel(
+        withNotationCapability(
+          practice,
+          capability,
+        ),
       );
       return state;
     },
@@ -737,13 +1095,14 @@ export function createStudentAppController({
 
       const applyTempo = () => {
         if (
-          state.screen === STUDENT_APP_SCREENS.PRACTICE &&
-          state.practice?.packageId === packageId
+          activePracticeViewModel()
+            ?.packageId === packageId
         ) {
-          state = freezeState(
-            stateArgs({
-              practice: withPracticeTempo(state.practice, bpm),
-            }),
+          replaceActivePracticeViewModel(
+            withPracticeTempo(
+              activePracticeViewModel(),
+              bpm,
+            ),
           );
         }
         return state;
@@ -777,13 +1136,11 @@ export function createStudentAppController({
           state.screen === STUDENT_APP_SCREENS.PRACTICE &&
           state.practice?.packageId === packageId
         ) {
-          state = freezeState(
-            stateArgs({
-              practice: withPracticeMeasureRepeatEnabled(
-                state.practice,
-                enabled,
-              ),
-            }),
+          replaceActivePracticeViewModel(
+            withPracticeMeasureRepeatEnabled(
+              activePracticeViewModel(),
+              enabled,
+            ),
           );
         }
         return state;
