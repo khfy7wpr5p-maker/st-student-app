@@ -400,6 +400,14 @@ export function mountStudentApp({
     const poolItemId = actionElement.dataset.poolItemId;
     const assignmentId = actionElement.dataset.assignmentId;
     const assignmentState = actionElement.dataset.assignmentState;
+    const pieceAssignmentId =
+      actionElement.dataset.pieceAssignmentId;
+    const pieceView =
+      actionElement.dataset.pieceView;
+    const scrollPosition =
+      action === "open-piece"
+        ? root.ownerDocument?.defaultView?.scrollY
+        : undefined;
 
     const tempoBpm =
       action === "set-practice-tempo"
@@ -429,6 +437,9 @@ export function mountStudentApp({
         poolItemId,
         assignmentId,
         assignmentState,
+        pieceAssignmentId,
+        pieceView,
+        scrollPosition,
         tempoBpm,
         repeatEnabled,
         credentials,
