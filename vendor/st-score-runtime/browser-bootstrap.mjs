@@ -142,8 +142,7 @@ const runtimeHost = Object.freeze({
         throw error;
       }
 
-      await clearActiveHost();
-      const nextHost = createHost();
+      const nextHost = activeHost ?? createHost();
       activeHost = nextHost;
       try {
         return await nextHost.renderMusicXml(
