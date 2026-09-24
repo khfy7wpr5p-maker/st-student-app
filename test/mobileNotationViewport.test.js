@@ -58,7 +58,7 @@ test("notation viewport removes empty page margins while capping mobile zoom", (
     },
   };
 
-  const result = fitNotationViewport(root);
+  const result = fitNotationViewport(root, { viewportWidth: 390 });
   assert.equal(result.fitted, 1);
 
   const snapshot = svg.snapshot();
@@ -88,7 +88,7 @@ test("notation viewport keeps dense full-width scores at their natural scale", (
     },
   };
 
-  fitNotationViewport(root);
+  fitNotationViewport(root, { viewportWidth: 390 });
   const [, , width] = svg
     .snapshot()
     .viewBox.split(/\s+/)
@@ -114,6 +114,26 @@ test("notation viewport fails closed when rendered SVG geometry is unavailable",
     },
   };
 
-  assert.doesNotThrow(() => fitNotationViewport(root));
+  assert.doesNotThrow(() =>
+    fitNotationViewport(root, { viewportWidth: 390 }),
+  );
+  assert.equal(svg.snapshot().viewBox, "0 0 1000 800");
+});
+
+
+test("notation viewport leaves desktop rendering untouched", () => {
+  const svg = fakeSvg({
+    children: [
+      fakeGraphic("g", { x: 250, y: 220, width: 500, height: 120 }),
+    ],
+  });
+  const root = {
+    querySelectorAll() {
+      return [svg];
+    },
+  };
+
+  const result = fitNotationViewport(root, { viewportWidth: 1024 });
+  assert.deepEqual(result, { fitted: 0 });
   assert.equal(svg.snapshot().viewBox, "0 0 1000 800");
 });
