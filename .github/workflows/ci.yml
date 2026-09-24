@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      RENDERER_SHA: 387fa014ef751b7e4c717b50ffac762c71e67fa8
+      RENDERER_SHA: 375cb5f134a91606eeac59df9cbe33dedbe57e47
     steps:
       - name: Checkout Rendering Layer at approved revision
         uses: actions/checkout@v5
@@ -88,7 +88,7 @@ jobs:
           path: vendor/st-score-runtime
       - name: Verify runtime provenance
         env:
-          RENDERER_SHA: 387fa014ef751b7e4c717b50ffac762c71e67fa8
+          RENDERER_SHA: 375cb5f134a91606eeac59df9cbe33dedbe57e47
         run: |
           node -e 'const m=require("./vendor/st-score-runtime/runtime-manifest.json"); if(m.runtimeTarget!=="browser" || m.rendererSourceRevision!==process.env.RENDERER_SHA || m.scoreRendererContractVersion!=="0.2.0") process.exit(1)'
       - name: Install browser
@@ -97,57 +97,3 @@ jobs:
         env:
           ST_BROWSER: ${{ matrix.browser }}
         run: npm run test:browser
-
-
-  refresh-vendored-runtime:
-    if: github.actor != 'github-actions[bot]'
-    needs: [renderer-runtime, tab-browser]
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout Student App branch
-        uses: actions/checkout@v5
-      - name: Use Node.js
-        uses: actions/setup-node@v5
-        with:
-          node-version: "24"
-      - name: Download approved browser runtime
-        uses: actions/download-artifact@v5
-        with:
-          name: ses6-browser-runtime
-          path: .ses6-runtime
-      - name: Replace vendored runtime from approved export
-        run: |
-          rm -rf vendor/st-score-runtime
-          mkdir -p vendor/st-score-runtime
-          cp -a .ses6-runtime/. vendor/st-score-runtime/
-      - name: Verify generated runtime integrity and bounded diff
-        run: |
-          node --test test/notationRuntimeAssets.test.js
-          node - <<'NODE'
-          const { execFileSync } = require("node:child_process");
-          const actual = execFileSync("git", ["diff", "--name-only", "--", "vendor/st-score-runtime"], { encoding: "utf8" })
-            .trim()
-            .split("\n")
-            .filter(Boolean)
-            .sort();
-          const expected = [
-            "vendor/st-score-runtime/browser-bootstrap.mjs",
-            "vendor/st-score-runtime/modules/adapter-osmd.js",
-            "vendor/st-score-runtime/runtime-manifest.json",
-          ].sort();
-          if (JSON.stringify(actual) !== JSON.stringify(expected)) {
-            console.error({ actual, expected });
-            process.exit(1);
-          }
-          NODE
-      - name: Commit generated runtime only
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add vendor/st-score-runtime
-          git commit -m "chore: refresh approved score runtime [skip ci]"
-          TARGET_BRANCH="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
-          git push origin "HEAD:${TARGET_BRANCH}"
