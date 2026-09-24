@@ -20,6 +20,21 @@ function hasMethods(port, names) {
   return names.every((name) => typeof port?.[name] === "function");
 }
 
+function hasGuitarTabMusicXml(pkg) {
+  const tab = pkg?.content?.guitarTab;
+  return (
+    tab !== null &&
+    typeof tab === "object" &&
+    !Array.isArray(tab) &&
+    tab.format === "musicxml" &&
+    typeof tab.data === "string" &&
+    tab.data.trim().length > 0 &&
+    Object.keys(tab).every(
+      (key) => key === "format" || key === "data",
+    )
+  );
+}
+
 export function derivePracticeCapabilities({
   pkg,
   notationRuntimeAvailable,
@@ -53,7 +68,11 @@ export function derivePracticeCapabilities({
       typeof playbackPort?.setMeasureRepeatEnabledForPackage === "function"
         ? PRACTICE_CAPABILITY_STATES.AVAILABLE
         : PRACTICE_CAPABILITY_STATES.UNAVAILABLE,
-    guitarTab: PRACTICE_CAPABILITY_STATES.UNAVAILABLE,
+    guitarTab:
+      notationRuntimeAvailable === true &&
+      hasGuitarTabMusicXml(pkg)
+        ? PRACTICE_CAPABILITY_STATES.AVAILABLE
+        : PRACTICE_CAPABILITY_STATES.UNAVAILABLE,
     violin: PRACTICE_CAPABILITY_STATES.UNAVAILABLE,
   });
 }
