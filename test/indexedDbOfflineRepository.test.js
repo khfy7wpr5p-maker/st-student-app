@@ -9,6 +9,9 @@ import {
   makePrivateDelivery,
   makePutArgs,
 } from "./support/practiceFixtures.js";
+import {
+  makeChordBoardPracticeItem,
+} from "./support/chordBoardFixtures.js";
 
 let sequence = 0;
 const dbName = (name) => `st-student-${name}-${sequence += 1}`;
@@ -362,66 +365,9 @@ test("IndexedDB v1 publication cache migrates additively to PUBLICATION accessRe
 function makeChordSecurePractice(
   deliveryId = "assignment-chord-a",
 ) {
-  return {
-    accessRef: {
-      kind: "SECURE_DELIVERY",
-      deliveryId,
-    },
-    practiceType: "CHORD_BOARD",
-    package: {
-      schemaVersion: "1.0.0",
-      packageType: "CHORD_BOARD",
-      packageId: deliveryId,
-      title: "Am Akor Çalışması",
-      assignmentAuthority: {
-        assignmentId: deliveryId,
-        state: "teacher_assigned",
-        assignedAt:
-          "2026-09-23T10:00:00Z",
-      },
-      publication: {
-        scope: "student_private",
-        recipientStudentId:
-          "server-student-a",
-      },
-      content: {
-        chordBoard: {
-          schemaVersion: 1,
-          sourceKind:
-            "chord_board_exact_voicing",
-          chord: {
-            canonicalSymbol: "Am",
-            canonicalRoot: "A",
-            quality: "minor",
-            displayRoot: "A",
-            displaySymbol: "Am",
-          },
-          voicing: {
-            frets: [-1, 0, 2, 2, 1, 0],
-            fingers: [-1, 0, 2, 3, 1, 0],
-            barres: [],
-            shape: "open",
-            generated: false,
-            curated: true,
-          },
-          provenance: {
-            sourceRepository:
-              "st-guitar-chord-board",
-            sourceCommit:
-              "1111111111111111111111111111111111111111",
-            catalogFingerprint:
-              "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          },
-          voicingFingerprint:
-            "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        },
-      },
-      practice: {
-        teacherNote:
-          "60 BPM ile çalış.",
-      },
-    },
-  };
+  return makeChordBoardPracticeItem({
+    assignmentId: deliveryId,
+  });
 }
 
 async function seedLegacySecureScoreDatabase(
