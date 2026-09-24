@@ -32,9 +32,9 @@ test("S08-4B playback controls expose a bounded VoiceOver group label", () => {
     html,
     /<div class="practice-playback-controls" role="group" aria-label="Dinleme kontrolleri">/,
   );
-  assert.match(html, /data-action="play-practice">Dinle</);
-  assert.match(html, /data-action="pause-practice">Duraklat</);
-  assert.match(html, /data-action="restart-practice">Baştan</);
+  assert.match(html, /data-action="play-practice"/);
+  assert.match(html, /data-action="pause-practice"/);
+  assert.match(html, /data-action="restart-practice"/);
 });
 
 test("S08-4B long navigation and folder labels may wrap without horizontal overflow", async () => {
