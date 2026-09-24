@@ -19,6 +19,7 @@ import {
   makeApprovedPracticePackage,
 } from "./support/practiceFixtures.js";
 import {
+  makeChordBoardPackage,
   makeChordBoardPracticeItem,
 } from "./support/chordBoardFixtures.js";
 
@@ -365,7 +366,7 @@ test("Secure Delivery status accepts active CHORD_BOARD through the same revocat
             deliveredAt:
               "2026-09-23T10:01:00Z",
             package:
-              chordPackage(deliveryId),
+              makeChordBoardPackage({ assignmentId: deliveryId }),
           };
         },
       },
