@@ -155,6 +155,25 @@ function toAssignmentSummary(item) {
   });
 }
 
+function toPieceSummary(piece) {
+  return Object.freeze({
+    itemKind: "PIECE",
+    pieceAssignmentId:
+      piece.pieceAssignmentId,
+    pieceId: piece.pieceId,
+    arrangementId:
+      piece.arrangementId,
+    title: piece.title,
+    teacherNote:
+      typeof piece.teacherNote ===
+      "string"
+        ? piece.teacherNote
+        : "",
+    state: piece.state,
+    assignedAt: piece.assignedAt ?? "",
+  });
+}
+
 function withOfflinePracticeMetadata(viewModel, item) {
   if (item.offlineAvailability === undefined) {
     return viewModel;
@@ -552,33 +571,130 @@ export function createStudentAppController({
         throw new TypeError("assignment state is invalid");
       }
 
-      const result = student08Enabled
-        ? student08ReadService.listAssignments({
+      if (!student08Enabled) {
+        const result =
+          sharingService.listMyWork({
+            session,
+          });
+
+        return resolveMaybe(
+          result,
+          (items) => {
+            if (
+              !sessionRequestIsCurrent(
+                session,
+                requestGeneration,
+              )
+            ) {
+              return state;
+            }
+
+            clearActivePractice();
+            state = freezeState({
+              screen:
+                STUDENT_APP_SCREENS.MY_WORK,
+              session,
+              items: items.map(
+                toWorkSummary,
+              ),
+              syncState:
+                currentSyncState,
+              student08: false,
+            });
+            return state;
+          },
+        );
+      }
+
+      const piecesResult =
+        typeof student08ReadService
+          .listPieces === "function"
+          ? student08ReadService.listPieces({
+              session,
+              state: assignmentState,
+            })
+          : [];
+      const assignmentsResult =
+        student08ReadService
+          .listAssignments({
             session,
             state: assignmentState,
-          })
-        : sharingService.listMyWork({ session });
+          });
 
-      return resolveMaybe(result, (items) => {
-        if (!sessionRequestIsCurrent(session, requestGeneration)) {
-          return state;
-        }
+      return resolveMaybe(
+        piecesResult,
+        (pieces) =>
+          resolveMaybe(
+            assignmentsResult,
+            (assignments) => {
+              if (
+                !sessionRequestIsCurrent(
+                  session,
+                  requestGeneration,
+                )
+              ) {
+                return state;
+              }
 
-        clearActivePractice();
-        state = freezeState({
-          screen: STUDENT_APP_SCREENS.MY_WORK,
-          session,
-          items: student08Enabled
-            ? items.map(toAssignmentSummary)
-            : items.map(toWorkSummary),
-          syncState: currentSyncState,
-          student08: student08Enabled,
-          assignmentState: student08Enabled
-            ? assignmentState
-            : undefined,
-        });
-        return state;
-      });
+              const childIds =
+                new Set();
+              for (
+                const piece
+                of pieces
+              ) {
+                const scoreId =
+                  piece.contentRefs
+                    ?.scoreAssignmentId;
+                if (
+                  typeof scoreId ===
+                    "string"
+                ) {
+                  childIds.add(
+                    scoreId,
+                  );
+                }
+                for (
+                  const chordId
+                  of piece.contentRefs
+                    ?.chordAssignmentIds ??
+                    []
+                ) {
+                  childIds.add(
+                    chordId,
+                  );
+                }
+              }
+
+              const legacy =
+                assignments.filter(
+                  (item) =>
+                    !childIds.has(
+                      item.assignmentId,
+                    ),
+                );
+
+              clearActivePractice();
+              state = freezeState({
+                screen:
+                  STUDENT_APP_SCREENS.MY_WORK,
+                session,
+                items: [
+                  ...pieces.map(
+                    toPieceSummary,
+                  ),
+                  ...legacy.map(
+                    toAssignmentSummary,
+                  ),
+                ],
+                syncState:
+                  currentSyncState,
+                student08: true,
+                assignmentState,
+              });
+              return state;
+            },
+          ),
+      );
     },
 
     openPractice(publicationId) {
