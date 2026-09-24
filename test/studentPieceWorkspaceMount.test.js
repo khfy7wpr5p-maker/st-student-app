@@ -320,3 +320,128 @@ test("Piece click wiring forwards Piece identity, view, and return scroll contex
 
   await mounted.destroy();
 });
+
+
+test("Piece SCORE -> TAB -> CHORDS -> TAB preserves the exact notation root and rerenders only when source changes", async () => {
+  const withTab = (view) => {
+    const base = workspace(view);
+    return {
+      ...base,
+      availableViews: {
+        score: true,
+        tab: true,
+        chords: true,
+      },
+      score: {
+        ...base.score,
+        practice: {
+          ...base.score.practice,
+          capabilities: {
+            ...base.score.practice.capabilities,
+            guitarTab: "AVAILABLE",
+          },
+        },
+      },
+    };
+  };
+
+  let state = {
+    student08: true,
+    screen: STUDENT_APP_SCREENS.PIECE_WORKSPACE,
+    session: { studentId: "student-a" },
+    items: [],
+    practice: null,
+    chordBoard: null,
+    pieceWorkspace: withTab("SCORE"),
+  };
+  const root = makeRoot();
+  const rendered = [];
+  let disposeCalls = 0;
+
+  const controller = {
+    getState() {
+      return state;
+    },
+    getPracticeRenderSource() {
+      if (state.pieceWorkspace.selectedView === "TAB") {
+        return {
+          kind: "musicxml",
+          musicXml: "<score-partwise>TAB</score-partwise>",
+          sourceId: "pkg-score-a:guitar-tab",
+        };
+      }
+      if (state.pieceWorkspace.selectedView === "SCORE") {
+        return {
+          kind: "musicxml",
+          musicXml: "<score-partwise>SCORE</score-partwise>",
+          sourceId: "pkg-score-a",
+        };
+      }
+      return null;
+    },
+    setNotationCapability() {},
+    disposeActivePractice() {},
+  };
+
+  const notationAdapter = {
+    async render({ musicXml }) {
+      rendered.push(musicXml);
+      return { capability: "AVAILABLE" };
+    },
+    async dispose() {
+      disposeCalls += 1;
+    },
+  };
+
+  const mounted = mountStudentApp({
+    root,
+    controller,
+    notationAdapter,
+  });
+
+  await mounted.render();
+  const firstRoot = root.querySelector("#st-score-root");
+  assert.notEqual(firstRoot, null);
+  assert.deepEqual(rendered, [
+    "<score-partwise>SCORE</score-partwise>",
+  ]);
+
+  state = {
+    ...state,
+    pieceWorkspace: withTab("TAB"),
+  };
+  await mounted.render();
+  assert.equal(root.querySelector("#st-score-root"), firstRoot);
+  assert.deepEqual(rendered, [
+    "<score-partwise>SCORE</score-partwise>",
+    "<score-partwise>TAB</score-partwise>",
+  ]);
+  assert.equal(disposeCalls, 1);
+
+  state = {
+    ...state,
+    pieceWorkspace: withTab("CHORDS"),
+  };
+  await mounted.render();
+  assert.equal(root.querySelector("#st-score-root"), firstRoot);
+  assert.equal(disposeCalls, 1);
+
+  state = {
+    ...state,
+    pieceWorkspace: withTab("TAB"),
+  };
+  await mounted.render();
+  assert.equal(root.querySelector("#st-score-root"), firstRoot);
+  assert.equal(rendered.length, 2);
+
+  state = {
+    ...state,
+    pieceWorkspace: withTab("SCORE"),
+  };
+  await mounted.render();
+  assert.equal(root.querySelector("#st-score-root"), firstRoot);
+  assert.equal(rendered.length, 3);
+  assert.equal(disposeCalls, 2);
+
+  await mounted.destroy();
+});
