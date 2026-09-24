@@ -9,14 +9,18 @@ function capabilityOf(practice, name) {
     : PRACTICE_CAPABILITY_STATES.UNAVAILABLE;
 }
 
-function renderNotation(practice) {
+function renderNotation(
+  practice,
+  notationHeading,
+) {
   const capability = capabilityOf(practice, "notation");
+  const heading = escapeHtml(notationHeading);
 
   if (capability === PRACTICE_CAPABILITY_STATES.AVAILABLE) {
     return `
       <section class="practice-notation practice-primary" aria-labelledby="notation-heading">
-        <h2 id="notation-heading">Nota</h2>
-        <div id="st-score-root" role="region" aria-label="Nota"></div>
+        <h2 id="notation-heading">${heading}</h2>
+        <div id="st-score-root" role="region" aria-label="${heading}"></div>
       </section>
     `;
   }
@@ -24,16 +28,16 @@ function renderNotation(practice) {
   if (capability === PRACTICE_CAPABILITY_STATES.ERROR) {
     return `
       <section class="practice-notation practice-primary" aria-labelledby="notation-heading">
-        <h2 id="notation-heading">Nota</h2>
-        <p role="status">Nota görüntülenemedi.</p>
+        <h2 id="notation-heading">${heading}</h2>
+        <p role="status">${heading} görüntülenemedi.</p>
       </section>
     `;
   }
 
   return `
     <section class="practice-notation practice-primary" aria-labelledby="notation-heading">
-      <h2 id="notation-heading">Nota</h2>
-      <p>Nota görünümü bu çalışma için kullanılamıyor.</p>
+      <h2 id="notation-heading">${heading}</h2>
+      <p>${heading} görünümü bu çalışma için kullanılamıyor.</p>
     </section>
   `;
 }
@@ -151,6 +155,7 @@ export function renderPracticeWorkspace(
   {
     showHomeAction = true,
     showTitle = true,
+    notationHeading = "Nota",
   } = {},
 ) {
   if (practice === null || typeof practice !== "object") {
@@ -173,7 +178,10 @@ export function renderPracticeWorkspace(
     <section class="practice-workspace" ${sectionLabel}>
       ${title}
       ${homeAction}
-      ${renderNotation(practice)}
+      ${renderNotation(
+        practice,
+        notationHeading,
+      )}
       ${renderPlayback(practice)}
     </section>
   `;
