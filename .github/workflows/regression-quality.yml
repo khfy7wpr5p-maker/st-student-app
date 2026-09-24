@@ -1,0 +1,90 @@
+name: Regression Quality
+
+on:
+  push:
+    branches:
+      - main
+      - "feat/**"
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: regression-quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sonarqube-analysis:
+    name: SonarQube analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository with full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js 24 for coverage
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install dependencies for coverage
+        run: npm ci --ignore-scripts
+
+      - name: Generate native Node LCOV coverage
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p coverage
+          node --test \
+            --experimental-test-coverage \
+            --test-reporter=spec \
+            --test-reporter-destination=stdout \
+            --test-reporter=lcov \
+            --test-reporter-destination=coverage/lcov.info
+          test -s coverage/lcov.info
+
+      - name: Detect SonarQube configuration
+        id: sonar-config
+        shell: bash
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
+        run: |
+          set -euo pipefail
+          clean_organization="$(printf '%s' "$SONAR_ORGANIZATION" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+
+          if [ -z "$SONAR_TOKEN" ]; then
+            echo "::error::SONAR_TOKEN is not configured for this repository."
+            exit 1
+          elif [ -n "$SONAR_HOST_URL" ]; then
+            echo "mode=server" >> "$GITHUB_OUTPUT"
+          elif [ -n "$clean_organization" ]; then
+            echo "mode=cloud" >> "$GITHUB_OUTPUT"
+            echo "organization=$clean_organization" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::SONAR_ORGANIZATION is not configured and SONAR_HOST_URL is empty."
+            exit 1
+          fi
+
+      - name: SonarQube Server scan
+        if: steps.sonar-config.outputs.mode == 'server'
+        uses: SonarSource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+      - name: SonarQube Cloud scan
+        if: steps.sonar-config.outputs.mode == 'cloud'
+        uses: SonarSource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f
+        with:
+          args: >
+            -Dsonar.organization=${{ steps.sonar-config.outputs.organization }}
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
