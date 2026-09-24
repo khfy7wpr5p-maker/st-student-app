@@ -12,7 +12,27 @@ function practicePresentationKey(state) {
     return `practice:${state.practice.packageId}`;
   }
 
+  if (
+    state.screen === STUDENT_APP_SCREENS.PIECE_WORKSPACE &&
+    state.pieceWorkspace?.score?.practice !== null &&
+    state.pieceWorkspace?.score?.practice !== undefined
+  ) {
+    return `piece:${state.pieceWorkspace.pieceAssignmentId}:score:${state.pieceWorkspace.score.practice.packageId}`;
+  }
+
   return state.screen;
+}
+
+function practiceForState(state) {
+  if (state.screen === STUDENT_APP_SCREENS.PRACTICE) {
+    return state.practice;
+  }
+
+  if (state.screen === STUDENT_APP_SCREENS.PIECE_WORKSPACE) {
+    return state.pieceWorkspace?.score?.practice ?? null;
+  }
+
+  return null;
 }
 
 function isNotationCapability(value) {
@@ -167,13 +187,21 @@ export function mountStudentApp({
           ? focusedActionIdentity(root)
           : null;
 
+      const preserveNotationRoot =
+        presentationKey === lastPresentationKey;
       const liveNotationRoot = root.querySelector?.("#st-score-root") ?? null;
 
-      if (persistentNotationRoot === null && liveNotationRoot !== null) {
+      if (!preserveNotationRoot) {
+        persistentNotationRoot = null;
+      } else if (
+        persistentNotationRoot === null &&
+        liveNotationRoot !== null
+      ) {
         persistentNotationRoot = liveNotationRoot;
       }
 
       if (
+        preserveNotationRoot &&
         liveNotationRoot !== null &&
         liveNotationRoot === persistentNotationRoot
       ) {
@@ -195,7 +223,10 @@ export function mountStudentApp({
       if (replacementNotationRoot !== null) {
         if (persistentNotationRoot === null) {
           persistentNotationRoot = replacementNotationRoot;
-        } else if (replacementNotationRoot !== persistentNotationRoot) {
+        } else if (
+          preserveNotationRoot &&
+          replacementNotationRoot !== persistentNotationRoot
+        ) {
           if (typeof replacementNotationRoot.replaceWith === "function") {
             replacementNotationRoot.replaceWith(persistentNotationRoot);
           } else if (typeof replacementNotationRoot.parentNode?.replaceChild === "function") {
@@ -237,13 +268,14 @@ export function mountStudentApp({
 
   function currentPracticeMatches(state, generation) {
     const current = controller.getState();
+    const currentPractice = practiceForState(current);
+    const requestedPractice = practiceForState(state);
 
     return (
-      current.screen === STUDENT_APP_SCREENS.PRACTICE &&
-      current.practice !== null &&
-      state.screen === STUDENT_APP_SCREENS.PRACTICE &&
-      state.practice !== null &&
-      current.practice.packageId === state.practice.packageId &&
+      currentPractice !== null &&
+      requestedPractice !== null &&
+      practicePresentationKey(current) === practicePresentationKey(state) &&
+      currentPractice.packageId === requestedPractice.packageId &&
       domGeneration === generation
     );
   }
@@ -258,14 +290,11 @@ export function mountStudentApp({
   }
 
   async function synchronizeNotation({ state, renderSource, generation }) {
-    if (state.screen !== STUDENT_APP_SCREENS.PRACTICE) {
-      await disposeActiveNotation();
-      return;
-    }
+    const practice = practiceForState(state);
 
     if (
-      state.practice === null ||
-      state.practice.capabilities?.notation !==
+      practice === null ||
+      practice.capabilities?.notation !==
         PRACTICE_CAPABILITY_STATES.AVAILABLE
     ) {
       await disposeActiveNotation();
@@ -288,7 +317,7 @@ export function mountStudentApp({
       return;
     }
 
-    const renderKey = state.practice.packageId;
+    const renderKey = practicePresentationKey(state);
 
     if (activeNotationKey === renderKey) {
       return;
@@ -350,7 +379,8 @@ export function mountStudentApp({
 
     const snapshot = paint();
     const renderSource =
-      snapshot.state.screen === STUDENT_APP_SCREENS.PRACTICE
+      snapshot.state.screen === STUDENT_APP_SCREENS.PRACTICE ||
+      snapshot.state.screen === STUDENT_APP_SCREENS.PIECE_WORKSPACE
         ? controller.getPracticeRenderSource?.() ?? null
         : null;
 
