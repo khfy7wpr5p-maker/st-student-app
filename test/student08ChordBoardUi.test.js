@@ -94,8 +94,31 @@ test("CHORD_BOARD screen renders exact student-safe chord identity and six strin
   );
   assert.match(
     html,
-    /<ol class="chord-string-list" aria-label="Gitar telleri">/,
+    /<svg class="chord-diagram"[^>]*viewBox="0 0 360 340"[^>]*>/,
   );
+  assert.match(
+    html,
+    /class="string-line string-6"/,
+  );
+  assert.match(
+    html,
+    /class="fret-line nut-line"/,
+  );
+  assert.match(
+    html,
+    /class="mute-mark"[^>]*data-string="6"[^>]*>×<\/text>/,
+  );
+  assert.match(
+    html,
+    /class="open-mark"[^>]*data-string="5"/,
+  );
+  assert.match(
+    html,
+    /class="finger-position"[^>]*data-string="4"[^>]*data-fret="2"/,
+  );
+
+  assert.doesNotMatch(html, />Teller<\/h2>/);
+  assert.doesNotMatch(html, />Bareler<\/h2>/);
 
   for (const expected of [
     "6. tel: kapalı.",
@@ -110,7 +133,7 @@ test("CHORD_BOARD screen renders exact student-safe chord identity and six strin
 
   assert.match(
     html,
-    /data-string-number="4"[^>]*data-fret="2"[^>]*data-finger="2"/s,
+    /class="sr-only chord-accessibility-description"/,
   );
 });
 
@@ -119,6 +142,10 @@ test("CHORD_BOARD screen exposes exact barre and teacher note accessibly", () =>
     chordState(),
   );
 
+  assert.match(
+    html,
+    /class="barre-mark"[^>]*data-finger="1"/,
+  );
   assert.match(
     html,
     /1\. parmak bare: 5\. perde, 6\. telden 1\. tele\./,
