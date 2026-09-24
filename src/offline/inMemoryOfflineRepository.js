@@ -6,6 +6,9 @@ import {
   createPracticeAccessRef,
   practiceAccessKey,
 } from "../practice/practiceAccessRef.js";
+import {
+  createPieceOfflineRecord,
+} from "./pieceOfflineRecord.js";
 
 const hasText = (value) =>
   typeof value === "string" && value.trim().length > 0;
@@ -136,6 +139,7 @@ function recordInput(record) {
 
 export function createInMemoryOfflineRepository() {
   const records = new Map();
+  const pieceRecords = new Map();
 
   function matchingRecords(
     studentId,
@@ -186,7 +190,148 @@ export function createInMemoryOfflineRepository() {
     );
   }
 
+  function pieceKey(
+    studentId,
+    pieceAssignmentId,
+  ) {
+    return `${studentId}\u0000${pieceAssignmentId}`;
+  }
+
+  async function putPieceManifest({
+    studentId,
+    piece,
+    cachedAt,
+    lastVerifiedAt,
+  }) {
+    requireStudentId(studentId);
+    const incoming =
+      createPieceOfflineRecord({
+        studentId,
+        piece,
+        cachedAt,
+        lastVerifiedAt,
+        accessState:
+          OFFLINE_ACCESS_STATES.ACTIVE,
+      });
+    const key = pieceKey(
+      incoming.studentId,
+      incoming.pieceAssignmentId,
+    );
+    const existing =
+      pieceRecords.get(key) ?? null;
+
+    if (
+      existing !== null &&
+      (
+        existing.piece.pieceId !==
+          incoming.piece.pieceId ||
+        existing.piece.arrangementId !==
+          incoming.piece.arrangementId ||
+        JSON.stringify(
+          existing.piece.contentRefs,
+        ) !==
+          JSON.stringify(
+            incoming.piece.contentRefs,
+          )
+      )
+    ) {
+      throw new Error(
+        "immutable Piece manifest authority conflict",
+      );
+    }
+
+    pieceRecords.set(key, incoming);
+    return incoming;
+  }
+
+  async function getActivePieceManifest({
+    studentId,
+    pieceAssignmentId,
+  }) {
+    requireStudentId(studentId);
+    if (!hasText(pieceAssignmentId)) {
+      throw new TypeError(
+        "pieceAssignmentId must be a non-empty string",
+      );
+    }
+
+    const record =
+      pieceRecords.get(
+        pieceKey(
+          studentId,
+          pieceAssignmentId.trim(),
+        ),
+      ) ?? null;
+
+    return record?.accessState ===
+      OFFLINE_ACCESS_STATES.ACTIVE
+      ? record
+      : null;
+  }
+
+  async function listActivePieceManifests({
+    studentId,
+    state,
+  }) {
+    requireStudentId(studentId);
+
+    return [...pieceRecords.values()]
+      .filter(
+        (record) =>
+          record.studentId === studentId &&
+          record.accessState ===
+            OFFLINE_ACCESS_STATES.ACTIVE &&
+          (
+            state === undefined ||
+            record.piece.state === state
+          ),
+      );
+  }
+
+  async function markPieceManifestRevoked({
+    studentId,
+    pieceAssignmentId,
+    lastVerifiedAt,
+  }) {
+    const current =
+      await getActivePieceManifest({
+        studentId,
+        pieceAssignmentId,
+      });
+
+    if (current === null) {
+      return null;
+    }
+
+    const replacement =
+      createPieceOfflineRecord({
+        studentId:
+          current.studentId,
+        piece: current.piece,
+        cachedAt:
+          current.cachedAt,
+        lastVerifiedAt,
+        accessState:
+          OFFLINE_ACCESS_STATES.REVOKED,
+      });
+
+    pieceRecords.set(
+      pieceKey(
+        replacement.studentId,
+        replacement.pieceAssignmentId,
+      ),
+      replacement,
+    );
+
+    return replacement;
+  }
+
   return Object.freeze({
+    putPieceManifest,
+    getActivePieceManifest,
+    listActivePieceManifests,
+    markPieceManifestRevoked,
+
     async putAuthorized({
       studentId,
       deliveryItem,
