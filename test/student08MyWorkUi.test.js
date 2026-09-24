@@ -49,9 +49,17 @@ test("S08-4B My Work gives SCORE items a clear hierarchy while preserving the ex
   );
 });
 
-test("S08-4B My Work makes supported CHORD_BOARD assignments actionable without adding edit or playback actions", () => {
+test("S08-4B My Work groups CHORD_BOARD assignments under one expandable Akor çalışması entry", () => {
   const html = renderStudentApp(
     myWorkState([
+      {
+        assignmentId: "score-1",
+        title: "Gitar Etüdü",
+        practiceType: PRACTICE_TYPES.SCORE,
+        teacherNote: "",
+        state: ASSIGNMENT_STATES.ACTIVE,
+        assignedAt: "2026-09-22T16:00:00Z",
+      },
       {
         assignmentId: "chord-1",
         title: "Am",
@@ -60,19 +68,46 @@ test("S08-4B My Work makes supported CHORD_BOARD assignments actionable without 
         state: ASSIGNMENT_STATES.ACTIVE,
         assignedAt: "2026-09-22T16:05:00Z",
       },
+      {
+        assignmentId: "chord-2",
+        title: "F",
+        practiceType: PRACTICE_TYPES.CHORD_BOARD,
+        teacherNote: "Bareyi temiz bas.",
+        state: ASSIGNMENT_STATES.ACTIVE,
+        assignedAt: "2026-09-22T16:06:00Z",
+      },
     ]),
   );
 
   assert.match(
     html,
-    /<article class="assignment-card assignment-card-chord-board">/,
+    /<details class="chord-assignment-group">/,
   );
-  assert.match(html, /class="assignment-type">Akor çalışması/);
   assert.match(
     html,
-    /data-action="open-assignment"[^>]*data-assignment-id="chord-1"/s,
+    /<summary[^>]*>\s*<span[^>]*>Akor çalışması<\/span>[\s\S]*?<span[^>]*>2 akor<\/span>/,
   );
-  assert.match(html, />Çalışmayı Aç<\/button>/);
+  assert.equal(
+    (html.match(/class="chord-assignment-group"/g) ?? []).length,
+    1,
+  );
+  assert.doesNotMatch(
+    html,
+    /assignment-card-chord-board/,
+  );
+
+  for (const [assignmentId, title] of [
+    ["chord-1", "Am"],
+    ["chord-2", "F"],
+  ]) {
+    assert.match(
+      html,
+      new RegExp(
+        `data-action="open-assignment"[^>]*data-assignment-id="${assignmentId}"[\\s\\S]*?>[\\s\\S]*?${title}[\\s\\S]*?<\\/button>`,
+      ),
+    );
+  }
+
   assert.doesNotMatch(
     html,
     /Bu akor çalışması henüz kullanıma hazır değil/,
