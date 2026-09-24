@@ -323,7 +323,17 @@ export function mountStudentApp({
     const renderKey =
       `${presentationKey}:${renderSource?.sourceId ?? "missing"}`;
 
-    if (activeNotationKey === renderKey) {
+    const notationRootHasContent =
+      persistentNotationRoot !== null &&
+      (
+        persistentNotationRoot.childNodes?.length > 0 ||
+        persistentNotationRoot.children?.length > 0
+      );
+
+    if (
+      activeNotationKey === renderKey &&
+      notationRootHasContent
+    ) {
       return;
     }
 
