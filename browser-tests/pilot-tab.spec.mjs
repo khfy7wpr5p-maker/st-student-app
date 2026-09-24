@@ -103,10 +103,11 @@ test("pilot guitar TAB draws visible SVG and frets 7/12 at iPhone width", { time
     assert.deepEqual(pageErrors, [], "browser must not raise an uncaught rendering error");
     const svg = page.locator("#st-score-root svg");
     assert.ok(await svg.count(), "TAB card must contain an SVG");
-    const visibleText = await svg.allTextContents();
-    const combined = visibleText.join(" ");
-    assert.match(combined, /(?:^|\D)7(?:\D|$)/, "TAB must display fret 7");
-    assert.match(combined, /(?:^|\D)12(?:\D|$)/, "TAB must display fret 12");
+    const visibleText = (await svg.locator("text").allTextContents())
+      .map((text) => text.trim())
+      .filter(Boolean);
+    assert.ok(visibleText.includes("7"), "TAB must display fret 7");
+    assert.ok(visibleText.includes("12"), "TAB must display fret 12");
     assert.ok(
       await svg.first().evaluate((element) => element.getBoundingClientRect().height > 0),
       "score SVG must occupy visible height",
