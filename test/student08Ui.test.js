@@ -13,6 +13,9 @@ import {
 } from "../src/ui/studentAppController.js";
 import { renderStudentApp } from "../src/ui/renderStudentApp.js";
 import { dispatchStudentAppAction } from "../src/ui/shellActions.js";
+import {
+  makeChordBoardPracticeItem,
+} from "./support/chordBoardFixtures.js";
 
 const session = createStudentSession({ studentId: "student-a" });
 
@@ -58,61 +61,14 @@ function makeScoreDelivery() {
 }
 
 function makeChordBoardItem() {
-  return {
-    accessRef: {
-      kind: "SECURE_DELIVERY",
-      deliveryId: "assignment-chord",
-    },
-    practiceType: PRACTICE_TYPES.CHORD_BOARD,
-    package: {
-      schemaVersion: "1.0.0",
-      packageType: "CHORD_BOARD",
-      packageId: "assignment-chord",
-      title: "Am Akor Çalışması",
-      assignmentAuthority: {
-        assignmentId: "assignment-chord",
-        state: "teacher_assigned",
-        assignedAt: "2026-09-22T16:05:00Z",
-      },
-      publication: {
-        scope: "student_private",
-        recipientStudentId: "student-a",
-      },
-      content: {
-        chordBoard: {
-          schemaVersion: 1,
-          sourceKind: "chord_board_exact_voicing",
-          chord: {
-            canonicalSymbol: "Am",
-            canonicalRoot: "A",
-            quality: "minor",
-            displayRoot: "A",
-            displaySymbol: "Am",
-          },
-          voicing: {
-            frets: [-1, 0, 2, 2, 1, 0],
-            fingers: [-1, 0, 2, 3, 1, 0],
-            barres: [],
-            shape: "open",
-            generated: false,
-            curated: true,
-          },
-          provenance: {
-            sourceRepository: "st-guitar-chord-board",
-            sourceCommit:
-              "1111111111111111111111111111111111111111",
-            catalogFingerprint:
-              "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          },
-          voicingFingerprint:
-            "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        },
-      },
-      practice: {
-        teacherNote: "Parmakları sırayla yerleştir.",
-      },
-    },
-  };
+  return makeChordBoardPracticeItem({
+    assignmentId: "assignment-chord",
+    title: "Am Akor Çalışması",
+    teacherNote:
+      "Parmakları sırayla yerleştir.",
+    recipientStudentId: "student-a",
+    assignedAt: "2026-09-22T16:05:00Z",
+  });
 }
 
 function makeStudent08Service() {
