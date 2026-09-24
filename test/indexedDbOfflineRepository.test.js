@@ -9,6 +9,9 @@ import {
   makePrivateDelivery,
   makePutArgs,
 } from "./support/practiceFixtures.js";
+import {
+  makeChordBoardPracticeItem,
+} from "./support/chordBoardFixtures.js";
 
 let sequence = 0;
 const dbName = (name) => `st-student-${name}-${sequence += 1}`;
@@ -198,6 +201,7 @@ function makeSecurePractice(
       kind: "SECURE_DELIVERY",
       deliveryId,
     },
+    practiceType: "SCORE",
     package: makeApprovedPracticePackage({
       packageId,
       scope: "student_private",
@@ -355,4 +359,202 @@ test("IndexedDB v1 publication cache migrates additively to PUBLICATION accessRe
     });
 
   assert.equal(generic.packageId, "pkg-legacy");
+});
+
+
+function makeChordSecurePractice(
+  deliveryId = "assignment-chord-a",
+) {
+  return makeChordBoardPracticeItem({
+    assignmentId: deliveryId,
+  });
+}
+
+async function seedLegacySecureScoreDatabase(
+  name,
+) {
+  const pkg =
+    makeApprovedPracticePackage({
+      packageId: "pkg-legacy-secure",
+      scope: "student_private",
+      recipientStudentId:
+        "server-student-a",
+    });
+  const request = indexedDB.open(name, 2);
+
+  const db = await new Promise(
+    (resolve, reject) => {
+      request.onupgradeneeded = () => {
+        const store =
+          request.result
+            .createObjectStore(
+              "practicePackages",
+              {
+                keyPath: "cacheKey",
+              },
+            );
+
+        store.createIndex(
+          "byStudent",
+          "studentId",
+          { unique: false },
+        );
+        store.createIndex(
+          "byStudentScope",
+          "studentScopeKey",
+          { unique: false },
+        );
+        store.createIndex(
+          "byStudentPublication",
+          "studentPublicationKey",
+          { unique: false },
+        );
+        store.createIndex(
+          "byStudentAccess",
+          "studentAccessKey",
+          { unique: false },
+        );
+      };
+      request.onsuccess = () =>
+        resolve(request.result);
+      request.onerror = () =>
+        reject(request.error);
+    },
+  );
+
+  const accessRef = {
+    kind: "SECURE_DELIVERY",
+    deliveryId:
+      "assignment-legacy-score",
+  };
+  const accessKey =
+    "SECURE_DELIVERY:assignment-legacy-score";
+  const studentId =
+    "firebase-uid-a";
+
+  const tx = db.transaction(
+    "practicePackages",
+    "readwrite",
+  );
+  tx.objectStore(
+    "practicePackages",
+  ).put({
+    studentId,
+    accessRef,
+    accessKey,
+    packageId:
+      "pkg-legacy-secure",
+    scope: "student_private",
+    publication: null,
+    package: pkg,
+    cachedAt:
+      "2026-09-23T11:00:00Z",
+    lastVerifiedAt:
+      "2026-09-23T11:00:00Z",
+    accessState: "ACTIVE",
+    cacheKey:
+      `${studentId}\u0000SECURE_DELIVERY:assignment-legacy-score\u0000pkg-legacy-secure`,
+    studentScopeKey:
+      `${studentId}\u0000student_private`,
+    studentAccessKey:
+      `${studentId}\u0000${accessKey}`,
+  });
+
+  await new Promise(
+    (resolve, reject) => {
+      tx.oncomplete = resolve;
+      tx.onerror = () =>
+        reject(tx.error);
+      tx.onabort = () =>
+        reject(tx.error);
+    },
+  );
+
+  db.close();
+}
+
+test("IndexedDB persists and reopens explicit CHORD_BOARD practice type without changing access identity", async () => {
+  const name =
+    dbName("secure-chord");
+  const first =
+    createIndexedDbOfflineRepository({
+      indexedDB,
+      dbName: name,
+    });
+
+  await first.putAuthorized({
+    studentId: "firebase-uid-a",
+    practiceItem:
+      makeChordSecurePractice(),
+    cachedAt:
+      "2026-09-23T11:00:00Z",
+    lastVerifiedAt:
+      "2026-09-23T11:00:00Z",
+  });
+
+  const reopened =
+    createIndexedDbOfflineRepository({
+      indexedDB,
+      dbName: name,
+    });
+
+  const cached =
+    await reopened.getActiveByAccessRef({
+      studentId: "firebase-uid-a",
+      accessRef: {
+        kind: "SECURE_DELIVERY",
+        deliveryId:
+          "assignment-chord-a",
+      },
+    });
+
+  assert.equal(
+    cached.practiceType,
+    "CHORD_BOARD",
+  );
+  assert.equal(
+    cached.package.packageType,
+    "CHORD_BOARD",
+  );
+  assert.deepEqual(
+    cached.accessRef,
+    {
+      kind: "SECURE_DELIVERY",
+      deliveryId:
+        "assignment-chord-a",
+    },
+  );
+});
+
+test("IndexedDB restores legacy Secure Delivery SCORE records that predate practiceType", async () => {
+  const name =
+    dbName("legacy-secure-score");
+  await seedLegacySecureScoreDatabase(
+    name,
+  );
+
+  const reopened =
+    createIndexedDbOfflineRepository({
+      indexedDB,
+      dbName: name,
+    });
+
+  const cached =
+    await reopened.getActiveByAccessRef({
+      studentId: "firebase-uid-a",
+      accessRef: {
+        kind: "SECURE_DELIVERY",
+        deliveryId:
+          "assignment-legacy-score",
+      },
+    });
+
+  assert.equal(
+    cached.practiceType,
+    "SCORE",
+  );
+  assert.equal(
+    cached.package.packageId,
+    "pkg-legacy-secure",
+  );
 });

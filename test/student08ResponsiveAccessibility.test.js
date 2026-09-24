@@ -84,3 +84,24 @@ test("S08-4C extra-narrow iPhone layout preserves safe areas inside the light si
     /@media\s*\(max-width:\s*360px\)[\s\S]*?\.student-content\s*\{[^}]*env\(safe-area-inset-top,\s*0px\)[^}]*var\(--st-space-3\)[^}]*env\(safe-area-inset-bottom,\s*0px\)/s,
   );
 });
+
+
+test("CHORD_BOARD workspace stays bounded on phone widths without changing Practice layout", async () => {
+  const html = await readFile(
+    new URL("../index.html", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(
+    html,
+    /\.chord-board-workspace\s*\{[^}]*min-width:\s*0/s,
+  );
+  assert.match(
+    html,
+    /\.chord-diagram\s*\{[^}]*width:\s*min\(100%,\s*25rem\)[^}]*height:\s*auto[^}]*display:\s*block[^}]*overflow:\s*visible/s,
+  );
+  assert.match(
+    html,
+    /@media\s*\(max-width:\s*640px\)[\s\S]*?\.chord-board-workspace\s*\{[^}]*padding-inline:\s*var\(--st-space-2\)/s,
+  );
+});

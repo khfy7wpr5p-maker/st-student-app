@@ -274,6 +274,160 @@
         gap: var(--st-space-3);
       }
 
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      .assignment-group-item {
+        min-width: 0;
+      }
+
+      .chord-assignment-group {
+        border: 1px solid var(--st-border);
+        border-radius: var(--st-radius-md);
+        background: var(--st-surface-raised);
+        padding: var(--st-space-4);
+      }
+
+      .chord-assignment-group summary {
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: var(--st-space-3);
+        font-weight: 700;
+      }
+
+      .chord-assignment-count {
+        color: var(--st-text-muted);
+        font-size: var(--st-font-size-sm);
+        font-weight: 600;
+      }
+
+      .chord-assignment-options {
+        display: grid;
+        gap: var(--st-space-2);
+        margin-top: var(--st-space-3);
+      }
+
+      .chord-assignment-option {
+        width: 100%;
+        display: grid;
+        gap: var(--st-space-1);
+        text-align: start;
+        border: 1px solid var(--st-border);
+        background: var(--st-surface-panel);
+        padding: var(--st-space-3);
+      }
+
+      .chord-assignment-option span {
+        color: var(--st-text-muted);
+        font-size: var(--st-font-size-sm);
+        font-weight: 400;
+      }
+
+      .chord-board-workspace {
+        min-width: 0;
+        display: grid;
+        gap: var(--st-space-4);
+      }
+
+      .chord-board-heading,
+      .chord-teacher-note {
+        display: grid;
+        gap: var(--st-space-2);
+      }
+
+      .chord-board-work-title {
+        color: var(--st-text-muted);
+      }
+
+      .chord-diagram-card {
+        width: min(100%, 30rem);
+        border: 1px solid var(--st-border);
+        border-radius: var(--st-radius-lg);
+        background: var(--st-surface-raised);
+        padding: var(--st-space-3);
+      }
+
+      .chord-diagram {
+        width: min(100%, 25rem);
+        height: auto;
+        display: block;
+        margin-inline: auto;
+        overflow: visible;
+      }
+
+      .string-line {
+        stroke: var(--st-text);
+        stroke-linecap: round;
+        vector-effect: non-scaling-stroke;
+      }
+
+      .fret-line {
+        stroke: var(--st-text-muted);
+        stroke-linecap: round;
+        vector-effect: non-scaling-stroke;
+      }
+
+      .nut-line {
+        stroke: var(--st-text);
+      }
+
+      .open-mark {
+        fill: var(--st-surface-raised);
+        stroke: var(--st-text);
+        stroke-width: 3;
+        vector-effect: non-scaling-stroke;
+      }
+
+      .mute-mark {
+        fill: var(--st-text);
+        font-size: 28px;
+        font-weight: 700;
+        text-anchor: middle;
+      }
+
+      .finger-mark {
+        fill: var(--st-text);
+        stroke: var(--st-surface-raised);
+        stroke-width: 1.25;
+        vector-effect: non-scaling-stroke;
+      }
+
+      .finger-number {
+        fill: var(--st-surface-raised);
+        font-size: 18px;
+        font-weight: 800;
+        text-anchor: middle;
+      }
+
+      .barre-mark {
+        fill: var(--st-text);
+      }
+
+      .base-fret {
+        fill: var(--st-text);
+        font-size: 17px;
+        font-weight: 800;
+        text-anchor: middle;
+      }
+
+      .chord-teacher-note {
+        border: 1px solid var(--st-border);
+        border-radius: var(--st-radius-md);
+        background: var(--st-surface-raised);
+        padding: var(--st-space-4);
+      }
+
       .practice-workspace,
       .practice-notation {
         min-width: 0;
@@ -522,6 +676,14 @@
 
         .student-content h1 {
           font-size: clamp(1.45rem, 7vw, 2rem);
+        }
+
+        .chord-board-workspace {
+          padding-inline: var(--st-space-2);
+        }
+
+        .chord-diagram {
+          padding: var(--st-space-3);
         }
 
         .practice-notation {

@@ -11,6 +11,9 @@ import {
 import {
   makeApprovedPracticePackage,
 } from "./support/practiceFixtures.js";
+import {
+  makeChordBoardPackage,
+} from "./support/chordBoardFixtures.js";
 
 test("StudentPoolView accepts only sanitized fields", () => {
   const view = createStudentPoolView({
@@ -120,5 +123,167 @@ test("Secure Delivery assignment rejects extra fields and identity mismatches", 
       state: "UNKNOWN",
     }),
     /state/i,
+  );
+});
+
+
+test("Secure Delivery assignment accepts strict CHORD_BOARD rows", () => {
+  const raw = {
+    deliveryId: "assignment-chord-a",
+    assignmentId: "assignment-chord-a",
+    packageId: "assignment-chord-a",
+    practiceType: "CHORD_BOARD",
+    teacherNote: "60 BPM ile çalış.",
+    state: "ACTIVE",
+    assignedAt: "2026-09-23T10:00:00Z",
+    deliveredAt: "2026-09-23T10:01:00Z",
+    package: makeChordBoardPackage(),
+  };
+
+  const row =
+    createSecureDeliveryAssignmentRow(raw);
+  const view = toStudentAssignmentView(row);
+
+  assert.equal(row.practiceType, "CHORD_BOARD");
+  assert.equal(
+    row.package.packageType,
+    "CHORD_BOARD",
+  );
+  assert.equal(
+    row.package.content.chordBoard.voicing.frets[2],
+    2,
+  );
+  assert.equal(view.title, "Am Akor Çalışması");
+  assert.equal(
+    view.practiceType,
+    "CHORD_BOARD",
+  );
+  assert.equal(Object.isFrozen(row.package), true);
+});
+
+test("Secure Delivery assignment rejects SCORE and CHORD_BOARD package type mismatches", () => {
+  const chordRow = {
+    deliveryId: "assignment-chord-a",
+    assignmentId: "assignment-chord-a",
+    packageId: "assignment-chord-a",
+    practiceType: "CHORD_BOARD",
+    teacherNote: "60 BPM ile çalış.",
+    state: "ACTIVE",
+    assignedAt: "2026-09-23T10:00:00Z",
+    deliveredAt: "2026-09-23T10:01:00Z",
+    package: makeChordBoardPackage(),
+  };
+
+  assert.throws(
+    () =>
+      createSecureDeliveryAssignmentRow({
+        ...chordRow,
+        practiceType: "SCORE",
+      }),
+    /package|practiceType|SCORE|CHORD_BOARD/i,
+  );
+
+  const scorePackage =
+    makeApprovedPracticePackage({
+      packageId: "assignment-score-a",
+      scope: "student_private",
+      recipientStudentId: "server-student-a",
+    });
+
+  assert.throws(
+    () =>
+      createSecureDeliveryAssignmentRow({
+        deliveryId: "assignment-score-a",
+        assignmentId: "assignment-score-a",
+        packageId: "assignment-score-a",
+        practiceType: "CHORD_BOARD",
+        teacherNote: "",
+        state: "ACTIVE",
+        assignedAt: "2026-09-23T10:00:00Z",
+        deliveredAt: "2026-09-23T10:01:00Z",
+        package: scorePackage,
+      }),
+    /package|practiceType|SCORE|CHORD_BOARD/i,
+  );
+});
+
+test("Secure Delivery CHORD_BOARD row enforces package assignment and teacher authority", () => {
+  const base = {
+    deliveryId: "assignment-chord-a",
+    assignmentId: "assignment-chord-a",
+    packageId: "assignment-chord-a",
+    practiceType: "CHORD_BOARD",
+    teacherNote: "60 BPM ile çalış.",
+    state: "ACTIVE",
+    assignedAt: "2026-09-23T10:00:00Z",
+    deliveredAt: "2026-09-23T10:01:00Z",
+    package: makeChordBoardPackage(),
+  };
+
+  assert.throws(
+    () =>
+      createSecureDeliveryAssignmentRow({
+        ...base,
+        packageId: "assignment-other",
+      }),
+    /packageId/i,
+  );
+
+  assert.throws(
+    () =>
+      createSecureDeliveryAssignmentRow({
+        ...base,
+        package: makeChordBoardPackage({
+          assignmentId: "assignment-other",
+        }),
+      }),
+    /assignment|packageId|authority/i,
+  );
+
+  assert.throws(
+    () =>
+      createSecureDeliveryAssignmentRow({
+        ...base,
+        package: makeChordBoardPackage({
+          teacherNote: "Başka not",
+        }),
+      }),
+    /teacherNote|authority/i,
+  );
+});
+
+test("Secure Delivery rejects unknown practice and package discriminators", () => {
+  const chord = {
+    deliveryId: "assignment-chord-a",
+    assignmentId: "assignment-chord-a",
+    packageId: "assignment-chord-a",
+    practiceType: "CHORD_BOARD",
+    teacherNote: "60 BPM ile çalış.",
+    state: "ACTIVE",
+    assignedAt: "2026-09-23T10:00:00Z",
+    deliveredAt: "2026-09-23T10:01:00Z",
+    package: makeChordBoardPackage(),
+  };
+
+  assert.throws(
+    () =>
+      createSecureDeliveryAssignmentRow({
+        ...chord,
+        practiceType: "UNKNOWN",
+      }),
+    /practiceType/i,
+  );
+
+  const unknownPackage =
+    makeChordBoardPackage();
+  unknownPackage.packageType = "UNKNOWN";
+
+  assert.throws(
+    () =>
+      createSecureDeliveryAssignmentRow({
+        ...chord,
+        package: unknownPackage,
+      }),
+    /packageType|CHORD_BOARD/i,
   );
 });

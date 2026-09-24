@@ -12,6 +12,9 @@ import {
   withPracticeTempo,
 } from "../practice/practiceWorkspace.js";
 import { SYNC_STATES } from "../offline/syncCoordinator.js";
+import {
+  createChordBoardViewModel,
+} from "./chordBoardViewModel.js";
 
 export const STUDENT_APP_SCREENS = Object.freeze({
   SIGN_IN: "sign_in",
@@ -19,6 +22,7 @@ export const STUDENT_APP_SCREENS = Object.freeze({
   PUBLIC_POOL: "public_pool",
   MY_WORK: "my_work",
   PRACTICE: "practice",
+  CHORD_BOARD: "chord_board",
 });
 
 function freezeState({
@@ -26,6 +30,7 @@ function freezeState({
   session = null,
   items = [],
   practice = null,
+  chordBoard = null,
   syncState,
   student08 = false,
   poolDetail,
@@ -36,6 +41,7 @@ function freezeState({
     session,
     items: Object.freeze([...items]),
     practice,
+    chordBoard,
   };
 
   if (syncState !== undefined) {
@@ -187,6 +193,7 @@ export function createStudentAppController({
       session: state.session,
       items: state.items,
       practice: state.practice,
+      chordBoard: state.chordBoard,
       syncState: currentSyncState,
       student08: state.student08 === true,
       poolDetail: state.poolDetail,
@@ -242,6 +249,28 @@ export function createStudentAppController({
         workspace.viewModel,
         item,
       ),
+      syncState: currentSyncState,
+      student08: student08Enabled,
+    });
+    return state;
+  }
+
+  function activateChordBoardItem({
+    item,
+    session,
+    requestGeneration,
+  }) {
+    if (!sessionRequestIsCurrent(session, requestGeneration)) {
+      return state;
+    }
+
+    clearActivePractice();
+    state = freezeState({
+      screen: STUDENT_APP_SCREENS.CHORD_BOARD,
+      session,
+      practice: null,
+      chordBoard:
+        createChordBoardViewModel(item),
       syncState: currentSyncState,
       student08: student08Enabled,
     });
@@ -490,8 +519,26 @@ export function createStudentAppController({
           return state;
         }
 
-        if (assignment.practiceType === PRACTICE_TYPES.CHORD_BOARD) {
-          throw new Error("chord board unavailable");
+        if (
+          assignment.practiceType ===
+          PRACTICE_TYPES.CHORD_BOARD
+        ) {
+          const itemResult =
+            student08ReadService
+              .getChordBoardPracticeItem({
+                session,
+                assignmentId,
+              });
+
+          return resolveMaybe(
+            itemResult,
+            (item) =>
+              activateChordBoardItem({
+                item,
+                session,
+                requestGeneration,
+              }),
+          );
         }
 
         if (assignment.practiceType !== PRACTICE_TYPES.SCORE) {

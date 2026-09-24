@@ -2,6 +2,9 @@ import {
   getAuthenticatedStudentId,
 } from "../auth/session.js";
 import {
+  PRACTICE_TYPES,
+} from "../contracts/privateAssignment.js";
+import {
   CONNECTIVITY_STATES,
 } from "./connectivityPort.js";
 
@@ -60,7 +63,8 @@ export function createSecureDeliveryOfflineReadService({
     typeof onlineReadService.getPoolItem !== "function" ||
     typeof onlineReadService.listAssignments !== "function" ||
     typeof onlineReadService.getAssignment !== "function" ||
-    typeof onlineReadService.getScorePracticeItem !== "function"
+    typeof onlineReadService.getScorePracticeItem !== "function" ||
+    typeof onlineReadService.getChordBoardPracticeItem !== "function"
   ) {
     throw new TypeError(
       "onlineReadService is incomplete",
@@ -217,10 +221,12 @@ export function createSecureDeliveryOfflineReadService({
     );
   }
 
-  async function getScorePracticeItem({
+  async function getPrivatePracticeItem({
     session,
     assignmentId,
-  } = {}) {
+    expectedPracticeType,
+    onlineMethod,
+  }) {
     const studentId =
       requireStudentId(session);
     const id =
@@ -241,7 +247,11 @@ export function createSecureDeliveryOfflineReadService({
             accessRef,
           });
 
-      if (record === null) {
+      if (
+        record === null ||
+        record.practiceType !==
+          expectedPracticeType
+      ) {
         throw new Error(
           "offline practice unavailable",
         );
@@ -251,6 +261,8 @@ export function createSecureDeliveryOfflineReadService({
         Object.freeze({
           accessRef:
             record.accessRef,
+          practiceType:
+            record.practiceType,
           package:
             record.package,
         }),
@@ -260,16 +272,17 @@ export function createSecureDeliveryOfflineReadService({
     }
 
     const item =
-      await onlineReadService
-        .getScorePracticeItem({
-          session,
-          assignmentId: id,
-        });
+      await onlineMethod({
+        session,
+        assignmentId: id,
+      });
 
     if (
       item?.accessRef?.kind !==
         "SECURE_DELIVERY" ||
-      item.accessRef.deliveryId !== id
+      item.accessRef.deliveryId !== id ||
+      item.practiceType !==
+        expectedPracticeType
     ) {
       throw new Error(
         "assignment identity mismatch",
@@ -300,6 +313,36 @@ export function createSecureDeliveryOfflineReadService({
         true,
       );
     }
+  }
+
+  function getScorePracticeItem({
+    session,
+    assignmentId,
+  } = {}) {
+    return getPrivatePracticeItem({
+      session,
+      assignmentId,
+      expectedPracticeType:
+        PRACTICE_TYPES.SCORE,
+      onlineMethod:
+        onlineReadService
+          .getScorePracticeItem,
+    });
+  }
+
+  function getChordBoardPracticeItem({
+    session,
+    assignmentId,
+  } = {}) {
+    return getPrivatePracticeItem({
+      session,
+      assignmentId,
+      expectedPracticeType:
+        PRACTICE_TYPES.CHORD_BOARD,
+      onlineMethod:
+        onlineReadService
+          .getChordBoardPracticeItem,
+    });
   }
 
   return Object.freeze({
@@ -342,5 +385,6 @@ export function createSecureDeliveryOfflineReadService({
     listAssignments,
     getAssignment,
     getScorePracticeItem,
+    getChordBoardPracticeItem,
   });
 }

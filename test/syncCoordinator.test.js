@@ -285,6 +285,7 @@ function makeSecurePracticeForSync() {
       kind: "SECURE_DELIVERY",
       deliveryId: "assignment-a",
     },
+    practiceType: "SCORE",
     package: makeApprovedPracticePackage({
       packageId: "pkg-secure",
       scope: "student_private",

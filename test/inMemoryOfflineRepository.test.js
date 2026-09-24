@@ -141,6 +141,7 @@ function makeSecurePractice(
       kind: "SECURE_DELIVERY",
       deliveryId,
     },
+    practiceType: "SCORE",
     package: makeApprovedPracticePackage({
       packageId,
       scope: "student_private",

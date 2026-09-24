@@ -403,6 +403,7 @@ test("sign out clears session and student data", () => {
     session: null,
     items: [],
     practice: null,
+    chordBoard: null,
   });
 });
 
