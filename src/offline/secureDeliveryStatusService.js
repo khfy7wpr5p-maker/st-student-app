@@ -2,6 +2,9 @@ import {
   createSecureDeliveryAssignmentRow,
 } from "../contracts/secureDeliveryAssignment.js";
 import {
+  createStudentPieceManifest,
+} from "../contracts/pieceAssignment.js";
+import {
   createPracticeAccessRef,
 } from "../practice/practiceAccessRef.js";
 import {
@@ -20,7 +23,66 @@ export function createSecureDeliveryStatusService({
     );
   }
 
+  async function getPieceStatus({
+    pieceAssignmentId,
+  } = {}) {
+    if (
+      typeof pieceAssignmentId !== "string" ||
+      pieceAssignmentId.trim().length === 0
+    ) {
+      throw new TypeError(
+        "pieceAssignmentId must be a non-empty string",
+      );
+    }
+
+    if (
+      typeof apiClient?.getStudentPiece !==
+      "function"
+    ) {
+      throw new TypeError(
+        "Secure Delivery Piece API client is incomplete",
+      );
+    }
+
+    const id = pieceAssignmentId.trim();
+
+    try {
+      const piece =
+        createStudentPieceManifest(
+          await apiClient.getStudentPiece(id),
+        );
+
+      if (
+        piece.pieceAssignmentId !== id
+      ) {
+        throw new Error(
+          "Piece identity mismatch",
+        );
+      }
+
+      return Object.freeze({
+        state: "ACTIVE",
+        piece,
+      });
+    } catch (error) {
+      if (
+        error instanceof
+          SecureDeliveryApiError &&
+        error.status === 404 &&
+        error.code === "NOT_FOUND"
+      ) {
+        return Object.freeze({
+          state: "REVOKED",
+        });
+      }
+
+      throw error;
+    }
+  }
+
   return Object.freeze({
+    getPieceStatus,
+
     async getAccessStatus({
       accessRef,
     } = {}) {

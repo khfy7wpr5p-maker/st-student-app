@@ -23,6 +23,14 @@ export function createChordBoardViewModel(
   }
 
   const pkg = item.package;
+  const assignmentId =
+    typeof item.accessRef?.deliveryId === "string" &&
+    item.accessRef.deliveryId.trim().length > 0
+      ? item.accessRef.deliveryId.trim()
+      : typeof pkg.assignmentAuthority?.assignmentId === "string" &&
+          pkg.assignmentAuthority.assignmentId.trim().length > 0
+        ? pkg.assignmentAuthority.assignmentId.trim()
+        : pkg.packageId;
   const snapshot = pkg.content?.chordBoard;
   const frets = snapshot?.voicing?.frets;
   const fingers = snapshot?.voicing?.fingers;
@@ -41,6 +49,7 @@ export function createChordBoardViewModel(
   }
 
   return Object.freeze({
+    assignmentId,
     packageId: pkg.packageId,
     title: pkg.title,
     teacherNote:

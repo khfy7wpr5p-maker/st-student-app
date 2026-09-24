@@ -1,4 +1,4 @@
-const CACHE_NAME = "st-student-shell-v6";
+const CACHE_NAME = "st-student-shell-v7";
 
 const FIREBASE_RUNTIME_ASSETS = Object.freeze([
   "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js",
@@ -57,6 +57,25 @@ const SHELL_ASSETS = Object.freeze([
   "./src/offline/indexedDbOfflineRepository.js",
   "./src/offline/offlineAwareSharingService.js",
   "./src/offline/serviceWorkerRegistration.js",
+  "./src/config/secureDeliveryConfig.js",
+  "./src/ui/student08Composition.js",
+  "./src/providers/secureDelivery/secureDeliveryApiClient.js",
+  "./src/sharing/secureDeliveryStudent08ReadService.js",
+  "./src/contracts/privateAssignment.js",
+  "./src/contracts/studentPoolView.js",
+  "./src/contracts/pieceAssignment.js",
+  "./src/contracts/secureDeliveryAssignment.js",
+  "./src/contracts/secureDeliveryPackage.js",
+  "./src/contracts/studentChordBoardPackage.js",
+  "./src/practice/practiceAccessRef.js",
+  "./src/ui/chordBoardViewModel.js",
+  "./src/ui/chordDiagramSvg.js",
+  "./src/ui/renderChordBoardWorkspace.js",
+  "./src/ui/pieceWorkspaceViewModel.js",
+  "./src/ui/renderPieceWorkspace.js",
+  "./src/offline/secureDeliveryOfflineReadService.js",
+  "./src/offline/secureDeliveryStatusService.js",
+  "./src/offline/pieceOfflineRecord.js",
 ]);
 
 const PLAYBACK_STATIC_ASSETS = Object.freeze([

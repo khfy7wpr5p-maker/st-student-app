@@ -35,7 +35,7 @@ test("service worker caches explicit app-shell and playback assets plus pinned F
     "utf8",
   );
 
-  assert.match(source, /st-student-shell-v6/);
+  assert.match(source, /st-student-shell-v7/);
   assert.match(source, /index\.html/);
   assert.match(source, /src\/ui\/main\.js/);
   assert.match(source, /request\.method\s*!==\s*["']GET["']/);

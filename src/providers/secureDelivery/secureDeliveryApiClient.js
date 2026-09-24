@@ -122,6 +122,21 @@ export function createSecureDeliveryApiClient({
       return request("student/assignments");
     },
 
+    listStudentPieces() {
+      return request("student/pieces");
+    },
+
+    getStudentPiece(pieceAssignmentId) {
+      return request(
+        `student/pieces/${encodeURIComponent(
+          requiredText(
+            pieceAssignmentId,
+            "pieceAssignmentId",
+          ),
+        )}`,
+      );
+    },
+
     getStudentAssignment(deliveryId) {
       return request(
         `student/assignments/${encodeURIComponent(

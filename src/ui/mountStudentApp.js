@@ -12,7 +12,27 @@ function practicePresentationKey(state) {
     return `practice:${state.practice.packageId}`;
   }
 
+  if (
+    state.screen === STUDENT_APP_SCREENS.PIECE_WORKSPACE &&
+    state.pieceWorkspace?.score?.practice !== null &&
+    state.pieceWorkspace?.score?.practice !== undefined
+  ) {
+    return `piece:${state.pieceWorkspace.pieceAssignmentId}:score:${state.pieceWorkspace.score.practice.packageId}`;
+  }
+
   return state.screen;
+}
+
+function practiceForState(state) {
+  if (state.screen === STUDENT_APP_SCREENS.PRACTICE) {
+    return state.practice;
+  }
+
+  if (state.screen === STUDENT_APP_SCREENS.PIECE_WORKSPACE) {
+    return state.pieceWorkspace?.score?.practice ?? null;
+  }
+
+  return null;
 }
 
 function isNotationCapability(value) {
@@ -237,13 +257,14 @@ export function mountStudentApp({
 
   function currentPracticeMatches(state, generation) {
     const current = controller.getState();
+    const currentPractice = practiceForState(current);
+    const requestedPractice = practiceForState(state);
 
     return (
-      current.screen === STUDENT_APP_SCREENS.PRACTICE &&
-      current.practice !== null &&
-      state.screen === STUDENT_APP_SCREENS.PRACTICE &&
-      state.practice !== null &&
-      current.practice.packageId === state.practice.packageId &&
+      currentPractice !== null &&
+      requestedPractice !== null &&
+      practicePresentationKey(current) === practicePresentationKey(state) &&
+      currentPractice.packageId === requestedPractice.packageId &&
       domGeneration === generation
     );
   }
@@ -258,14 +279,11 @@ export function mountStudentApp({
   }
 
   async function synchronizeNotation({ state, renderSource, generation }) {
-    if (state.screen !== STUDENT_APP_SCREENS.PRACTICE) {
-      await disposeActiveNotation();
-      return;
-    }
+    const practice = practiceForState(state);
 
     if (
-      state.practice === null ||
-      state.practice.capabilities?.notation !==
+      practice === null ||
+      practice.capabilities?.notation !==
         PRACTICE_CAPABILITY_STATES.AVAILABLE
     ) {
       await disposeActiveNotation();
@@ -288,7 +306,7 @@ export function mountStudentApp({
       return;
     }
 
-    const renderKey = state.practice.packageId;
+    const renderKey = practicePresentationKey(state);
 
     if (activeNotationKey === renderKey) {
       return;
@@ -350,7 +368,8 @@ export function mountStudentApp({
 
     const snapshot = paint();
     const renderSource =
-      snapshot.state.screen === STUDENT_APP_SCREENS.PRACTICE
+      snapshot.state.screen === STUDENT_APP_SCREENS.PRACTICE ||
+      snapshot.state.screen === STUDENT_APP_SCREENS.PIECE_WORKSPACE
         ? controller.getPracticeRenderSource?.() ?? null
         : null;
 
@@ -381,6 +400,14 @@ export function mountStudentApp({
     const poolItemId = actionElement.dataset.poolItemId;
     const assignmentId = actionElement.dataset.assignmentId;
     const assignmentState = actionElement.dataset.assignmentState;
+    const pieceAssignmentId =
+      actionElement.dataset.pieceAssignmentId;
+    const pieceView =
+      actionElement.dataset.pieceView;
+    const scrollPosition =
+      action === "open-piece"
+        ? root.ownerDocument?.defaultView?.scrollY
+        : undefined;
 
     const tempoBpm =
       action === "set-practice-tempo"
@@ -410,6 +437,9 @@ export function mountStudentApp({
         poolItemId,
         assignmentId,
         assignmentState,
+        pieceAssignmentId,
+        pieceView,
+        scrollPosition,
         tempoBpm,
         repeatEnabled,
         credentials,

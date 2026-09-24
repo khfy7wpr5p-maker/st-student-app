@@ -558,3 +558,77 @@ test("IndexedDB restores legacy Secure Delivery SCORE records that predate pract
     "pkg-legacy-secure",
   );
 });
+
+
+function offlinePieceManifest(
+  pieceAssignmentId = "piece-a",
+  state = "ACTIVE",
+) {
+  return {
+    schemaVersion: "1.0.0",
+    pieceAssignmentId,
+    pieceId: `work-${pieceAssignmentId}`,
+    arrangementId: `arr-${pieceAssignmentId}`,
+    title: "Cambaz",
+    teacherNote: "",
+    state,
+    assignedAt: "2026-09-24T08:00:00Z",
+    contentRefs: {
+      scoreAssignmentId: "assignment-score-a",
+      chordAssignmentIds: [],
+    },
+  };
+}
+
+test("Piece manifest cache stays student-scoped and revoke is one-way", async () => {
+  const repo = createIndexedDbOfflineRepository({
+    indexedDB,
+    dbName: dbName("piece-manifest"),
+  });
+
+  const piece = offlinePieceManifest();
+  await repo.putPieceManifest({
+    studentId: "firebase-uid-a",
+    piece,
+    cachedAt: "2026-09-24T09:00:00Z",
+    lastVerifiedAt: "2026-09-24T09:00:00Z",
+  });
+
+  assert.equal(
+    (
+      await repo.getActivePieceManifest({
+        studentId: "firebase-uid-a",
+        pieceAssignmentId: "piece-a",
+      })
+    ).piece.pieceId,
+    "work-piece-a",
+  );
+  assert.equal(
+    await repo.getActivePieceManifest({
+      studentId: "firebase-uid-b",
+      pieceAssignmentId: "piece-a",
+    }),
+    null,
+  );
+
+  await repo.markPieceManifestRevoked({
+    studentId: "firebase-uid-a",
+    pieceAssignmentId: "piece-a",
+    lastVerifiedAt: "2026-09-24T10:00:00Z",
+  });
+
+  assert.equal(
+    await repo.getActivePieceManifest({
+      studentId: "firebase-uid-a",
+      pieceAssignmentId: "piece-a",
+    }),
+    null,
+  );
+  assert.deepEqual(
+    await repo.listActivePieceManifests({
+      studentId: "firebase-uid-a",
+      state: "ACTIVE",
+    }),
+    [],
+  );
+});

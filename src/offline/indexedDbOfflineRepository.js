@@ -9,8 +9,12 @@ import {
   createPracticeAccessRef,
   practiceAccessKey,
 } from "../practice/practiceAccessRef.js";
+import {
+  createPieceOfflineRecord,
+} from "./pieceOfflineRecord.js";
 
 const STORE_NAME = "practicePackages";
+const PIECE_STORE_NAME = "pieceManifests";
 
 const hasText = (value) =>
   typeof value === "string" && value.trim().length > 0;
@@ -75,6 +79,40 @@ const studentPublicationKey = ({
   publicationId,
 }) =>
   `${studentId}\u0000${publicationId}`;
+
+
+function pieceCacheKey({
+  studentId,
+  pieceAssignmentId,
+}) {
+  return `${studentId}\u0000${pieceAssignmentId}`;
+}
+
+function toPieceStorageRecord(record) {
+  return {
+    ...structuredClone(record),
+    cacheKey: pieceCacheKey(record),
+  };
+}
+
+function fromPieceStorageRecord(stored) {
+  if (
+    stored === undefined ||
+    stored === null
+  ) {
+    return null;
+  }
+
+  return createPieceOfflineRecord({
+    studentId: stored.studentId,
+    piece: stored.piece,
+    cachedAt: stored.cachedAt,
+    lastVerifiedAt:
+      stored.lastVerifiedAt,
+    accessState:
+      stored.accessState,
+  });
+}
 
 function requestResult(request) {
   return new Promise((resolve, reject) => {
@@ -298,7 +336,7 @@ function newestActivePerAccess(records) {
 export function createIndexedDbOfflineRepository({
   indexedDB,
   dbName = "st-student-app",
-  dbVersion = 2,
+  dbVersion = 3,
 }) {
   if (
     indexedDB === null ||
@@ -453,6 +491,41 @@ export function createIndexedDbOfflineRepository({
                   cursor.continue();
                 };
             }
+
+
+            let pieceStore;
+            if (
+              !db.objectStoreNames.contains(
+                PIECE_STORE_NAME,
+              )
+            ) {
+              pieceStore =
+                db.createObjectStore(
+                  PIECE_STORE_NAME,
+                  {
+                    keyPath:
+                      "cacheKey",
+                  },
+                );
+            } else {
+              pieceStore =
+                request.transaction
+                  .objectStore(
+                    PIECE_STORE_NAME,
+                  );
+            }
+
+            if (
+              !pieceStore.indexNames.contains(
+                "byStudent",
+              )
+            ) {
+              pieceStore.createIndex(
+                "byStudent",
+                "studentId",
+                { unique: false },
+              );
+            }
           };
 
         request.onsuccess = () =>
@@ -482,7 +555,8 @@ export function createIndexedDbOfflineRepository({
     return dbPromise;
   }
 
-  async function withStore(
+  async function withNamedStore(
+    storeName,
     mode,
     operation,
   ) {
@@ -490,12 +564,12 @@ export function createIndexedDbOfflineRepository({
       await openDatabase();
     const transaction =
       db.transaction(
-        STORE_NAME,
+        storeName,
         mode,
       );
     const store =
       transaction.objectStore(
-        STORE_NAME,
+        storeName,
       );
     const done =
       transactionDone(transaction);
@@ -520,6 +594,28 @@ export function createIndexedDbOfflineRepository({
 
       throw error;
     }
+  }
+
+  function withStore(
+    mode,
+    operation,
+  ) {
+    return withNamedStore(
+      STORE_NAME,
+      mode,
+      operation,
+    );
+  }
+
+  function withPieceStore(
+    mode,
+    operation,
+  ) {
+    return withNamedStore(
+      PIECE_STORE_NAME,
+      mode,
+      operation,
+    );
   }
 
   async function recordsForAccess(
@@ -578,7 +674,214 @@ export function createIndexedDbOfflineRepository({
     );
   }
 
+  async function putPieceManifest({
+    studentId,
+    piece,
+    cachedAt,
+    lastVerifiedAt,
+  }) {
+    requireText(
+      studentId,
+      "studentId",
+    );
+    const incoming =
+      createPieceOfflineRecord({
+        studentId,
+        piece,
+        cachedAt,
+        lastVerifiedAt,
+        accessState:
+          OFFLINE_ACCESS_STATES.ACTIVE,
+      });
+    const key =
+      pieceCacheKey(incoming);
+
+    return withPieceStore(
+      "readwrite",
+      async (store) => {
+        const existing =
+          fromPieceStorageRecord(
+            await requestResult(
+              store.get(key),
+            ),
+          );
+
+        if (
+          existing !== null &&
+          (
+            existing.piece.pieceId !==
+              incoming.piece.pieceId ||
+            existing.piece.arrangementId !==
+              incoming.piece.arrangementId ||
+            JSON.stringify(
+              existing.piece.contentRefs,
+            ) !==
+              JSON.stringify(
+                incoming.piece.contentRefs,
+              )
+          )
+        ) {
+          throw new Error(
+            "immutable Piece manifest authority conflict",
+          );
+        }
+
+        await requestResult(
+          store.put(
+            toPieceStorageRecord(
+              incoming,
+            ),
+          ),
+        );
+        return incoming;
+      },
+    );
+  }
+
+  async function getActivePieceManifest({
+    studentId,
+    pieceAssignmentId,
+  }) {
+    requireText(
+      studentId,
+      "studentId",
+    );
+    requireText(
+      pieceAssignmentId,
+      "pieceAssignmentId",
+    );
+
+    return withPieceStore(
+      "readonly",
+      async (store) => {
+        const record =
+          fromPieceStorageRecord(
+            await requestResult(
+              store.get(
+                pieceCacheKey({
+                  studentId,
+                  pieceAssignmentId:
+                    pieceAssignmentId.trim(),
+                }),
+              ),
+            ),
+          );
+
+        return record?.accessState ===
+          OFFLINE_ACCESS_STATES.ACTIVE
+          ? record
+          : null;
+      },
+    );
+  }
+
+  async function listActivePieceManifests({
+    studentId,
+    state,
+  }) {
+    requireText(
+      studentId,
+      "studentId",
+    );
+
+    return withPieceStore(
+      "readonly",
+      async (store) => {
+        const stored =
+          await requestResult(
+            store
+              .index("byStudent")
+              .getAll(studentId),
+          );
+
+        return stored
+          .map(fromPieceStorageRecord)
+          .filter(
+            (record) =>
+              record !== null &&
+              record.accessState ===
+                OFFLINE_ACCESS_STATES.ACTIVE &&
+              (
+                state === undefined ||
+                record.piece.state ===
+                  state
+              ),
+          );
+      },
+    );
+  }
+
+  async function markPieceManifestRevoked({
+    studentId,
+    pieceAssignmentId,
+    lastVerifiedAt,
+  }) {
+    requireText(
+      studentId,
+      "studentId",
+    );
+    requireText(
+      pieceAssignmentId,
+      "pieceAssignmentId",
+    );
+
+    return withPieceStore(
+      "readwrite",
+      async (store) => {
+        const key =
+          pieceCacheKey({
+            studentId,
+            pieceAssignmentId:
+              pieceAssignmentId.trim(),
+          });
+        const current =
+          fromPieceStorageRecord(
+            await requestResult(
+              store.get(key),
+            ),
+          );
+
+        if (current === null) {
+          return null;
+        }
+
+        if (
+          current.accessState ===
+          OFFLINE_ACCESS_STATES.REVOKED
+        ) {
+          return current;
+        }
+
+        const replacement =
+          createPieceOfflineRecord({
+            studentId:
+              current.studentId,
+            piece: current.piece,
+            cachedAt:
+              current.cachedAt,
+            lastVerifiedAt,
+            accessState:
+              OFFLINE_ACCESS_STATES.REVOKED,
+          });
+
+        await requestResult(
+          store.put(
+            toPieceStorageRecord(
+              replacement,
+            ),
+          ),
+        );
+        return replacement;
+      },
+    );
+  }
+
   return Object.freeze({
+    putPieceManifest,
+    getActivePieceManifest,
+    listActivePieceManifests,
+    markPieceManifestRevoked,
+
     async putAuthorized({
       studentId,
       deliveryItem,

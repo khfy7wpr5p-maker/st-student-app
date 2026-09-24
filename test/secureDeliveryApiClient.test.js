@@ -181,3 +181,40 @@ test("Secure Delivery client bounds fetch exceptions", async () => {
     },
   );
 });
+
+
+test("Secure Delivery client exposes exact Piece list and detail paths", async () => {
+  const calls = [];
+  const client = createSecureDeliveryApiClient({
+    baseUrl:
+      "https://student-api.example.test/api/secure-delivery/v1",
+    getIdToken: async () => "piece-token",
+    fetchImpl: async (url, init) => {
+      calls.push([
+        url,
+        init.method,
+        init.headers.Authorization,
+      ]);
+      return jsonResponse({
+        success: true,
+        data: [],
+      });
+    },
+  });
+
+  await client.listStudentPieces();
+  await client.getStudentPiece("piece a/1");
+
+  assert.deepEqual(calls, [
+    [
+      "https://student-api.example.test/api/secure-delivery/v1/student/pieces",
+      "GET",
+      "Bearer piece-token",
+    ],
+    [
+      "https://student-api.example.test/api/secure-delivery/v1/student/pieces/piece%20a%2F1",
+      "GET",
+      "Bearer piece-token",
+    ],
+  ]);
+});

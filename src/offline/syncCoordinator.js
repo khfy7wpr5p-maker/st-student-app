@@ -194,6 +194,14 @@ export function createForegroundSyncCoordinator({
         activeAccessGroups(
           records,
         );
+      const pieceRecords =
+        typeof offlineRepository
+          .listActivePieceManifests === "function"
+          ? await offlineRepository
+              .listActivePieceManifests({
+                studentId,
+              })
+          : [];
 
       let checked = 0;
       let revoked = 0;
@@ -259,6 +267,74 @@ export function createForegroundSyncCoordinator({
                 });
             }
 
+            continue;
+          }
+
+          failed += 1;
+        } catch {
+          failed += 1;
+        }
+      }
+
+      for (
+        const record of pieceRecords
+      ) {
+        checked += 1;
+
+        try {
+          if (
+            secureDeliveryStatusService === null ||
+            typeof secureDeliveryStatusService
+              ?.getPieceStatus !== "function" ||
+            typeof offlineRepository
+              .markPieceManifestRevoked !== "function" ||
+            typeof offlineRepository
+              .putPieceManifest !== "function"
+          ) {
+            failed += 1;
+            continue;
+          }
+
+          const status =
+            await secureDeliveryStatusService
+              .getPieceStatus({
+                session,
+                pieceAssignmentId:
+                  record.pieceAssignmentId,
+              });
+          const verifiedAt = clock();
+
+          if (
+            status?.state ===
+            "REVOKED"
+          ) {
+            await offlineRepository
+              .markPieceManifestRevoked({
+                studentId,
+                pieceAssignmentId:
+                  record.pieceAssignmentId,
+                lastVerifiedAt:
+                  verifiedAt,
+              });
+            revoked += 1;
+            continue;
+          }
+
+          if (
+            status?.state === "ACTIVE" &&
+            status.piece
+              ?.pieceAssignmentId ===
+              record.pieceAssignmentId
+          ) {
+            await offlineRepository
+              .putPieceManifest({
+                studentId,
+                piece: status.piece,
+                cachedAt:
+                  record.cachedAt,
+                lastVerifiedAt:
+                  verifiedAt,
+              });
             continue;
           }
 

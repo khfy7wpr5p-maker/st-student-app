@@ -4,6 +4,7 @@ import { STUDENT_APP_SCREENS } from "./studentAppController.js";
 import { escapeHtml } from "./escapeHtml.js";
 import { renderChordBoardWorkspace } from "./renderChordBoardWorkspace.js";
 import { renderPracticeWorkspace } from "./renderPracticeWorkspace.js";
+import { renderPieceWorkspace } from "./renderPieceWorkspace.js";
 
 export { escapeHtml } from "./escapeHtml.js";
 
@@ -222,6 +223,29 @@ function folderButton(state, value, label) {
   `;
 }
 
+
+function renderPieceItem(item) {
+  return `
+    <li>
+      <button
+        type="button"
+        class="piece-card"
+        data-action="open-piece"
+        data-piece-assignment-id="${escapeHtml(
+          item.pieceAssignmentId,
+        )}"
+        data-assignment-state="${escapeHtml(
+          item.state,
+        )}"
+      >
+        <strong>${escapeHtml(
+          item.title,
+        )}</strong>
+      </button>
+    </li>
+  `;
+}
+
 function renderScoreAssignmentItem(item) {
   const note =
     typeof item.teacherNote === "string" && item.teacherNote.length > 0
@@ -285,12 +309,24 @@ function renderChordAssignmentGroup(items) {
 }
 
 function renderMyWork(state) {
-  const scoreItems = state.items.filter(
+  const pieceItems = state.items.filter(
+    (item) =>
+      item.itemKind === "PIECE" ||
+      typeof item.pieceAssignmentId ===
+        "string",
+  );
+  const legacyItems = state.items.filter(
+    (item) =>
+      item.itemKind !== "PIECE" &&
+      typeof item.pieceAssignmentId !==
+        "string",
+  );
+  const scoreItems = legacyItems.filter(
     (item) =>
       item.practiceType ===
       PRACTICE_TYPES.SCORE,
   );
-  const chordItems = state.items.filter(
+  const chordItems = legacyItems.filter(
     (item) =>
       item.practiceType ===
       PRACTICE_TYPES.CHORD_BOARD,
@@ -301,6 +337,9 @@ function renderMyWork(state) {
       ? "<p>Bu klasörde henüz çalışma yok.</p>"
       : `
         <ul class="assignment-list">
+          ${pieceItems
+            .map(renderPieceItem)
+            .join("")}
           ${scoreItems
             .map(renderScoreAssignmentItem)
             .join("")}
@@ -425,6 +464,11 @@ export function renderStudentApp(
       case STUDENT_APP_SCREENS.PRACTICE:
         body = renderPractice(state.practice, { showHomeAction: false });
         break;
+      case STUDENT_APP_SCREENS.PIECE_WORKSPACE:
+        body = renderPieceWorkspace(
+          state.pieceWorkspace,
+        );
+        break;
       case STUDENT_APP_SCREENS.CHORD_BOARD:
         body = renderChordBoardWorkspace(
           state.chordBoard,
@@ -437,7 +481,12 @@ export function renderStudentApp(
         throw new Error("unknown student app screen");
     }
 
-    if (state.screen !== STUDENT_APP_SCREENS.SIGN_IN) {
+    if (
+      state.screen !==
+        STUDENT_APP_SCREENS.SIGN_IN &&
+      state.screen !==
+        STUDENT_APP_SCREENS.PIECE_WORKSPACE
+    ) {
       body = renderStudent08Shell(
         body,
         state,
