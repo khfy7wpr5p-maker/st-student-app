@@ -9,6 +9,9 @@ import {
   STUDENT_APP_SCREENS,
   createStudentAppController,
 } from "../src/ui/studentAppController.js";
+import {
+  makeChordBoardPracticeItem,
+} from "./support/chordBoardFixtures.js";
 
 const studentA = createStudentSession({
   studentId: "student-a",
@@ -18,74 +21,24 @@ const studentB = createStudentSession({
 });
 
 function makeChordItem() {
-  return {
-    accessRef: {
-      kind: "SECURE_DELIVERY",
-      deliveryId: "assignment-chord-a",
-    },
-    practiceType: PRACTICE_TYPES.CHORD_BOARD,
-    package: {
-      schemaVersion: "1.0.0",
-      packageType: "CHORD_BOARD",
-      packageId: "assignment-chord-a",
-      title: "Am Akor Çalışması",
-      assignmentAuthority: {
-        assignmentId: "assignment-chord-a",
-        state: "teacher_assigned",
-        assignedAt: "2026-09-23T10:00:00Z",
-      },
-      publication: {
-        scope: "student_private",
-        recipientStudentId: "server-student-a",
-      },
-      content: {
-        chordBoard: {
-          schemaVersion: 1,
-          sourceKind: "chord_board_exact_voicing",
-          chord: {
-            canonicalSymbol: "Am",
-            canonicalRoot: "A",
-            quality: "minor",
-            displayRoot: "A",
-            displaySymbol: "Am",
-          },
-          voicing: {
-            frets: [-1, 0, 2, 2, 1, 0],
-            fingers: [-1, 0, 2, 3, 1, 0],
-            barres: [
-              {
-                finger: 1,
-                fret: 5,
-                fromString: 6,
-                toString: 1,
-              },
-            ],
-            shape: "open",
-            generated: false,
-            curated: true,
-          },
-          provenance: {
-            sourceRepository:
-              "st-guitar-chord-board",
-            sourceCommit:
-              "1111111111111111111111111111111111111111",
-            catalogFingerprint:
-              "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          },
-          voicingFingerprint:
-            "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  return Object.freeze({
+    ...makeChordBoardPracticeItem({
+      assignmentId: "assignment-chord-a",
+      barres: [
+        {
+          finger: 1,
+          fret: 5,
+          fromString: 6,
+          toString: 1,
         },
-      },
-      practice: {
-        teacherNote: "60 BPM ile çalış.",
-      },
-    },
-    offlineAvailability: {
+      ],
+    }),
+    offlineAvailability: Object.freeze({
       source: "online",
       deviceAvailable: true,
       saveFailed: false,
-    },
-  };
+    }),
+  });
 }
 
 function makeLegacySharingService() {
