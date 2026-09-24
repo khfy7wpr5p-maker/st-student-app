@@ -30,13 +30,13 @@ const REQUIRED_PIANO_ASSETS = [
   "./vendor/st-piano/samples/B4.wav",
 ];
 
-test("service worker v9 pins the complete local playback module graph", async () => {
+test("service worker v10 pins the complete local playback module graph", async () => {
   const source = await readFile(
     new URL("../service-worker.js", import.meta.url),
     "utf8",
   );
 
-  assert.match(source, /const CACHE_NAME = "st-student-shell-v9"/);
+  assert.match(source, /const CACHE_NAME = "st-student-shell-v10"/);
   for (const asset of REQUIRED_PLAYBACK_MODULES) {
     assert.equal(source.includes(`"${asset}"`), true, asset);
   }

@@ -35,11 +35,12 @@ test("service worker caches explicit app-shell and playback assets plus pinned F
     "utf8",
   );
 
-  assert.match(source, /st-student-shell-v9/);
+  assert.match(source, /st-student-shell-v10/);
   assert.match(source, /self\.skipWaiting\(\)/);
   assert.match(source, /self\.clients\.claim\(\)/);
   assert.match(source, /index\.html/);
   assert.match(source, /src\/ui\/main\.js/);
+  assert.match(source, /src\/practice\/notationViewport\.js/);
   assert.match(source, /request\.method\s*!==\s*["']GET["']/);
   assert.match(source, /url\.origin\s*===\s*self\.location\.origin/);
   assert.match(source, /FIREBASE_RUNTIME_URLS\.has\(url\.href\)/);
