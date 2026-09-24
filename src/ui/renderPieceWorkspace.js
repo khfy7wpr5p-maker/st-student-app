@@ -13,6 +13,13 @@ function selected(viewModel, view) {
   return viewModel.selectedView === view;
 }
 
+function chordAssignmentId(item) {
+  return typeof item?.assignmentId === "string" &&
+    item.assignmentId.length > 0
+    ? item.assignmentId
+    : item?.packageId ?? "";
+}
+
 function renderViewButton(
   viewModel,
   view,
@@ -90,6 +97,7 @@ function renderScorePanel(viewModel) {
 
 function renderChordSelector(
   viewModel,
+  selectedChordId,
 ) {
   return `
     <div
@@ -100,10 +108,9 @@ function renderChordSelector(
       ${viewModel.chords.items
         .map((item) => {
           const id =
-            item.packageId;
+            chordAssignmentId(item);
           const active =
-            id ===
-            viewModel.selectedChordId;
+            id === selectedChordId;
 
           return `
             <button
@@ -142,10 +149,12 @@ function renderChordPanel(viewModel) {
   const selectedChord =
     viewModel.chords.items.find(
       (item) =>
-        item.packageId ===
+        chordAssignmentId(item) ===
         viewModel.selectedChordId,
     ) ??
     viewModel.chords.items[0];
+  const selectedChordId =
+    chordAssignmentId(selectedChord);
 
   return `
     <div
@@ -154,6 +163,7 @@ function renderChordPanel(viewModel) {
     >
       ${renderChordSelector(
         viewModel,
+        selectedChordId,
       )}
       ${renderChordBoardWorkspace(
         selectedChord,

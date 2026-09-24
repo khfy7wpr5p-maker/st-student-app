@@ -3,6 +3,19 @@ export const PIECE_WORKSPACE_VIEWS = Object.freeze({
   CHORDS: "CHORDS",
 });
 
+function chordAssignmentId(item) {
+  if (
+    typeof item?.assignmentId === "string" &&
+    item.assignmentId.length > 0
+  ) {
+    return item.assignmentId;
+  }
+
+  return typeof item?.packageId === "string"
+    ? item.packageId
+    : null;
+}
+
 function freezeReturnContext(value = {}) {
   const folderState =
     typeof value.folderState === "string" &&
@@ -69,7 +82,7 @@ export function createPieceWorkspaceViewModel({
         : PIECE_WORKSPACE_VIEWS.CHORDS,
     selectedChordId:
       chordsAvailable
-        ? chords[0].packageId
+        ? chordAssignmentId(chords[0])
         : null,
     availableViews: Object.freeze({
       score: scoreAvailable,
@@ -144,7 +157,7 @@ export function withPieceSelectedChord(
   if (
     !workspace.chords.items.some(
       (item) =>
-        item.packageId === id,
+        chordAssignmentId(item) === id,
     )
   ) {
     throw new Error(
