@@ -131,11 +131,9 @@ sidebar.innerHTML = [
   "<h1>Çalışmalar</h1>",
   "<p class='latest-demo-caption'>Güncel arayüz · örnek içerik</p>",
   "<nav aria-label='Klasörler'>",
-  "<button type='button' class='latest-demo-folder' data-demo-action='open-piece'>📁 Aktif çalışmalar</button>",
-  "<button type='button' class='latest-demo-work is-selected' data-demo-action='open-piece'>Gitar etüdü — Nota ve TAB</button>",
-  "<button type='button' class='latest-demo-work' data-demo-action='open-chord'>Am Akor çalışması</button>",
-  "<button type='button' class='latest-demo-folder' data-demo-action='show-list'>Bitmiş çalışmalar</button>",
-  "<button type='button' class='latest-demo-folder' data-demo-action='show-list'>Repertuarım</button>",
+  "<p class='latest-demo-folder'>📁 Aktif çalışmalar</p>",
+  "<button type='button' class='latest-demo-work is-selected' data-demo-action='open-piece'>Gitar etüdü · Nota / TAB</button>",
+  "<button type='button' class='latest-demo-work' data-demo-action='open-chord'>Akorlar · Am / C</button>",
   "</nav>",
   "<p class='latest-demo-footnote'>Gösterim için örnek nota/TAB ve akor verisi kullanılıyor.</p>",
 ].join("");
@@ -148,7 +146,8 @@ style.textContent = [
   ".latest-demo-kicker{font-size:.75rem;letter-spacing:.1em;font-weight:700;color:var(--st-text-muted,#667085)}",
   ".latest-demo-caption,.latest-demo-footnote{font-size:.9rem;color:var(--st-text-muted,#667085);margin:0 0 1rem}",
   ".latest-demo-folders nav{display:grid;gap:.45rem;margin-top:1rem}",
-  ".latest-demo-folder,.latest-demo-work{width:100%;text-align:left;border:1px solid transparent;border-radius:.65rem;padding:.75rem;background:transparent;color:var(--st-text,#1f2937);font:inherit;cursor:pointer;overflow-wrap:anywhere}",
+  ".latest-demo-folder,.latest-demo-work{width:100%;text-align:left;border:1px solid transparent;border-radius:.65rem;padding:.75rem;background:transparent;color:var(--st-text,#1f2937);font:inherit;overflow-wrap:anywhere}",
+  ".latest-demo-work{cursor:pointer}",
   ".latest-demo-work{padding-left:1.4rem}",
   ".latest-demo-work.is-selected,.latest-demo-folder:hover,.latest-demo-work:hover{background:#fff;border-color:var(--st-border,#d8dee8)}",
   ".latest-demo-footnote{margin-top:1.5rem}",
@@ -169,6 +168,8 @@ let renderToken = 0;
 
 async function render() {
   const token = ++renderToken;
+  const persistentScoreRoot = root.querySelector("#st-score-root");
+  if (persistentScoreRoot) persistentScoreRoot.remove();
   root.innerHTML = renderStudentApp(state, {
     connectivityState: "ONLINE",
     status: "Örnek eser · canlı öğrenci verisi kullanılmıyor",
@@ -176,7 +177,11 @@ async function render() {
 
   if (state.screen !== "piece_workspace") return;
 
-  const target = root.querySelector("#st-score-root");
+  let target = root.querySelector("#st-score-root");
+  if (persistentScoreRoot && target) {
+    target.replaceWith(persistentScoreRoot);
+    target = persistentScoreRoot;
+  }
   if (!target) return;
   target.textContent = "Nota ve TAB yükleniyor…";
 
@@ -196,17 +201,8 @@ shell.addEventListener("click", async (event) => {
       state = pieceState;
       await render();
     } else if (action === "open-chord") {
-      state = {
-        screen: "chord_board",
-        student08: true,
-        session: listState.session,
-        items: assignments,
-        practice: null,
-        chordBoard: chords[0],
-      };
-      await render();
-    } else if (action === "show-list") {
-      state = listState;
+      pieceWorkspace.selectedView = "CHORDS";
+      state = pieceState;
       await render();
     }
     return;
@@ -222,23 +218,18 @@ shell.addEventListener("click", async (event) => {
     pieceWorkspace.selectedChordId = actionButton.dataset.assignmentId;
     await render();
   } else if (actionButton.dataset.action === "back-from-piece") {
-    state = listState;
+    state = pieceState;
+    pieceWorkspace.selectedView = "SCORE";
     await render();
   } else if (actionButton.dataset.action === "open-piece") {
     state = pieceState;
     await render();
   } else if (actionButton.dataset.action === "open-assignment") {
-    state = {
-      screen: "chord_board",
-      student08: true,
-      session: listState.session,
-      items: assignments,
-      practice: null,
-      chordBoard: chords[0],
-    };
+    pieceWorkspace.selectedView = "CHORDS";
+    state = pieceState;
     await render();
   } else if (actionButton.dataset.action === "show-my-work") {
-    state = listState;
+    state = pieceState;
     await render();
   }
 });
