@@ -45,9 +45,12 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: "24"
+      - name: Restore pinned renderer dependency lock
+        working-directory: renderer
+        run: cp "$GITHUB_WORKSPACE/ci/renderer-package-lock.json" package-lock.json
       - name: Build approved renderer
         working-directory: renderer
-        run: npm install && npm run build
+        run: npm ci --ignore-scripts && npm run build
       - name: Export browser runtime
         working-directory: renderer
         env:
