@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
-import { createServer } from "node:http";
-import { readFile } from "node:fs/promises";
-import { resolve, sep } from "node:path";
 import { after, before, test } from "node:test";
 import { chromium, webkit } from "playwright";
+import {
+  startRepositoryStaticServer,
+} from "./support/static-server.mjs";
 
 // The production pilot fixture: two staves (notation + six-line TAB), frets 7 and 12.
 const PILOT_TAB_MUSIC_XML =
@@ -37,44 +37,20 @@ const PILOT_TAB_MUSIC_XML =
   '<notations><technical><string>1</string><fret>12</fret></technical></notations></note>' +
   '</measure></part></score-partwise>';
 
-const publicRoot = resolve(".");
-const mimeTypes = {
-  ".html": "text/html",
-  ".js": "text/javascript",
-  ".mjs": "text/javascript",
-  ".css": "text/css",
-  ".svg": "image/svg+xml",
-  ".json": "application/json",
-  ".woff": "font/woff",
-  ".woff2": "font/woff2",
-};
 let server;
 let baseUrl;
 
 before(async () => {
-  server = createServer(async (request, response) => {
-    const pathname = decodeURIComponent(new URL(request.url, "http://localhost").pathname);
-    const target = resolve(publicRoot, "." + pathname);
-    if (!target.startsWith(publicRoot + sep)) {
-      response.writeHead(403).end();
-      return;
-    }
-    try {
-      const body = await readFile(target);
-      const extension = target.slice(target.lastIndexOf("."));
-      response.writeHead(200, { "content-type": mimeTypes[extension] ?? "application/octet-stream" }).end(body);
-    } catch {
-      response.writeHead(404).end();
-    }
-  });
-  await new Promise((done) => server.listen(0, "127.0.0.1", done));
-  baseUrl = `http://127.0.0.1:${server.address().port}`;
+  server =
+    await startRepositoryStaticServer();
+  baseUrl = server.baseUrl;
 });
 
 after(async () => {
-  if (server) await new Promise((done) => server.close(done));
+  if (server) {
+    await server.close();
+  }
 });
-
 test("pilot guitar TAB draws visible SVG and frets 7/12 at iPhone width", { timeout: 60_000 }, async () => {
   const browserName = process.env.ST_BROWSER ?? "chromium";
   const browserType = { chromium, webkit }[browserName];
