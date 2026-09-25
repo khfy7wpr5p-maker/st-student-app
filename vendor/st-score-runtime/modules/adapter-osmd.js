@@ -503,7 +503,6 @@ export class OsmdRenderer {
                         }
                         continue;
                     }
-                    const element = this.#resolveExactNoteheadElement(entry.note);
                     const target = entry.voice === undefined
                         ? Object.freeze({ partId: instrument.IdString, measureIndex, noteIndex: entry.globalIndex })
                         : Object.freeze({
@@ -512,9 +511,18 @@ export class OsmdRenderer {
                             noteIndex: entry.voiceIndex,
                             voice: entry.voice,
                         });
+                    const group = this.#resolveOwnedGraphicalGroup(entry.note);
+                    // VexFlow TAB frets can render as text without a notehead. A group from
+                    // this same GraphicalNote is a usable ownership candidate; shared
+                    // groups become ambiguous through #registerHitTestElement below.
+                    const noteheads = entry.note.getNoteheadSVGs?.();
+                    const element = Array.isArray(noteheads) && noteheads.length === 0
+                        ? group
+                        : this.#resolveExactNoteheadElement(entry.note);
+                    if (element === null)
+                        continue;
                     this.#registerHitTestElement(element, target);
                     this.#registerRenderedEventHitTestElement(element, eventTarget);
-                    const group = this.#resolveOwnedGraphicalGroup(entry.note);
                     if (group !== null && group !== element) {
                         this.#registerHitTestElement(group, target);
                         this.#registerRenderedEventHitTestElement(group, eventTarget);

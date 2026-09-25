@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "rendererSourceRevision": "8eed67d40b0e3365a2bf804ec2f17c64471e95ff",
+  "rendererSourceRevision": "375cb5f134a91606eeac59df9cbe33dedbe57e47",
   "scoreRendererContractVersion": "0.2.0",
   "packages": {
     "contracts": "0.1.0",
@@ -38,8 +38,8 @@
     },
     {
       "path": "modules/adapter-osmd.js",
-      "bytes": 25670,
-      "sha256": "b3ed10000cc42053792914d6b1daa92e72f1f62fb87669b711b374400542feab"
+      "bytes": 26191,
+      "sha256": "fe4486ea6d9707f65774baae4a643b1dd5495b7a5cb97b168b4ec7ffb75a72f5"
     },
     {
       "path": "modules/browser-host.js",

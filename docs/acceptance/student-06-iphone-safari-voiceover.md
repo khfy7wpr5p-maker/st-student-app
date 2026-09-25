@@ -64,16 +64,13 @@ Sonuç:
 - Ağ kesilmesi mevcut cache'i REVOKED yapmadı.
 - Offline reload fiziksel cihazda başarılı oldu.
 
-## E. Notasyon / playback runtime — NOT RUN / NOT BLOCKING
+## E. Notasyon runtime — PASS (2026-09-25)
 
-Current production-like Student App deployment içinde doğrulanmış ST Score Rendering Host runtime ve trusted playback port bağlı değildir.
+Kullanıcı, gerçek iPhone Safari/VoiceOver kabul testini onayladı.
 
-Bu nedenle Practice ekranında:
-
-- `Nota görünümü bu çalışma için kullanılamıyor.`
-- `Dinleme bu çalışma için kullanılamıyor.`
-
-durumlarının görülmesi STUDENT-06 başarısızlığı değildir. Renderer/playback runtime entegrasyonu ayrı integration/deployment işi olarak kalır.
+- Nota runtime kabulü tamamlandı.
+- Bu kabul, CI Chromium/WebKit pilot TAB kanıtına ek gerçek cihaz kanıtıdır.
+- Playback portu bu kabulün kapsamı dışındadır; notasyon kabulü playback davranışını değiştirmez.
 
 ## Firestore test verisi
 
