@@ -1,6 +1,6 @@
-import { renderStudentApp } from "../src/ui/renderStudentApp.js";
-import { createNotationRuntimeLoader } from "../src/practice/notationRuntimeLoader.js";
-import { createStNotationAdapter } from "../src/practice/notationAdapter.js";
+import { renderStudentApp } from "./src/ui/renderStudentApp.js";
+import { createNotationRuntimeLoader } from "./src/practice/notationRuntimeLoader.js";
+import { createStNotationAdapter } from "./src/practice/notationAdapter.js";
 
 const MUSICXML = [
   '<?xml version="1.0" encoding="UTF-8"?>',
