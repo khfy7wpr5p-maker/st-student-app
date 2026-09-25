@@ -234,7 +234,6 @@ function piece({
           ...chordAssignmentIds,
         ]),
     }),
-    studentId,
   });
 }
 
