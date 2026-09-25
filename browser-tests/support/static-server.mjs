@@ -20,6 +20,7 @@ export const SES13_E2E_DOCUMENT = `<!doctype html>
 <html lang="tr">
   <head>
     <meta charset="utf-8">
+    <base href="/">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>ST Student SES-13 E2E</title>
     <script type="importmap">
