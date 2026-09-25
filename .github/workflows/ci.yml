@@ -35,6 +35,8 @@ jobs:
     env:
       RENDERER_SHA: 375cb5f134a91606eeac59df9cbe33dedbe57e47
     steps:
+      - name: Checkout Student App CI metadata
+        uses: actions/checkout@v5
       - name: Checkout Rendering Layer at approved revision
         uses: actions/checkout@v5
         with:
