@@ -1,6 +1,9 @@
 const API_BASE_URL_KEY =
   "VITE_SECURE_DELIVERY_API_BASE_URL";
 
+const CANONICAL_SECURE_DELIVERY_PATH =
+  "/api/secure-delivery/v1";
+
 function disabledConfig() {
   return Object.freeze({
     enabled: false,
@@ -55,6 +58,15 @@ export function createSecureDeliveryConfig(
 
   if (url.protocol !== "https:") {
     return disabledConfig();
+  }
+
+  if (
+    url.pathname === "/" &&
+    url.search === "" &&
+    url.hash === ""
+  ) {
+    url.pathname =
+      CANONICAL_SECURE_DELIVERY_PATH;
   }
 
   return Object.freeze({
