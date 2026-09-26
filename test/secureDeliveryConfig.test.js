@@ -75,3 +75,18 @@ test("native browser runtime config can enable Secure Delivery without Vite env"
     }
   }
 });
+
+
+test("Secure Delivery config expands an HTTPS origin-only endpoint to the canonical API base path", () => {
+  assert.deepEqual(
+    createSecureDeliveryConfig({
+      VITE_SECURE_DELIVERY_API_BASE_URL:
+        "https://st-student-api.onrender.com",
+    }),
+    Object.freeze({
+      enabled: true,
+      baseUrl:
+        "https://st-student-api.onrender.com/api/secure-delivery/v1",
+    }),
+  );
+});
