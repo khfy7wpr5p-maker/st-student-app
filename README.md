@@ -91,3 +91,10 @@ Offline cache ve foreground sync katmanı production provider kararıyla tanıml
 - Firebase project provisioning, production config ve credential değerleri repository'ye commit edilmemiştir.
 
 STUDENT-06 fiziksel iPhone / Safari / VoiceOver kabul testi tamamlanmıştır. STUDENT-07A'nın yeni renderer runtime davranışı için notation-specific fiziksel tekrar doğrulaması ayrıca gereklidir.
+
+
+## Deployment
+
+The active Student App deployment is `https://st-student-app.onrender.com`. Secure Delivery uses `https://st-student-api.onrender.com/api/secure-delivery/v1`.
+
+Do not create feature-, stage-, test- or date-specific Render services for Student App work. Older preview URLs in historical evidence are not active deployment targets. A new Render service/domain or production Secure Delivery activation requires separate explicit approval.

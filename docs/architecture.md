@@ -604,3 +604,18 @@ STUDENT-08 CHORD_BOARD consumer:
 - yeni chord audio/playback eklemez;
 - SesliTab producer veya `st-guitar-chord-board` repository'sine runtime dependency eklemez;
 - production Firebase credential/rules/index/deployment değişikliği yapmaz.
+
+
+## Production deployment invariant — SES-30
+
+Active Student deployment uses one permanent frontend and one permanent Secure Delivery API endpoint:
+
+- Student App: `https://st-student-app.onrender.com`
+- Secure Delivery API origin: `https://st-student-api.onrender.com`
+- canonical API path: `/api/secure-delivery/v1`
+
+Feature, stage, acceptance, date-stamped or platform-specific Render services/URLs are not part of the active development standard. Historical preview URLs in older progress/spec documents are acceptance evidence only and must not be reused as deployment targets.
+
+Branch and pull-request validation uses CI, browser/runtime gates and physical-device acceptance against the permanent contract when deployment evidence is required. Creating a new Render service/domain requires separate explicit human approval.
+
+Secure Delivery production activation is a separate gate from deployment naming: enabling Firebase production identity/rules/credentials, Secure Delivery flags or backend production composition remains human-gated under SES-15.
