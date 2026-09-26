@@ -69,4 +69,6 @@ Authorized private Practice Packages remain on the existing IndexedDB path. Cach
 
 ## Physical acceptance
 
-Repository tests do not prove target-device rendering. Before STUDENT-07A is merged, verify on the physical iPhone/Safari path that notation is visible, the Nota region remains accessible with VoiceOver, orientation/resize does not make the score disappear, and an already-authorized cached Practice can reopen offline with the static renderer runtime available.
+Target-device rendering has been qualified on the physical iPhone/Safari path: notation visibility/stability, VoiceOver-accessible Nota region, orientation/resize recovery, navigation reopen and authorized offline reopen have passed. Later Nota/TAB lifecycle and recovery work was also re-verified on iPhone.
+
+This remains a **repeatable release gate**, not a one-time waiver. Any approved renderer revision change must re-run provenance checks, Chromium/WebKit browser gates and the physical iPhone/Safari/VoiceOver notation checklist before release.

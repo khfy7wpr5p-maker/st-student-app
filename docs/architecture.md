@@ -604,3 +604,110 @@ STUDENT-08 CHORD_BOARD consumer:
 - yeni chord audio/playback eklemez;
 - SesliTab producer veya `st-guitar-chord-board` repository'sine runtime dependency eklemez;
 - production Firebase credential/rules/index/deployment değişikliği yapmaz.
+
+
+## 16. Current Architecture Reality — 2026-09-26
+
+Bu bölüm tarihsel aşamaların yerine geçmez; güncel `main` gerçekliğini ve sıradaki release-readiness kapısını tek yerde özetler.
+
+### Doğrulanmış baseline
+
+- Repository: `khfy7wpr5p-maker/st-student-app`
+- `main`: `cd9424ff51040183f408c63a7278c8bcea15a113`
+- Post-merge CI: #965 — PASS
+- Unit / contract suite: **501/501 PASS**
+- Approved renderer source: `375cb5f134a91606eeac59df9cbe33dedbe57e47`
+- Renderer contract: `0.2.0`
+- Browser release gate: Chromium + WebKit
+
+### Mimari aşama haritası
+
+- ✅ Practice Package v1 — immutable teacher-approved package boundary.
+- ✅ STUDENT-02 — Account + Sharing Layer; provider-neutral read/management boundaries and student isolation.
+- ✅ STUDENT-03 — Minimal signed-in shell; Giriş / Havuz / Benim Çalışmalarım / çalışma açma.
+- ✅ STUDENT-04 — Read-only Practice Workspace; capability isolation and student-safe projection.
+- ✅ STUDENT-05 — IndexedDB offline cache + foreground sync; Service Worker static-shell-only boundary.
+- ✅ STUDENT-06 — Physical iPhone / Safari / VoiceOver acceptance.
+- ✅ STUDENT-07A — pinned same-origin notation runtime integration and physical notation acceptance.
+- ✅ STUDENT-07B — Student-owned hybrid playback, deterministic piano bank, offline playback and physical 16/16 acceptance.
+- ✅ STUDENT-08 core — simple Pool + private assignments, signed-in folder shell, responsive/accessibility hardening.
+- ✅ STUDENT-08 SCORE Secure Delivery consumer — authenticated read path, exact access identity, offline cache and fail-closed isolation are implemented on current main.
+- ✅ STUDENT-08 CHORD_BOARD consumer — strict typed package union, dedicated read-only chord workspace, exact voicing snapshot and offline cache isolation.
+- ✅ Piece Workspace V1 — teacher note, Nota / TAB / Akorlar routing and compact playback controls.
+- ✅ Guitar TAB runtime recovery — renderer lifecycle, repaint recovery, warm Nota/TAB switching and mobile fitting.
+- ✅ SES-13 full Student App browser journey — Login → My Work → Piece → Nota → TAB → Akorlar → Playback → Offline → Reopen → Reconnect passes in Chromium and WebKit.
+- ⏳ SES-8 physical Secure Delivery acceptance — automated non-production acceptance is green on PR #45, but one real non-production Firebase account must still pass the physical iPhone/Safari authorization/revocation gate.
+- ⏳ SES-15 production Secure Delivery activation — intentionally separate; starts only after SES-8 closes and requires explicit production approval.
+- ⏳ STUDENT-09 interactive score follow — measure-tap replay, automatic cursor and precise active-event highlighting remain outside current implemented Student App.
+- ⏳ P2 compatibility — Android Chrome, Firefox desktop and iPad Safari remain separate compatibility work.
+- ⏳ Performance budgets — explicit startup/render/switch timing and memory budgets are not yet release gates.
+
+### Current runtime/data flow
+
+```text
+Teacher-approved source
+  -> Sharing / Secure Delivery authorization
+  -> typed assignment
+       -> SCORE
+            -> Student Practice Package v1
+            -> Piece Workspace
+            -> Nota / TAB
+            -> Student-owned playback
+       -> CHORD_BOARD
+            -> Student Chord Board Package v1
+            -> dedicated Akor workspace
+  -> authorized IndexedDB cache
+  -> offline reopen
+```
+
+The Service Worker caches only the static application/runtime asset graph. Private SCORE and CHORD_BOARD payloads remain in the student-scoped IndexedDB repository.
+
+### Browser release gate
+
+SES-13 adds one integrated browser journey through the real Student App shell and pinned renderer runtime. It verifies:
+
+- visible login and Student A / Student B isolation;
+- My Work → Piece;
+- Nota SVG;
+- TAB frets 7 and 12;
+- Akorlar chord identity/diagram;
+- play / pause / restart without notation loss;
+- authorized offline cached reopen;
+- reconnect without duplicate workspace/renderer roots;
+- no raw MusicXML, provider/token/debug or internal package leakage.
+
+This gate runs in both Chromium and WebKit and remains release-blocking.
+
+### Sıradaki P1 iş
+
+**SES-8 — Secure Delivery physical iPhone/Safari acceptance** is the next unresolved P1 gate.
+
+Current automated state:
+
+- Student PR #45 exact head: `40a65562001dff8e1bb5dceb06d731c06b4bfd0f`
+- CI #969: PASS
+- Chromium: PASS
+- WebKit: PASS
+- hardened non-production backend smoke: PASS
+- production Student App / Firebase activation: unchanged
+
+Remaining physical gate:
+
+1. Use one real **non-production** Firebase student account.
+2. Provision only the SHA-256 fingerprint of that account's Firebase UID in the hardened acceptance allowlist.
+3. Verify authorized assignment → Piece → SCORE / TAB online.
+4. Verify the same authorized work reopens offline from device cache.
+5. Revoke the fingerprint and verify fail-closed behavior.
+6. Verify no provider/debug/internal identity details appear in Student UI.
+
+Password and Firebase ID token are never shared or stored for this acceptance.
+
+### Open documentation/branch hygiene
+
+The following older draft PRs are not current architecture authority and should be classified before any closure action:
+
+- #39 overlaps later merged Nota/TAB lifecycle fixes.
+- #13 is an earlier STUDENT-08 S08-3 design/plan branch.
+- #9 is the pre-implementation STUDENT-08/09 architecture-refresh draft.
+
+No branch is deleted or PR closed by this documentation refresh.
