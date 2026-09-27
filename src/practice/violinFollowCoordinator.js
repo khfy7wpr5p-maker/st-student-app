@@ -149,8 +149,27 @@ export function createViolinFollowCoordinator({
       return;
     }
 
+    const sourceEvent = beatResult.activeEvents.find(
+      (event) =>
+        event?.eventId === resolved.eventId &&
+        event?.partId === active.targetPartId,
+    );
+    if (
+      sourceEvent === undefined ||
+      sourceEvent.pitch === null ||
+      typeof sourceEvent.pitch !== "object"
+    ) {
+      await clearPresentation(expectedGeneration);
+      return;
+    }
+
+    const presentationSnapshot = Object.freeze({
+      ...resolved,
+      pitch: sourceEvent.pitch,
+    });
+
     try {
-      await presentationPort?.show?.(resolved);
+      await presentationPort?.show?.(presentationSnapshot);
     } catch {
       // Presentation failure must not affect playback.
     }
