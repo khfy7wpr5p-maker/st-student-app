@@ -20,6 +20,68 @@ function hasMethods(port, names) {
   return names.every((name) => typeof port?.[name] === "function");
 }
 
+const VIOLIN_DESCRIPTOR_KEYS = new Set([
+  "schemaVersion",
+  "targetPartId",
+  "position",
+  "stringLengthMm",
+]);
+
+export function readViolinConfiguration(pkg) {
+  const value = pkg?.content?.violin;
+  if (
+    value === null ||
+    typeof value !== "object" ||
+    Array.isArray(value) ||
+    Object.keys(value).some((key) => !VIOLIN_DESCRIPTOR_KEYS.has(key)) ||
+    value.schemaVersion !== 1 ||
+    typeof value.targetPartId !== "string" ||
+    value.targetPartId.length === 0 ||
+    value.targetPartId.length > 128 ||
+    value.targetPartId !== value.targetPartId.trim() ||
+    value.targetPartId.includes("\u0000") ||
+    value.position !== 1 ||
+    (value.stringLengthMm !== undefined &&
+      (!Number.isFinite(value.stringLengthMm) ||
+        value.stringLengthMm < 250 ||
+        value.stringLengthMm > 400))
+  ) {
+    return null;
+  }
+
+  return Object.freeze({
+    schemaVersion: 1,
+    targetPartId: value.targetPartId,
+    position: 1,
+    ...(value.stringLengthMm === undefined
+      ? {}
+      : { stringLengthMm: value.stringLengthMm }),
+  });
+}
+
+function hasExactScorePlaybackSource(playbackPort, pkg) {
+  if (
+    typeof playbackPort?.getScoreFollowPlaybackContextForPackage !== "function" ||
+    typeof pkg?.content?.score?.data !== "string"
+  ) {
+    return false;
+  }
+
+  try {
+    const context =
+      playbackPort.getScoreFollowPlaybackContextForPackage(pkg);
+    return (
+      context !== null &&
+      typeof context === "object" &&
+      context.plan?.packageId === pkg?.packageId &&
+      context.timingProvenance?.kind === "EXACT_SCORE_SOURCE" &&
+      context.timingProvenance?.musicXml === pkg.content.score.data
+    );
+  } catch {
+    return false;
+  }
+}
+
 function hasGuitarTabMusicXml(pkg) {
   const tab = pkg?.content?.guitarTab;
   return (
@@ -73,6 +135,11 @@ export function derivePracticeCapabilities({
       hasGuitarTabMusicXml(pkg)
         ? PRACTICE_CAPABILITY_STATES.AVAILABLE
         : PRACTICE_CAPABILITY_STATES.UNAVAILABLE,
-    violin: PRACTICE_CAPABILITY_STATES.UNAVAILABLE,
+    violin:
+      playback &&
+      readViolinConfiguration(pkg) !== null &&
+      hasExactScorePlaybackSource(playbackPort, pkg)
+        ? PRACTICE_CAPABILITY_STATES.AVAILABLE
+        : PRACTICE_CAPABILITY_STATES.UNAVAILABLE,
   });
 }
