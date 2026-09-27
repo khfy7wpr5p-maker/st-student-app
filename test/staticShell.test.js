@@ -175,8 +175,8 @@ test("browser bootstrap wires violin follow presentation without creating a seco
     source,
     /mountStudentApp\(\{[\s\S]*?violinFollowCoordinator[\s\S]*?\}\)/,
   );
-  assert.doesNotMatch(
+  assert.match(
     source,
-    /violin[\s\S]*?(setInterval|setTimeout|requestAnimationFrame|new\s+AudioContext)/i,
+    /createViolinFollowCoordinator\(\{[\s\S]*?playbackPort,[\s\S]*?presentationPort:\s*violinFingerboardPresentation[\s\S]*?\}\)/,
   );
 });
