@@ -142,8 +142,10 @@ export function createWebAudioPianoEngine({
   let schedulerId = null;
   let scheduled = new Set();
   let repeatMeasureIndex = null;
+  let activeRange = null;
   let generation = 0;
   const activeSources = new Set();
+  const positionListeners = new Set();
 
   function isSupported() {
     const audioBoundaryAvailable =
@@ -216,11 +218,61 @@ export function createWebAudioPianoEngine({
     );
     const elapsed = Math.max(0, context.currentTime - anchorTime);
 
-    return secondsToBeat(
+    const beat = secondsToBeat(
       currentPlan,
       anchorSeconds + elapsed,
       selectedTempoBpm,
     );
+
+    return activeRange === null
+      ? beat
+      : Math.min(activeRange.endBeat, beat);
+  }
+
+  function positionSnapshot() {
+    return Object.freeze({
+      generation,
+      beat: currentBeatSnapshot(),
+      playing,
+    });
+  }
+
+  function publishPosition() {
+    const snapshot = positionSnapshot();
+    for (const listener of [...positionListeners]) {
+      try {
+        listener(snapshot);
+      } catch {
+        // Position observers cannot break the audio scheduler.
+      }
+    }
+  }
+
+  function validRange(plan, startBeat, endBeat) {
+    const scoreEnd = scoreEndBeat(plan);
+    return (
+      Number.isFinite(startBeat) &&
+      Number.isFinite(endBeat) &&
+      startBeat >= 0 &&
+      endBeat > startBeat &&
+      Number.isFinite(scoreEnd) &&
+      endBeat <= scoreEnd + 1e-9
+    );
+  }
+
+  function completeActiveRange() {
+    if (activeRange === null) {
+      return false;
+    }
+
+    const endBeat = activeRange.endBeat;
+    pausedBeat = endBeat;
+    playing = false;
+    activeRange = null;
+    clearScheduler();
+    stopSources();
+    publishPosition();
+    return true;
   }
 
   function repeatMeasure() {
@@ -274,33 +326,38 @@ export function createWebAudioPianoEngine({
     scheduled = new Set();
   }
 
-  function noteWhen(note) {
+  function beatWhen(beat) {
     return (
       anchorTime +
-      beatToSeconds(currentPlan, note.startBeat, selectedTempoBpm) -
+      beatToSeconds(currentPlan, beat, selectedTempoBpm) -
       beatToSeconds(currentPlan, anchorBeat, selectedTempoBpm)
+    );
+  }
+
+  function noteWhen(note) {
+    return beatWhen(note.startBeat);
+  }
+
+  function durationBetweenBeats(startBeat, endBeat) {
+    return Math.max(
+      0,
+      beatToSeconds(currentPlan, endBeat, selectedTempoBpm) -
+        beatToSeconds(currentPlan, startBeat, selectedTempoBpm),
     );
   }
 
   function noteDurationSeconds(note) {
     return Math.max(
       0.02,
-      beatToSeconds(
-        currentPlan,
+      durationBetweenBeats(
+        note.startBeat,
         note.startBeat + note.durationBeats,
-        selectedTempoBpm,
-      ) -
-        beatToSeconds(
-          currentPlan,
-          note.startBeat,
-          selectedTempoBpm,
-        ),
+      ),
     );
   }
 
-  function scheduleNote(note, index, now) {
-    const when = Math.max(now, noteWhen(note));
-    const duration = noteDurationSeconds(note);
+  function scheduleSource(note, index, now, startBeat, duration) {
+    const when = Math.max(now, beatWhen(startBeat));
     const end = when + duration;
     const resolved = sampleBank.resolveMidi(note.midi);
     const source = context.createBufferSource();
@@ -312,10 +369,11 @@ export function createWebAudioPianoEngine({
     gain.connect(masterGain);
 
     gain.gain.setValueAtTime(0, when);
-    gain.gain.linearRampToValueAtTime(1, when + 0.005);
+    const attackEnd = Math.min(end, when + 0.005);
+    gain.gain.linearRampToValueAtTime(1, attackEnd);
 
     const releaseStart = Math.max(
-      when + 0.005,
+      attackEnd,
       end - 0.012,
     );
     gain.gain.setValueAtTime(1, releaseStart);
@@ -325,6 +383,60 @@ export function createWebAudioPianoEngine({
     source.stop(end);
     activeSources.add(source);
     scheduled.add(index);
+  }
+
+  function scheduleNote(note, index, now) {
+    scheduleSource(
+      note,
+      index,
+      now,
+      note.startBeat,
+      noteDurationSeconds(note),
+    );
+  }
+
+  function scheduleRangeNote(note, index, now, beat) {
+    const range = activeRange;
+    if (range === null) return false;
+
+    const noteEnd = note.startBeat + note.durationBeats;
+    if (
+      noteEnd <= range.startBeat ||
+      note.startBeat >= range.endBeat
+    ) {
+      scheduled.add(index);
+      return true;
+    }
+
+    const segmentStart = Math.max(note.startBeat, range.startBeat);
+    const segmentEnd = Math.min(noteEnd, range.endBeat);
+
+    if (segmentEnd <= segmentStart) {
+      scheduled.add(index);
+      return true;
+    }
+
+    if (
+      segmentStart < beat - 1e-9 &&
+      !(note.startBeat < range.startBeat && beat <= range.startBeat + 1e-9)
+    ) {
+      scheduled.add(index);
+      return true;
+    }
+
+    const when = beatWhen(segmentStart);
+    if (when > context.currentTime + SCHEDULE_AHEAD_SECONDS) {
+      return true;
+    }
+
+    const duration = durationBetweenBeats(segmentStart, segmentEnd);
+    if (duration <= 0) {
+      scheduled.add(index);
+      return true;
+    }
+
+    scheduleSource(note, index, now, segmentStart, duration);
+    return true;
   }
 
   function scheduleWindow() {
@@ -339,7 +451,16 @@ export function createWebAudioPianoEngine({
     const now = context.currentTime;
     const horizon = now + SCHEDULE_AHEAD_SECONDS;
     let beat = currentBeatSnapshot();
-    const repeat = repeatMeasure();
+
+    if (
+      activeRange !== null &&
+      beat >= activeRange.endBeat - 1e-9
+    ) {
+      completeActiveRange();
+      return;
+    }
+
+    const repeat = activeRange === null ? repeatMeasure() : null;
 
     if (repeat !== null && beat >= repeat.endBeat - 1e-9) {
       stopSources();
@@ -354,6 +475,11 @@ export function createWebAudioPianoEngine({
 
       const note = currentPlan.notes[index];
       const noteEnd = note.startBeat + note.durationBeats;
+
+      if (activeRange !== null) {
+        scheduleRangeNote(note, index, now, beat);
+        continue;
+      }
 
       if (
         repeat !== null &&
@@ -386,6 +512,8 @@ export function createWebAudioPianoEngine({
 
       scheduleNote(note, index, now);
     }
+
+    publishPosition();
   }
 
   function ensureScheduler() {
@@ -455,12 +583,22 @@ export function createWebAudioPianoEngine({
         return;
       }
 
+      if (activeRange !== null && currentPlan === plan) {
+        const beat = currentBeatSnapshot();
+        clearScheduler();
+        stopSources();
+        activeRange = null;
+        playing = false;
+        pausedBeat = beat;
+      }
+
       if (currentPlan !== plan) {
         clearScheduler();
         stopSources();
         currentPlan = plan;
         pausedBeat = 0;
         repeatMeasureIndex = null;
+        activeRange = null;
       } else if (playing) {
         if (selectedTempoBpm !== tempoBpm) {
           this.setTempo(tempoBpm);
@@ -472,6 +610,61 @@ export function createWebAudioPianoEngine({
       startAt(pausedBeat);
     },
 
+    async playRange({
+      plan,
+      tempoBpm,
+      startBeat,
+      endBeat,
+    } = {}) {
+      if (
+        plan === null ||
+        typeof plan !== "object" ||
+        !validTempo(tempoBpm) ||
+        !validRange(plan, startBeat, endBeat)
+      ) {
+        throw boundedError("audio playback unavailable");
+      }
+
+      const requestGeneration = ++generation;
+      const nextContext = ensureContext();
+      await resumeContext();
+
+      if (generation !== requestGeneration) {
+        return;
+      }
+
+      await sampleBank.load(nextContext);
+
+      if (generation !== requestGeneration) {
+        return;
+      }
+
+      clearScheduler();
+      stopSources();
+
+      if (currentPlan !== plan) {
+        repeatMeasureIndex = null;
+      }
+
+      currentPlan = plan;
+      selectedTempoBpm = tempoBpm;
+      activeRange = Object.freeze({ startBeat, endBeat });
+      pausedBeat = startBeat;
+      startAt(startBeat);
+    },
+
+    subscribePosition(listener) {
+      if (typeof listener !== "function") {
+        throw new TypeError("position listener required");
+      }
+
+      positionListeners.add(listener);
+
+      return () => {
+        positionListeners.delete(listener);
+      };
+    },
+
     pause() {
       if (currentPlan === null || context === null) {
         return;
@@ -481,6 +674,7 @@ export function createWebAudioPianoEngine({
       playing = false;
       clearScheduler();
       stopSources();
+      publishPosition();
     },
 
     async restart() {
@@ -491,6 +685,7 @@ export function createWebAudioPianoEngine({
       await resumeContext();
       clearScheduler();
       stopSources();
+      activeRange = null;
       const repeat = repeatMeasure();
       const restartBeat = repeat?.startBeat ?? 0;
       pausedBeat = restartBeat;
@@ -589,9 +784,11 @@ export function createWebAudioPianoEngine({
       currentPlan = null;
       selectedTempoBpm = null;
       repeatMeasureIndex = null;
+      activeRange = null;
       pausedBeat = 0;
       anchorBeat = 0;
       anchorTime = 0;
+      publishPosition();
     },
   });
 }
