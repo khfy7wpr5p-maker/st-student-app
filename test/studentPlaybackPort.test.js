@@ -46,14 +46,32 @@ function pkg(packageId = "pkg-a", practice = {}) {
 
 function makeEngine({ supported = true } = {}) {
   const calls = [];
+  const positionListeners = new Set();
   return {
     calls,
+    positionListeners,
     isSupported() {
       calls.push(["isSupported"]);
       return supported;
     },
     async play(args) {
       calls.push(["play", args]);
+    },
+    async playRange(args) {
+      calls.push(["playRange", args]);
+    },
+    subscribePosition(listener) {
+      calls.push(["subscribePosition"]);
+      positionListeners.add(listener);
+      return () => {
+        calls.push(["unsubscribePosition"]);
+        positionListeners.delete(listener);
+      };
+    },
+    emitPosition(snapshot) {
+      for (const listener of [...positionListeners]) {
+        listener(snapshot);
+      }
     },
     pause() {
       calls.push(["pause"]);
@@ -376,5 +394,224 @@ test("preparePackage restores playback availability after audio runtime recovery
   assert.equal(
     engine.calls.some(([name]) => name === "prepare"),
     true,
+  );
+});
+
+
+test("score follow context is cached from resolvePackageContext without changing the public plan", () => {
+  let contextResolves = 0;
+  let legacyResolves = 0;
+  const work = pkg("pkg-follow");
+  const resolvedPlan = plan("pkg-follow", "FULL");
+  const timingProvenance = Object.freeze({
+    kind: "EXACT_SCORE_SOURCE",
+    musicXml: work.content.score.data,
+  });
+  const port = createStudentPlaybackPort({
+    playbackPlanResolver: {
+      resolvePackage() {
+        legacyResolves += 1;
+        return resolvedPlan;
+      },
+      resolvePackageContext() {
+        contextResolves += 1;
+        return Object.freeze({
+          plan: resolvedPlan,
+          timingProvenance,
+        });
+      },
+    },
+    engine: makeEngine(),
+  });
+
+  const first = port.getScoreFollowPlaybackContextForPackage(work);
+  const second = port.getScoreFollowPlaybackContextForPackage(work);
+
+  assert.equal(first.plan, resolvedPlan);
+  assert.equal(first.timingProvenance, timingProvenance);
+  assert.equal(Object.hasOwn(first.plan, "timingProvenance"), false);
+  assert.equal(second, first);
+  assert.equal(contextResolves, 1);
+  assert.equal(legacyResolves, 0);
+  assert.equal(port.getPlaybackQualityForPackage(work), "FULL");
+});
+
+test("one-measure replay uses the selected tempo and validated global beat range", async () => {
+  const engine = makeEngine();
+  const work = pkg("pkg-range", { allowTempoChange: true });
+  const resolvedPlan = plan("pkg-range");
+  const port = createStudentPlaybackPort({
+    playbackPlanResolver: {
+      resolvePackageContext() {
+        return Object.freeze({
+          plan: resolvedPlan,
+          timingProvenance: null,
+        });
+      },
+    },
+    engine,
+  });
+
+  port.setTempoForPackage(work, 84);
+  await port.playMeasureOnceForPackage(work, {
+    startBeat: 0,
+    endBeat: 4,
+  });
+
+  const rangeCall = engine.calls.find(([name]) => name === "playRange");
+  assert.deepEqual(rangeCall[1], {
+    plan: resolvedPlan,
+    tempoBpm: 84,
+    startBeat: 0,
+    endBeat: 4,
+  });
+});
+
+test("one-measure replay replaces old package ownership before starting the new range", async () => {
+  const engine = makeEngine();
+  const port = createStudentPlaybackPort({
+    playbackPlanResolver: {
+      resolvePackageContext(value) {
+        return Object.freeze({
+          plan: plan(value.packageId),
+          timingProvenance: null,
+        });
+      },
+    },
+    engine,
+  });
+
+  await port.playMeasureOnceForPackage(pkg("pkg-a"), {
+    startBeat: 0,
+    endBeat: 4,
+  });
+  await port.playMeasureOnceForPackage(pkg("pkg-b"), {
+    startBeat: 0,
+    endBeat: 4,
+  });
+
+  const names = engine.calls.map(([name]) => name);
+  const firstRange = names.indexOf("playRange");
+  const dispose = names.indexOf("dispose");
+  const secondRange = names.lastIndexOf("playRange");
+
+  assert.ok(firstRange < dispose);
+  assert.ok(dispose < secondRange);
+});
+
+test("package-scoped position subscription never forwards another package state", async () => {
+  const engine = makeEngine();
+  const port = createStudentPlaybackPort({
+    playbackPlanResolver: {
+      resolvePackageContext(value) {
+        return Object.freeze({
+          plan: plan(value.packageId),
+          timingProvenance: null,
+        });
+      },
+    },
+    engine,
+  });
+  const a = pkg("pkg-a");
+  const b = pkg("pkg-b");
+  const seenA = [];
+  const seenB = [];
+
+  port.subscribePositionForPackage(a, (snapshot) => seenA.push(snapshot));
+  port.subscribePositionForPackage(b, (snapshot) => seenB.push(snapshot));
+
+  await port.playMeasureOnceForPackage(a, { startBeat: 0, endBeat: 4 });
+  engine.emitPosition({ generation: 1, beat: 1, playing: true });
+
+  await port.playMeasureOnceForPackage(b, { startBeat: 0, endBeat: 4 });
+  engine.emitPosition({ generation: 2, beat: 2, playing: true });
+
+  assert.deepEqual(seenA, [
+    { generation: 1, beat: 1, playing: true },
+  ]);
+  assert.deepEqual(seenB, [
+    { generation: 2, beat: 2, playing: true },
+  ]);
+});
+
+test("disposed package rejects a stale position callback even if the engine invokes it late", async () => {
+  const engine = makeEngine();
+  const work = pkg("pkg-stale");
+  const seen = [];
+  const port = createStudentPlaybackPort({
+    playbackPlanResolver: {
+      resolvePackageContext() {
+        return Object.freeze({
+          plan: plan("pkg-stale"),
+          timingProvenance: null,
+        });
+      },
+    },
+    engine,
+  });
+
+  port.subscribePositionForPackage(work, (snapshot) => seen.push(snapshot));
+  const staleCallback = [...engine.positionListeners][0];
+
+  await port.playMeasureOnceForPackage(work, { startBeat: 0, endBeat: 4 });
+  engine.emitPosition({ generation: 1, beat: 1, playing: true });
+  port.disposePackage(work);
+  staleCallback({ generation: 1, beat: 3, playing: false });
+
+  assert.deepEqual(seen, [
+    { generation: 1, beat: 1, playing: true },
+  ]);
+  assert.equal(engine.positionListeners.size, 0);
+});
+
+test("range playback and position-subscription engine failures remain bounded", async () => {
+  const rangeEngine = makeEngine();
+  rangeEngine.playRange = async () => {
+    throw new Error("secret range provider detail");
+  };
+  const rangePort = createStudentPlaybackPort({
+    playbackPlanResolver: {
+      resolvePackageContext() {
+        return Object.freeze({
+          plan: plan("pkg-range-fail"),
+          timingProvenance: null,
+        });
+      },
+    },
+    engine: rangeEngine,
+  });
+
+  await assert.rejects(
+    () =>
+      rangePort.playMeasureOnceForPackage(pkg("pkg-range-fail"), {
+        startBeat: 0,
+        endBeat: 4,
+      }),
+    /^Error: playback operation failed$/,
+  );
+
+  const subscriptionEngine = makeEngine();
+  subscriptionEngine.subscribePosition = () => {
+    throw new Error("secret subscription provider detail");
+  };
+  const subscriptionPort = createStudentPlaybackPort({
+    playbackPlanResolver: {
+      resolvePackageContext() {
+        return Object.freeze({
+          plan: plan("pkg-sub-fail"),
+          timingProvenance: null,
+        });
+      },
+    },
+    engine: subscriptionEngine,
+  });
+
+  assert.throws(
+    () =>
+      subscriptionPort.subscribePositionForPackage(
+        pkg("pkg-sub-fail"),
+        () => {},
+      ),
+    /^Error: playback operation failed$/,
   );
 });
