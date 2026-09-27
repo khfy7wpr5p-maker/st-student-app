@@ -451,6 +451,61 @@
         overflow-x: auto;
       }
 
+      .practice-violin {
+        display: grid;
+        gap: var(--st-space-2);
+      }
+
+      .violin-fingerboard-host {
+        min-width: 0;
+        width: min(100%, 34rem);
+      }
+
+      .violin-fingerboard-svg {
+        width: 100%;
+        height: auto;
+        display: block;
+        overflow: visible;
+      }
+
+      .violin-string,
+      .violin-nut-line {
+        stroke: var(--st-text-muted);
+        vector-effect: non-scaling-stroke;
+      }
+
+      .violin-string.active-string {
+        stroke: var(--st-text);
+        stroke-width: 3;
+      }
+
+      .violin-nut-line {
+        stroke-width: 4;
+      }
+
+      .violin-string-label {
+        fill: var(--st-text);
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .violin-stop-marker {
+        fill: var(--st-text);
+        stroke: var(--st-surface-raised);
+        stroke-width: 2;
+        vector-effect: non-scaling-stroke;
+      }
+
+      .violin-fingering-text {
+        margin: var(--st-space-2) 0 0;
+        font-weight: 700;
+      }
+
+      .violin-fingerboard-empty .violin-fingering-text {
+        color: var(--st-text-muted);
+        font-weight: 600;
+      }
+
       .practice-playback {
         background: var(--st-surface-panel);
         padding: var(--st-space-2) var(--st-space-3) !important;
