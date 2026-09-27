@@ -143,6 +143,7 @@ test("F# playback position presents D string high second finger", async () => {
   assert.equal(shown.primary.stringId, "D");
   assert.equal(shown.primary.finger, 2);
   assert.equal(shown.primary.placement, "HIGH");
+  assert.deepEqual(shown.pitch, { step: "F", alter: 1, octave: 4 });
 });
 
 test("paused snapshot keeps current fingering but marks it non-playing", async () => {
