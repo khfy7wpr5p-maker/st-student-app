@@ -4,6 +4,7 @@ import { createForegroundSyncCoordinator } from "../offline/syncCoordinator.js";
 import { registerStudentAppServiceWorker } from "../offline/serviceWorkerRegistration.js";
 import { createStNotationAdapter } from "../practice/notationAdapter.js";
 import { createScoreFollowCoordinator } from "../practice/scoreFollowCoordinator.js";
+import { createViolinFollowCoordinator } from "../practice/violinFollowCoordinator.js";
 import { createNotationRuntimeLoader } from "../practice/notationRuntimeLoader.js";
 import { createPlaybackPlanResolver } from "../playback/playbackPlanResolver.js";
 import { createPianoSampleBank } from "../playback/pianoSampleBank.js";
@@ -13,6 +14,7 @@ import { createFirebaseBrowserRuntime } from "../providers/firebase/firebaseBrow
 import { createStudentAppController } from "./studentAppController.js";
 import { createStudent08Composition } from "./student08Composition.js";
 import { mountStudentApp } from "./mountStudentApp.js";
+import { createViolinFingerboardPresentation } from "./violinFingerboard.js";
 
 const root = document.querySelector("#app");
 const notationRuntimeLoader = createNotationRuntimeLoader({
@@ -52,6 +54,13 @@ const scoreFollowCoordinator =
   createScoreFollowCoordinator({
     notationAdapter,
     playbackPort,
+  });
+const violinFingerboardPresentation =
+  createViolinFingerboardPresentation({ root });
+const violinFollowCoordinator =
+  createViolinFollowCoordinator({
+    playbackPort,
+    presentationPort: violinFingerboardPresentation,
   });
 const firebaseRuntime = createFirebaseBrowserRuntime();
 
@@ -109,6 +118,7 @@ const mounted = mountStudentApp({
   controller,
   notationAdapter,
   scoreFollowCoordinator,
+  violinFollowCoordinator,
   connectivityPort: offlineInfrastructure.connectivityPort,
   requestSignIn(credentials) {
     return firebaseRuntime.authAdapter.signIn(credentials);
