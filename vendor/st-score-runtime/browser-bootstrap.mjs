@@ -214,6 +214,23 @@ const runtimeHost = Object.freeze({
     }
     return activeHost.hitTestNoteDetailed({ clientX: point.clientX, clientY: point.clientY });
   },
+  hitTestMeasureDetailed(payload) {
+    if (renderInFlight) {
+      throw new BrowserScoreHostUnavailableError("Detailed measure hit-test is unavailable while rendering is in progress.");
+    }
+    if (activeHost === undefined) {
+      throw new BrowserScoreHostUnavailableError("A score must be rendered before detailed measure hit-test.");
+    }
+    const point = requirePlainInteractionObject(
+      payload,
+      "Detailed score measure hit-test payload",
+      new Set(["clientX", "clientY"]),
+    );
+    if (!Number.isFinite(point.clientX) || !Number.isFinite(point.clientY)) {
+      throw new RangeError("Detailed score measure hit-test coordinates must be finite numbers.");
+    }
+    return activeHost.hitTestMeasureDetailed({ clientX: point.clientX, clientY: point.clientY });
+  },
   hitTestRenderedEventDetailed(payload) {
     if (renderInFlight) {
       throw new BrowserScoreHostUnavailableError("Detailed rendered event hit-test is unavailable while rendering is in progress.");
