@@ -882,58 +882,27 @@ test(
 
       const offlineResult = await page.evaluate(
         async () => {
-          async function safeFetch(url) {
-            try {
-              const response = await fetch(url);
-              return {
-                ok: true,
-                status: response.status,
-              };
-            } catch (error) {
-              return {
-                ok: false,
-                status: null,
-                error:
-                  error instanceof Error
-                    ? error.message
-                    : String(error),
-              };
-            }
-          }
-
-          const coordinator =
-            await safeFetch(
-              "/src/practice/scoreFollowCoordinator.js",
-            );
-          const index =
-            await safeFetch(
-              "/src/practice/scoreFollowIndex.js",
-            );
-
-          let imported = false;
-          let importError = null;
           try {
             const module =
               await import(
                 "/src/practice/scoreFollowCoordinator.js"
               );
-            imported =
-              typeof module
-                .createScoreFollowCoordinator ===
-              "function";
+            return {
+              imported:
+                typeof module
+                  .createScoreFollowCoordinator ===
+                "function",
+              importError: null,
+            };
           } catch (error) {
-            importError =
-              error instanceof Error
-                ? error.message
-                : String(error);
+            return {
+              imported: false,
+              importError:
+                error instanceof Error
+                  ? error.message
+                  : String(error),
+            };
           }
-
-          return {
-            coordinator,
-            index,
-            imported,
-            importError,
-          };
         },
       );
 
@@ -943,21 +912,13 @@ test(
       assert.deepEqual(
         blockedRequests,
         [],
-        `follow graph reached blocked origin paths: ${JSON.stringify({
+        `follow module graph must load from service-worker cache without origin requests: ${JSON.stringify({
           offlineResult,
           blockedRequests,
         })}`,
       );
 
       assert.deepEqual(offlineResult, {
-        coordinator: {
-          ok: true,
-          status: 200,
-        },
-        index: {
-          ok: true,
-          status: 200,
-        },
         imported: true,
         importError: null,
       });
