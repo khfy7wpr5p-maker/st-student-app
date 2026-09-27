@@ -846,6 +846,9 @@ test(
           controlled:
             navigator.serviceWorker.controller !==
             null,
+          controllerScript:
+            navigator.serviceWorker.controller
+              ?.scriptURL ?? null,
           coordinatorCached:
             (await caches.match(
               "/src/practice/scoreFollowCoordinator.js",
@@ -860,6 +863,11 @@ test(
         offlinePrerequisites,
         {
           controlled: true,
+          controllerScript:
+            new URL(
+              "/service-worker.js",
+              offlineServer.baseUrl,
+            ).href,
           coordinatorCached: true,
           indexCached: true,
         },
@@ -874,42 +882,85 @@ test(
 
       const offlineResult = await page.evaluate(
         async () => {
-          const coordinatorResponse =
-            await fetch(
+          async function safeFetch(url) {
+            try {
+              const response = await fetch(url);
+              return {
+                ok: true,
+                status: response.status,
+              };
+            } catch (error) {
+              return {
+                ok: false,
+                status: null,
+                error:
+                  error instanceof Error
+                    ? error.message
+                    : String(error),
+              };
+            }
+          }
+
+          const coordinator =
+            await safeFetch(
               "/src/practice/scoreFollowCoordinator.js",
             );
-          const indexResponse =
-            await fetch(
+          const index =
+            await safeFetch(
               "/src/practice/scoreFollowIndex.js",
             );
 
-          const module =
-            await import(
-              "/src/practice/scoreFollowCoordinator.js"
-            );
-
-          return {
-            coordinatorStatus:
-              coordinatorResponse.status,
-            indexStatus: indexResponse.status,
-            exported:
+          let imported = false;
+          let importError = null;
+          try {
+            const module =
+              await import(
+                "/src/practice/scoreFollowCoordinator.js"
+              );
+            imported =
               typeof module
                 .createScoreFollowCoordinator ===
-              "function",
+              "function";
+          } catch (error) {
+            importError =
+              error instanceof Error
+                ? error.message
+                : String(error);
+          }
+
+          return {
+            coordinator,
+            index,
+            imported,
+            importError,
           };
         },
       );
 
-      assert.deepEqual(offlineResult, {
-        coordinatorStatus: 200,
-        indexStatus: 200,
-        exported: true,
-      });
+      const blockedRequests =
+        offlineServer.getBlockedRequests();
+
       assert.deepEqual(
-        offlineServer.getBlockedRequests(),
+        blockedRequests,
         [],
-        "follow module graph must be served by service-worker cache without origin requests",
+        `follow graph reached blocked origin paths: ${JSON.stringify({
+          offlineResult,
+          blockedRequests,
+        })}`,
       );
+
+      assert.deepEqual(offlineResult, {
+        coordinator: {
+          ok: true,
+          status: 200,
+        },
+        index: {
+          ok: true,
+          status: 200,
+        },
+        imported: true,
+        importError: null,
+      });
     } finally {
       await offlineServer?.close().catch(
         () => {},
