@@ -4,7 +4,7 @@
 **Repository:** `khfy7wpr5p-maker/st-student-app`  
 **Baseline main:** `ced3f4366ffccf42bc82aa70d0bcb3cef770621e`  
 **Renderer prerequisite:** `khfy7wpr5p-maker/st-score-rendering-layer@13aa0843158257a207afe062879743d58048cc6d`  
-**Status:** WRITTEN — AWAITING HUMAN SPEC APPROVAL
+**Status:** REVISED FOR 2 TECHNICAL BLOCKERS — AWAITING HUMAN SPEC APPROVAL
 
 ## 1. Goal
 
@@ -162,6 +162,7 @@ Conceptual shape:
       refs: [ScoreNoteRef, ...]
     }
   ],
+  measureMapping: "EXACT" | "UNAVAILABLE",
   eventMapping: "EXACT" | "UNAVAILABLE"
 }
 ```
@@ -185,25 +186,51 @@ Therefore:
 
 This is a deliberate V1 safety boundary, not a TAB regression.
 
-### 7.3 Measure mapping
+### 7.3 Measure mapping and source-derived part membership
 
-Measure replay uses validated `PlaybackPlan.measures`.
+Measure timing comes from validated `PlaybackPlan.measures`, but renderer part membership does **not** come from `PlaybackPlan.notes`.
+
+`ScoreFollowIndex` must parse the exact current SCORE MusicXML and build deterministic source-derived membership for every explicit `partId + measureIndex` represented by the score source, including measures that contain only rests or otherwise contain no playable note. For score-partwise input, `measureIndex` is the zero-based traversal position of each explicit `<measure>` within that exact `<part id>`; the part identity is the exact source part id that the renderer is expected to expose.
+
+This membership is independent of the playable-note list. Therefore a valid renderer HIT for a rest-only part/measure is accepted when the same `partId + measureIndex` exists in the exact SCORE source even if that part contributes no `PlaybackPlan.notes` entry in that measure.
 
 A renderer measure HIT `{ partId, measureIndex }` is accepted only if:
 
 - the current package/source/render epoch binding is current;
-- the index has that `measureIndex`;
-- the hit `partId` is one of the index's part IDs for that measure.
+- `measureMapping === "EXACT"`;
+- the validated PlaybackPlan contains that `measureIndex` and therefore provides its global replay range;
+- the exact SCORE MusicXML membership contains that `partId + measureIndex`.
 
-The replay range is the global measure range `[startBeat, endBeat)`; all playable parts whose onsets belong to that measure are heard. The tapped part is not treated as a solo request.
+The replay range remains the global measure range `[startBeat, endBeat)`; all playable parts in that range are heard. The tapped part is not a solo request. A rest-only tapped part may therefore trigger audible notes from other parts in the same global measure.
 
-`cursorPartId` is deterministic and source-derived. No “closest visible part” or DOM heuristic is allowed.
+`partIds` and `cursorPartId` are source-derived. They must never be inferred from `PlaybackPlan.notes`, pitch/MIDI, duration, renderer geometry, DOM/SVG structure, or nearest-element behavior.
 
-### 7.4 Exact rendered event mapping
+If the exact SCORE source cannot deterministically establish part/measure membership, if the renderer returns a part/measure pair absent from that source, or if the source measure cannot be paired with a validated PlaybackPlan measure range, then `measureMapping = "UNAVAILABLE"` for the affected mapping and measure replay/cursor fail closed.
+
+### 7.4 Timing/event provenance gate
+
+Exact note/chord highlight requires a separate timing/event provenance decision. `PlaybackPlan.quality` is not highlight authority.
+
+`eventMapping = "EXACT"` only when **both** conditions are true:
+
+1. renderer locator traversal can be derived deterministically from the exact current SCORE MusicXML under the pinned renderer counting semantics; and
+2. the active playback timing/event data carries explicit deterministic provenance proving that its events were derived from, or are attested to, that exact same SCORE source.
+
+For locally source-derived playback compilation, the provenance evidence is established by creating the playback timing and visual-event segments from the same exact SCORE MusicXML input in one source-bound derivation, with the source binding retained separately from the public `PlaybackPlan` schema.
+
+For a trusted provider `FULL` plan, schema validity, `packageId` equality, and the `FULL` quality label are **not** sufficient. The resolver/provider boundary must supply separate provenance evidence that can be deterministically checked against the exact current SCORE source (for example an explicit source fingerprint/digest or equivalent immutable source attestation). If such evidence is absent, mismatched, or unverifiable, `eventMapping = "UNAVAILABLE"`.
+
+The same rule applies regardless of whether the plan is `FULL` or `APPROXIMATE`: quality may describe playback fidelity, but only provenance evidence decides exact highlight authority.
+
+No bridge may be manufactured from pitch, MIDI, duration, event order similarity, nearest onset, geometry, DOM/SVG identity, or heuristic matching.
+
+A missing provenance gate disables only exact event highlight. When `measureMapping === "EXACT"`, measure replay and automatic measure cursor remain available independently.
+
+### 7.5 Exact rendered event mapping
 
 Precise highlight does not match by pitch, MIDI, duration, geometry, or nearest onset.
 
-The event compiler mirrors the pinned renderer's documented `ScoreNoteRef` counting policy from the same MusicXML source:
+After the provenance gate passes, the event compiler mirrors the pinned renderer's documented `ScoreNoteRef` counting policy from the same MusicXML source:
 
 - identity is scoped by `partId + measureIndex`;
 - when a usable non-negative voice is present, locator index is counted within that voice;
@@ -216,7 +243,7 @@ Initial V1 exact-highlight support must fail closed for score structures whose r
 
 Measure replay and measure cursor remain allowed when measure mapping is valid even if event highlight is unavailable.
 
-### 7.5 Ties and visual segments
+### 7.6 Ties and visual segments
 
 Audio playback may merge tied notes, but visual follow must preserve rendered note segments.
 
@@ -224,7 +251,7 @@ The follow compiler therefore keeps source/rendered segments separately from mer
 
 This separation prevents audio normalization from corrupting renderer identity.
 
-### 7.6 Chords and overlapping notes
+### 7.7 Chords and overlapping notes
 
 At a playback beat, the active highlight set is every exact `ScoreNoteRef` whose source-derived visual segment is active at that beat.
 
@@ -392,7 +419,9 @@ Follow failures are presentation/playback-local.
 Examples:
 
 - renderer measure MISS → no replay;
+- source-derived part/measure membership unavailable or mismatched → no replay/cursor for that mapping;
 - stale renderEpoch/sourceId → no replay/cursor/highlight;
+- valid `FULL` or `APPROXIMATE` timing without explicit exact-source provenance → measure follow may remain available, note highlight disabled;
 - unsupported exact event mapping → measure follow allowed, note highlight disabled;
 - renderer cursor/highlight error → audio continues;
 - measure replay engine error → existing playback capability error handling applies;
@@ -459,17 +488,26 @@ Unrelated Secure Delivery, Chord Board, Teacher, OMR, editor, TAB generation, or
 
 Must prove:
 
-1. measure lookup maps exact `partId + measureIndex` to the validated PlaybackPlan range;
-2. a part mismatch fails closed;
-3. beat lookup moves deterministically across measure boundaries;
-4. exact single-note refs follow renderer counting policy;
-5. rests consume locator positions without becoming highlight refs;
-6. chord members become one active highlight set;
-7. ties remain separate visual segments;
-8. overlapping exact notes produce the correct active ref set;
-9. ambiguous/unsupported multi-staff traversal returns `eventMapping: "UNAVAILABLE"`;
-10. no pitch/duration/proximity fallback exists;
-11. sourceId/package mismatch cannot reuse an index.
+1. measure lookup maps exact source-derived `partId + measureIndex` to the validated PlaybackPlan range;
+2. a part/measure whose exact SCORE MusicXML content is rest-only is still present in source-derived membership and its renderer measure HIT is accepted;
+3. when that rest-only tapped part shares the global measure with playable notes in another part, global one-measure replay still uses the validated `[startBeat, endBeat)` range and those playable notes remain audible;
+4. source-derived `partIds` are not built solely from `PlaybackPlan.notes`; a fixture with no playable note for the tapped part must prove this independently;
+5. a renderer `partId + measureIndex` absent from the exact source fails closed;
+6. unverifiable source part/measure membership produces unavailable measure mapping rather than a guessed mapping;
+7. beat lookup moves deterministically across measure boundaries;
+8. exact single-note refs follow renderer counting policy;
+9. rests consume locator positions without becoming highlight refs;
+10. chord members become one active highlight set;
+11. ties remain separate visual segments;
+12. overlapping exact notes produce the correct active ref set;
+13. ambiguous/unsupported multi-staff traversal returns `eventMapping: "UNAVAILABLE"`;
+14. a valid `FULL` PlaybackPlan with no explicit deterministic timing/event provenance produces `eventMapping === "UNAVAILABLE"`;
+15. that same unprovenance `FULL` case still permits measure replay and measure cursor when `measureMapping === "EXACT"`;
+16. exact highlight becomes available only when explicit deterministic timing/event provenance binds the active timing/events to the exact current SCORE source;
+17. `FULL` versus `APPROXIMATE` alone never decides highlight authority;
+18. mismatched or unverifiable timing/event source provenance produces no highlight;
+19. no pitch/MIDI/duration/onset-nearness/proximity/DOM/SVG fallback exists;
+20. sourceId/package mismatch cannot reuse an index.
 
 ### Playback unit acceptance
 
