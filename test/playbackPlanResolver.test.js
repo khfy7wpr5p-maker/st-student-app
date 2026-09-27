@@ -179,7 +179,7 @@ test("canonicalEvents alone never enable playback", () => {
 
 
 test("approximate context carries exact SCORE timing provenance without changing the plan", () => {
-  const musicXml = "<score-partwise version="4.0"/>";
+  const musicXml = '<score-partwise version="4.0"/>';
   const sourcePackage = pkg({
     content: {
       score: { format: "musicxml", data: musicXml },
