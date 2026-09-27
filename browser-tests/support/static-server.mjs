@@ -48,11 +48,23 @@ export async function startRepositoryStaticServer({
   }),
 } = {}) {
   let server;
+  const blockedPaths = new Set();
+  const blockedRequests = [];
 
   server = createServer(async (request, response) => {
     const pathname = decodeURIComponent(
       new URL(request.url, "http://localhost").pathname,
     );
+
+    if (blockedPaths.has(pathname)) {
+      blockedRequests.push(pathname);
+      response
+        .writeHead(503, {
+          "content-type": "text/plain; charset=utf-8",
+        })
+        .end("fixture network path blocked");
+      return;
+    }
 
     if (Object.hasOwn(htmlRoutes, pathname)) {
       response
@@ -94,6 +106,16 @@ export async function startRepositoryStaticServer({
 
   return Object.freeze({
     baseUrl,
+    blockPaths(paths) {
+      for (const path of paths) {
+        blockedPaths.add(path);
+      }
+    },
+    getBlockedRequests() {
+      return Object.freeze([
+        ...blockedRequests,
+      ]);
+    },
     close() {
       return new Promise((done) =>
         server.close(done),
