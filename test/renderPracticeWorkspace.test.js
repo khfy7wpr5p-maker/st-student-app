@@ -154,3 +154,33 @@ test("missing capability object fails closed to unavailable presentation", () =>
   assert.match(html, /Dinleme bu çalışma için kullanılamıyor/);
   assert.doesNotMatch(html, /data-action="play-practice"/);
 });
+
+test("available violin capability renders a bounded fingerboard host without duplicate playback controls", () => {
+  const practice = makePractice({
+    capabilities: {
+      playback: PRACTICE_CAPABILITY_STATES.AVAILABLE,
+      violin: PRACTICE_CAPABILITY_STATES.AVAILABLE,
+    },
+  });
+  practice.violin = {
+    schemaVersion: 1,
+    targetPartId: "P1",
+    position: 1,
+    stringLengthMm: 328,
+  };
+
+  const html = renderPracticeWorkspace(practice);
+
+  assert.match(html, /<h2 id="violin-heading">Keman<\/h2>/);
+  assert.match(html, /data-violin-fingerboard/);
+  assert.match(html, /aria-label="Birinci pozisyon keman klavyesi"/);
+  assert.doesNotMatch(html, /aria-live/);
+  assert.equal((html.match(/data-action="play-practice"/g) ?? []).length, 1);
+});
+
+test("unavailable violin capability does not render fingerboard host", () => {
+  const html = renderPracticeWorkspace(makePractice());
+
+  assert.doesNotMatch(html, /data-violin-fingerboard/);
+  assert.doesNotMatch(html, /id="violin-heading"/);
+});
