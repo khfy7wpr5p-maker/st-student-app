@@ -59,7 +59,11 @@ let server;
 let baseUrl;
 
 before(async () => {
-  server = await startRepositoryStaticServer();
+  server = await startRepositoryStaticServer({
+    htmlRoutes: Object.freeze({
+      "/": "<!doctype html><html><body>Student shell fixture</body></html>",
+    }),
+  });
   baseUrl = server.baseUrl;
 });
 
