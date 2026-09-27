@@ -42,6 +42,31 @@ function renderNotation(
   `;
 }
 
+function renderViolin(practice) {
+  if (
+    capabilityOf(practice, "violin") !==
+    PRACTICE_CAPABILITY_STATES.AVAILABLE
+  ) {
+    return "";
+  }
+
+  return `
+    <section class="practice-violin practice-secondary" aria-labelledby="violin-heading">
+      <h2 id="violin-heading">Keman</h2>
+      <div
+        class="violin-fingerboard-host"
+        data-violin-fingerboard
+        role="region"
+        aria-label="Birinci pozisyon keman klavyesi"
+      >
+        <div class="violin-fingerboard-empty">
+          <p class="violin-fingering-text">Çalma başladığında tel ve parmak konumu burada gösterilir.</p>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
 function tempoValue(practice) {
   const value = practice?.practice?.tempoBpm;
   return Number.isFinite(value) && value > 0 ? String(value) : "";
@@ -182,6 +207,7 @@ export function renderPracticeWorkspace(
         practice,
         notationHeading,
       )}
+      ${renderViolin(practice)}
       ${renderPlayback(practice)}
     </section>
   `;
