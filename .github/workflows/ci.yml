@@ -8,6 +8,9 @@ on:
       - "feat/**"
   pull_request:
 
+permissions:
+  contents: write
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -63,6 +66,22 @@ jobs:
         working-directory: renderer
         run: |
           node -e 'const m=require("./dist/browser-runtime/runtime-manifest.json"); if(m.runtimeTarget!=="browser" || m.rendererSourceRevision!==process.env.RENDERER_SHA || m.scoreRendererContractVersion!=="0.2.0") process.exit(1)'
+      - name: Sync canonical SES-27 runtime into working branch
+        if: github.ref == 'refs/heads/feat/ses-27-native-tdd' && github.actor != 'github-actions[bot]'
+        run: |
+          rm -rf "$GITHUB_WORKSPACE/vendor/st-score-runtime"
+          mkdir -p "$GITHUB_WORKSPACE/vendor/st-score-runtime"
+          cp -R "$GITHUB_WORKSPACE/renderer/dist/browser-runtime/." "$GITHUB_WORKSPACE/vendor/st-score-runtime/"
+          cd "$GITHUB_WORKSPACE"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add vendor/st-score-runtime
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "chore: sync SES-27 renderer runtime"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+
       - name: Upload approved browser runtime
         uses: actions/upload-artifact@v4
         with:
