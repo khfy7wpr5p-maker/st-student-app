@@ -145,6 +145,7 @@ export function mountStudentApp({
   requestSignOut,
   notationAdapter = null,
   scoreFollowCoordinator = null,
+  violinFollowCoordinator = null,
   connectivityPort = null,
 }) {
   if (
@@ -170,6 +171,7 @@ export function mountStudentApp({
   let activeNotationPresentationKey = null;
   let activeRenderEvidence = null;
   let activeScoreFollowKey = null;
+  let activeViolinFollowKey = null;
   let persistentNotationRoot = null;
   let lifecycle = Promise.resolve();
   let destroyed = false;
@@ -292,6 +294,127 @@ export function mountStudentApp({
         await scoreFollowCoordinator.clear();
       } catch {
         // Follow presentation is independently degradable.
+      }
+    }
+  }
+
+  async function clearViolinFollow() {
+    if (activeViolinFollowKey === null) {
+      return;
+    }
+
+    activeViolinFollowKey = null;
+    if (
+      typeof violinFollowCoordinator?.clear ===
+      "function"
+    ) {
+      try {
+        await violinFollowCoordinator.clear();
+      } catch {
+        // Violin presentation is independently degradable.
+      }
+    }
+  }
+
+  async function synchronizeViolinFollow({
+    state,
+    generation,
+  }) {
+    if (
+      violinFollowCoordinator === null ||
+      typeof violinFollowCoordinator?.bind !==
+        "function"
+    ) {
+      return;
+    }
+
+    const practice = practiceForState(state);
+    const pieceScoreSelected =
+      state.screen !== STUDENT_APP_SCREENS.PIECE_WORKSPACE ||
+      state.pieceWorkspace?.selectedView === "SCORE";
+
+    if (
+      practice === null ||
+      pieceScoreSelected !== true ||
+      practice.capabilities?.violin !==
+        PRACTICE_CAPABILITY_STATES.AVAILABLE ||
+      practice.violin === null ||
+      typeof practice.violin !== "object" ||
+      typeof practice.violin.targetPartId !== "string" ||
+      practice.violin.targetPartId.length === 0
+    ) {
+      await clearViolinFollow();
+      return;
+    }
+
+    let followSource = null;
+    try {
+      followSource =
+        controller.getScoreFollowSource?.() ??
+        null;
+    } catch {
+      followSource = null;
+    }
+
+    if (
+      followSource === null ||
+      typeof followSource !== "object" ||
+      followSource.sourceId !== practice.packageId ||
+      followSource.pkg?.packageId !== practice.packageId ||
+      typeof followSource.musicXml !== "string" ||
+      followSource.musicXml.length === 0
+    ) {
+      await clearViolinFollow();
+      return;
+    }
+
+    if (!currentPracticeMatches(state, generation)) {
+      return;
+    }
+
+    const followKey =
+      `${practicePresentationKey(state)}:${followSource.sourceId}:${generation}`;
+    if (activeViolinFollowKey === followKey) {
+      return;
+    }
+
+    await clearViolinFollow();
+
+    if (!currentPracticeMatches(state, generation)) {
+      return;
+    }
+
+    let bound = false;
+    try {
+      bound =
+        violinFollowCoordinator.bind({
+          pkg: followSource.pkg,
+          sourceId: followSource.sourceId,
+          musicXml: followSource.musicXml,
+          targetPartId:
+            practice.violin.targetPartId,
+          ...(practice.violin.stringLengthMm ===
+          undefined
+            ? {}
+            : {
+                stringLengthMm:
+                  practice.violin.stringLengthMm,
+              }),
+        }) === true;
+    } catch {
+      bound = false;
+    }
+
+    if (
+      bound &&
+      currentPracticeMatches(state, generation)
+    ) {
+      activeViolinFollowKey = followKey;
+    } else if (bound) {
+      try {
+        await violinFollowCoordinator.clear?.();
+      } catch {
+        // Stale violin binding is abandoned.
       }
     }
   }
@@ -595,13 +718,19 @@ export function mountStudentApp({
         ? controller.getPracticeRenderSource?.() ?? null
         : null;
 
-    lifecycle = lifecycle.then(() =>
-      synchronizeNotation({
+    lifecycle = lifecycle.then(async () => {
+      await synchronizeNotation({
         state: snapshot.state,
         renderSource,
         generation: snapshot.generation,
-      }),
-    );
+      });
+
+      const currentState = controller.getState();
+      await synchronizeViolinFollow({
+        state: currentState,
+        generation: domGeneration,
+      });
+    });
 
     return lifecycle;
   }
@@ -799,7 +928,18 @@ export function mountStudentApp({
             // Final follow teardown cannot block app cleanup.
           }
         }
+        if (
+          typeof violinFollowCoordinator?.dispose ===
+          "function"
+        ) {
+          try {
+            await violinFollowCoordinator.dispose();
+          } catch {
+            // Final violin follow teardown cannot block app cleanup.
+          }
+        }
         activeScoreFollowKey = null;
+        activeViolinFollowKey = null;
         lastMarkup = null;
         lastPresentationKey = null;
         persistentNotationRoot = null;
