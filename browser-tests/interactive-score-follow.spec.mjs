@@ -14,7 +14,7 @@ function browserType() {
   return type;
 }
 
-function scoreXml(measureCount = 12) {
+function scoreXml(measureCount = 6) {
   const measures = [];
 
   for (let index = 0; index < measureCount; index += 1) {
@@ -129,7 +129,7 @@ async function openRendererFixture(page) {
       }
 
       const measures = Object.freeze(
-        Array.from({ length: 12 }, (_, index) =>
+        Array.from({ length: 6 }, (_, index) =>
           Object.freeze({
             index,
             startBeat: index * 4,
@@ -271,18 +271,6 @@ async function scanVisible(page, {
         throw new Error("renderer fixture unavailable");
       }
 
-      const rect = root.getBoundingClientRect();
-      const left = Math.max(1, Math.floor(rect.left));
-      const right = Math.min(
-        window.innerWidth - 2,
-        Math.ceil(rect.right),
-      );
-      const top = Math.max(1, Math.floor(rect.top));
-      const bottom = Math.min(
-        window.innerHeight - 2,
-        Math.ceil(rect.bottom),
-      );
-
       const found = {
         note: null,
         rest: null,
@@ -292,6 +280,15 @@ async function scanVisible(page, {
       };
 
       function inspect(clientX, clientY) {
+        if (
+          clientX < 0 ||
+          clientX >= window.innerWidth ||
+          clientY < 0 ||
+          clientY >= window.innerHeight
+        ) {
+          return;
+        }
+
         let measure;
         let event;
         try {
@@ -321,11 +318,7 @@ async function scanVisible(page, {
           event?.kind === "HIT" &&
           event.target?.kind === "NOTE"
         ) {
-          found.note = {
-            point,
-            event,
-            measure,
-          };
+          found.note = { point, event, measure };
         }
 
         if (
@@ -333,11 +326,7 @@ async function scanVisible(page, {
           event?.kind === "HIT" &&
           event.target?.kind === "REST"
         ) {
-          found.rest = {
-            point,
-            event,
-            measure,
-          };
+          found.rest = { point, event, measure };
         }
 
         if (
@@ -356,10 +345,7 @@ async function scanVisible(page, {
           found.outside === null &&
           measure?.kind === "MISS"
         ) {
-          found.outside = {
-            point,
-            measure,
-          };
+          found.outside = { point, measure };
         }
 
         if (
@@ -367,40 +353,100 @@ async function scanVisible(page, {
           measure?.kind === "HIT" &&
           measure.target?.measureIndex > 0
         ) {
-          found.later = {
-            point,
-            measure,
-            event,
-          };
+          found.later = { point, measure, event };
         }
       }
 
+      const elements =
+        root.querySelectorAll("svg *");
+      for (const element of elements) {
+        const rect =
+          element.getBoundingClientRect();
+        if (
+          rect.width <= 1 ||
+          rect.height <= 1 ||
+          rect.bottom < 0 ||
+          rect.top >= window.innerHeight ||
+          rect.right < 0 ||
+          rect.left >= window.innerWidth
+        ) {
+          continue;
+        }
+
+        const candidates = [
+          [
+            rect.left + rect.width / 2,
+            rect.top + rect.height / 2,
+          ],
+          [
+            rect.left + rect.width * 0.25,
+            rect.top + rect.height * 0.5,
+          ],
+          [
+            rect.left + rect.width * 0.75,
+            rect.top + rect.height * 0.5,
+          ],
+        ];
+
+        for (const [clientX, clientY] of candidates) {
+          inspect(clientX, clientY);
+        }
+
+        if (
+          found.note !== null &&
+          found.rest !== null &&
+          (
+            !requireLaterMeasure ||
+            found.later !== null
+          )
+        ) {
+          break;
+        }
+      }
+
+      const rootRect = root.getBoundingClientRect();
+      const top = Math.max(
+        1,
+        Math.floor(rootRect.top),
+      );
+      const bottom = Math.min(
+        window.innerHeight - 2,
+        Math.ceil(rootRect.bottom),
+      );
+
       for (
         let clientY = top;
-        clientY <= bottom;
-        clientY += 4
+        clientY <= bottom &&
+        (
+          found.whitespace === null ||
+          found.outside === null
+        );
+        clientY += 14
       ) {
         for (
-          let clientX = left;
-          clientX <= right;
-          clientX += 4
+          let clientX = 2;
+          clientX < window.innerWidth - 2;
+          clientX += 14
         ) {
           inspect(clientX, clientY);
+        }
+      }
 
-          const baseComplete =
-            found.note !== null &&
-            found.rest !== null &&
-            found.whitespace !== null &&
-            found.outside !== null;
-          if (
-            baseComplete &&
-            (
-              !requireLaterMeasure ||
-              found.later !== null
-            )
-          ) {
-            return found;
-          }
+      if (found.outside === null) {
+        const outerCandidates = [
+          [2, 2],
+          [window.innerWidth - 3, 2],
+          [2, window.innerHeight - 3],
+          [
+            window.innerWidth - 3,
+            window.innerHeight - 3,
+          ],
+        ];
+        for (
+          const [clientX, clientY]
+          of outerCandidates
+        ) {
+          inspect(clientX, clientY);
         }
       }
 
