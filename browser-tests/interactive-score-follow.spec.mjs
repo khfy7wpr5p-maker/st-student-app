@@ -866,8 +866,11 @@ test(
         "offline follow prerequisites must be controlled and cached before disconnect",
       );
 
-      await offlineServer.close();
-      offlineServer = null;
+      offlineServer.blockPaths([
+        "/src/practice/scoreFollowCoordinator.js",
+        "/src/practice/scoreFollowIndex.js",
+        "/src/playback/musicXmlPlaybackDom.js",
+      ]);
 
       const offlineResult = await page.evaluate(
         async () => {
@@ -902,6 +905,11 @@ test(
         indexStatus: 200,
         exported: true,
       });
+      assert.deepEqual(
+        offlineServer.getBlockedRequests(),
+        [],
+        "follow module graph must be served by service-worker cache without origin requests",
+      );
     } finally {
       await offlineServer?.close().catch(
         () => {},
