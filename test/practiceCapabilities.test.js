@@ -136,3 +136,104 @@ test("validated guitar TAB MusicXML enables TAB only when notation runtime is av
     PRACTICE_CAPABILITY_STATES.UNAVAILABLE,
   );
 });
+
+function makeExactPlaybackPort(musicXml) {
+  return {
+    ...makePlaybackPort(),
+    getScoreFollowPlaybackContextForPackage(work) {
+      return {
+        plan: { packageId: work.packageId, measures: [] },
+        timingProvenance: {
+          kind: "EXACT_SCORE_SOURCE",
+          musicXml,
+        },
+      };
+    },
+  };
+}
+
+test("valid first-position violin descriptor is available only with exact score playback provenance", () => {
+  const musicXml = "<score-partwise>VIOLIN SCORE</score-partwise>";
+  const violinPackage = {
+    ...pkg,
+    packageId: "pkg-v",
+    content: {
+      ...pkg.content,
+      score: { format: "musicxml", data: musicXml },
+      violin: {
+        schemaVersion: 1,
+        targetPartId: "P1",
+        position: 1,
+        stringLengthMm: 328,
+      },
+    },
+  };
+
+  assert.equal(
+    derivePracticeCapabilities({
+      pkg: violinPackage,
+      notationRuntimeAvailable: true,
+      playbackPort: makeExactPlaybackPort(musicXml),
+    }).violin,
+    PRACTICE_CAPABILITY_STATES.AVAILABLE,
+  );
+
+  assert.equal(
+    derivePracticeCapabilities({
+      pkg: violinPackage,
+      notationRuntimeAvailable: true,
+      playbackPort: makePlaybackPort(),
+    }).violin,
+    PRACTICE_CAPABILITY_STATES.UNAVAILABLE,
+  );
+});
+
+test("invalid violin V1 descriptors remain unavailable", () => {
+  const musicXml = "<score-partwise>VIOLIN SCORE</score-partwise>";
+  const invalidDescriptors = [
+    { schemaVersion: 1, position: 1 },
+    { schemaVersion: 1, targetPartId: "P1", position: 2 },
+    { schemaVersion: 1, targetPartId: "P1", position: 1, stringLengthMm: 249 },
+    { schemaVersion: 1, targetPartId: "P1", position: 1, stringLengthMm: 401 },
+    { schemaVersion: 1, targetPartId: "P1", position: 1, extra: true },
+  ];
+
+  for (const violin of invalidDescriptors) {
+    const result = derivePracticeCapabilities({
+      pkg: {
+        ...pkg,
+        packageId: "pkg-v",
+        content: {
+          ...pkg.content,
+          score: { format: "musicxml", data: musicXml },
+          violin,
+        },
+      },
+      notationRuntimeAvailable: true,
+      playbackPort: makeExactPlaybackPort(musicXml),
+    });
+    assert.equal(result.violin, PRACTICE_CAPABILITY_STATES.UNAVAILABLE);
+  }
+});
+
+test("mismatched exact provenance cannot enable violin capability", () => {
+  const musicXml = "<score-partwise>VIOLIN SCORE</score-partwise>";
+  const violinPackage = {
+    ...pkg,
+    packageId: "pkg-v",
+    content: {
+      ...pkg.content,
+      score: { format: "musicxml", data: musicXml },
+      violin: { schemaVersion: 1, targetPartId: "P1", position: 1 },
+    },
+  };
+
+  assert.equal(
+    derivePracticeCapabilities({
+      pkg: violinPackage,
+      notationRuntimeAvailable: true,
+      playbackPort: makeExactPlaybackPort("<score-partwise>OTHER</score-partwise>"),
+    }).violin,
+    PRACTICE_CAPABILITY_STATES.UNAVAILABLE,
+  );
+});
