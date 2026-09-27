@@ -529,3 +529,100 @@ test("connectivity repaint preserves renderer content when attached nodes are de
   assert.equal(notationRoot.contentIntact, true);
   await mounted.destroy();
 });
+
+test("violin follow binds independently of notation failure and clears across package lifecycle", async () => {
+  const first = makePracticeState(
+    "pkg-a",
+    PRACTICE_CAPABILITY_STATES.ERROR,
+  );
+  first.practice.capabilities.playback =
+    PRACTICE_CAPABILITY_STATES.AVAILABLE;
+  first.practice.capabilities.violin =
+    PRACTICE_CAPABILITY_STATES.AVAILABLE;
+  first.practice.violin = {
+    schemaVersion: 1,
+    targetPartId: "P1",
+    position: 1,
+    stringLengthMm: 328,
+  };
+
+  const fixture = makeController(first);
+  const baseController = fixture.controller;
+  const controller = {
+    ...baseController,
+    getScoreFollowSource() {
+      const current = this.getState();
+      if (current.screen !== STUDENT_APP_SCREENS.PRACTICE) {
+        return null;
+      }
+      return {
+        pkg: { packageId: current.practice.packageId },
+        sourceId: current.practice.packageId,
+        musicXml: `<score-partwise>${current.practice.packageId}</score-partwise>`,
+      };
+    },
+  };
+  const root = makeRoot();
+  const calls = [];
+  const violinFollowCoordinator = {
+    bind(args) {
+      calls.push(["bind", args]);
+      return true;
+    },
+    async clear() {
+      calls.push(["clear"]);
+    },
+    async dispose() {
+      calls.push(["dispose"]);
+    },
+  };
+
+  const mounted = mountStudentApp({
+    root,
+    controller,
+    violinFollowCoordinator,
+  });
+  await mounted.render();
+
+  assert.equal(calls.filter(([name]) => name === "bind").length, 1);
+  assert.deepEqual(
+    calls.find(([name]) => name === "bind")[1],
+    {
+      pkg: { packageId: "pkg-a" },
+      sourceId: "pkg-a",
+      musicXml: "<score-partwise>pkg-a</score-partwise>",
+      targetPartId: "P1",
+      stringLengthMm: 328,
+    },
+  );
+
+  const second = makePracticeState(
+    "pkg-b",
+    PRACTICE_CAPABILITY_STATES.ERROR,
+  );
+  second.practice.capabilities.playback =
+    PRACTICE_CAPABILITY_STATES.AVAILABLE;
+  second.practice.capabilities.violin =
+    PRACTICE_CAPABILITY_STATES.AVAILABLE;
+  second.practice.violin = {
+    schemaVersion: 1,
+    targetPartId: "P1",
+    position: 1,
+    stringLengthMm: 328,
+  };
+  fixture.setState(second);
+  await mounted.render();
+
+  assert.equal(calls.filter(([name]) => name === "bind").length, 2);
+  assert.equal(calls.some(([name]) => name === "clear"), true);
+
+  fixture.setState(makeHomeState());
+  await mounted.render();
+  assert.equal(
+    calls.filter(([name]) => name === "clear").length >= 2,
+    true,
+  );
+
+  await mounted.destroy();
+  assert.equal(calls.some(([name]) => name === "dispose"), true);
+});
