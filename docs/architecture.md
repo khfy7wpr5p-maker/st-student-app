@@ -703,4 +703,15 @@ Student edit authority, yeni runtime dependency, Python service, yeni repository
 MSMD geometry yaklaşımından yalnız regresyon test fikri benimsenmiştir: gerçek renderer geometri ownership'i note/rest/measure whitespace/outside/later-scroll browser fixture'larıyla sınanır. SES-38 public hit-test contract'ı yeniden açılmaz.
 
 Partitura runtime/toolchain dependency olarak eklenmez. Semantik karşılaştırma referans olarak tutulur; Student runtime authority `ScoreNoteRef`, `sourceId`, `renderEpoch`, PlaybackPlan ve ScoreFollowIndex'te kalır.
+## VIOLIN-02 vendored learning runtime
 
+Student App pins the source-neutral violin-learning domain runtime at
+`khfy7wpr5p-maker/st-violin-learning-engine@0ec3f3252111db10f9f381d22d29e57fa8cc2c6f`.
+
+Vendored files live under `vendor/st-violin-learning/` with SHA-256 and byte-length
+integrity recorded in `runtime-manifest.json`. Engine source is copied byte-for-byte;
+fixes are made upstream and repinned rather than edited locally.
+
+VIOLIN-02 uses this runtime only for first-position fingering/follow snapshots.
+`StudentPlaybackPort` remains the only playback clock. Scheduled violin audio remains
+separate VIOLIN-03 work.

@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "sourceRepository": "khfy7wpr5p-maker/st-violin-learning-engine",
+  "sourceCommit": "0ec3f3252111db10f9f381d22d29e57fa8cc2c6f",
+  "contract": "VIOLIN-02",
+  "files": [
+    {
+      "path": "src/firstPosition.js",
+      "bytes": 5311,
+      "sha256": "63abd56183d5a0cbefd197cc8d4ab60f16d888a88a68029080c524753928231b"
+    },
+    {
+      "path": "src/followSnapshot.js",
+      "bytes": 5203,
+      "sha256": "8107175097700236d1e6e1db412893d534625c7b23e55d97f0fc062e02a46f3a"
+    },
+    {
+      "path": "src/index.js",
+      "bytes": 311,
+      "sha256": "99a56d2f0f6de89a8e986dd09bf55305d983224a132cf63ee32988a084fbf011"
+    }
+  ]
+}
