@@ -371,3 +371,55 @@ test("workspace exposes TAB MusicXML only as a renderer source, never in the vie
     false,
   );
 });
+
+test("workspace projects only bounded violin V1 configuration", () => {
+  const item = makeDeliveryItem();
+  const musicXml = item.package.content.score.data;
+  item.package.content.violin = {
+    schemaVersion: 1,
+    targetPartId: "P1",
+    position: 1,
+    stringLengthMm: 328,
+  };
+  const playbackPort = {
+    ...makeWorkspacePlaybackPort(),
+    getScoreFollowPlaybackContextForPackage(work) {
+      return {
+        plan: { packageId: work.packageId, measures: [] },
+        timingProvenance: {
+          kind: "EXACT_SCORE_SOURCE",
+          musicXml,
+        },
+      };
+    },
+  };
+
+  const result = createPracticeWorkspace({
+    deliveryItem: item,
+    notationRuntimeAvailable: true,
+    playbackPort,
+  });
+
+  assert.equal(
+    result.viewModel.capabilities.violin,
+    PRACTICE_CAPABILITY_STATES.AVAILABLE,
+  );
+  assert.deepEqual(result.viewModel.violin, {
+    schemaVersion: 1,
+    targetPartId: "P1",
+    position: 1,
+    stringLengthMm: 328,
+  });
+  assert.equal(Object.isFrozen(result.viewModel.violin), true);
+});
+
+test("workspace does not project unknown violin package internals", () => {
+  const result = createPracticeWorkspace({
+    deliveryItem: makeDeliveryItem(),
+    notationRuntimeAvailable: true,
+    playbackPort: makeWorkspacePlaybackPort(),
+  });
+
+  assert.equal(result.viewModel.violin, null);
+  assert.equal(JSON.stringify(result.viewModel).includes('"unknown"'), false);
+});
