@@ -493,6 +493,43 @@ export function createStudentAppController({
       return null;
     },
 
+    getScoreFollowSource() {
+      let renderSource = null;
+
+      if (
+        state.screen ===
+          STUDENT_APP_SCREENS.PRACTICE
+      ) {
+        renderSource =
+          activePracticeRenderSource;
+      } else if (
+        state.screen ===
+          STUDENT_APP_SCREENS.PIECE_WORKSPACE &&
+        state.pieceWorkspace?.selectedView ===
+          PIECE_WORKSPACE_VIEWS.SCORE
+      ) {
+        renderSource =
+          activePracticeRenderSource;
+      }
+
+      if (
+        activePracticePackage === null ||
+        renderSource === null ||
+        renderSource?.kind !== "musicxml" ||
+        typeof renderSource.musicXml !== "string" ||
+        renderSource.sourceId !==
+          activePracticePackage.packageId
+      ) {
+        return null;
+      }
+
+      return Object.freeze({
+        pkg: activePracticePackage,
+        sourceId: renderSource.sourceId,
+        musicXml: renderSource.musicXml,
+      });
+    },
+
     disposeActivePractice() {
       clearActivePractice();
       return state;

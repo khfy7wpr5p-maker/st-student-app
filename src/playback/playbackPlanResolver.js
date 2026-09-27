@@ -4,6 +4,26 @@ import {
 } from "./playbackPlan.js";
 import { compileApproximateMusicXmlPlayback } from "./musicXmlApproximatePlayback.js";
 
+function exactScoreMusicXml(pkg) {
+  return (
+    pkg?.content?.score?.format === "musicxml" &&
+    typeof pkg?.content?.score?.data === "string"
+      ? pkg.content.score.data
+      : null
+  );
+}
+
+function exactScoreProvenance(pkg) {
+  const musicXml = exactScoreMusicXml(pkg);
+
+  return musicXml === null
+    ? null
+    : Object.freeze({
+        kind: "EXACT_SCORE_SOURCE",
+        musicXml,
+      });
+}
+
 export function createPlaybackPlanResolver({
   trustedTimingProvider = null,
   approximateCompiler = compileApproximateMusicXmlPlayback,
@@ -12,61 +32,111 @@ export function createPlaybackPlanResolver({
     throw new TypeError("approximate compiler required");
   }
 
-  return Object.freeze({
-    resolvePackage(pkg) {
-      const packageId = pkg?.packageId;
+  function resolvePackageContext(pkg) {
+    const packageId = pkg?.packageId;
 
-      if (typeof packageId !== "string" || packageId.length === 0) {
+    if (typeof packageId !== "string" || packageId.length === 0) {
+      return null;
+    }
+
+    if (trustedTimingProvider !== null) {
+      if (
+        typeof trustedTimingProvider?.resolveTrustedPlan !== "function"
+      ) {
         return null;
       }
 
-      if (trustedTimingProvider !== null) {
-        if (
-          typeof trustedTimingProvider?.resolveTrustedPlan !== "function"
-        ) {
-          return null;
-        }
+      let trusted;
 
-        let trusted;
+      try {
+        trusted = trustedTimingProvider.resolveTrustedPlan(pkg);
+      } catch {
+        return null;
+      }
+
+      if (trusted !== null) {
+        let plan;
 
         try {
-          trusted = trustedTimingProvider.resolveTrustedPlan(pkg);
+          plan = assertPlaybackPlan(trusted, {
+            packageId,
+            allowedQuality: PLAYBACK_QUALITIES.FULL,
+          });
         } catch {
           return null;
         }
 
-        if (trusted !== null) {
+        let timingProvenance = null;
+
+        if (
+          typeof trustedTimingProvider.resolveTrustedProvenance ===
+          "function"
+        ) {
           try {
-            return assertPlaybackPlan(trusted, {
-              packageId,
-              allowedQuality: PLAYBACK_QUALITIES.FULL,
-            });
+            const candidate =
+              trustedTimingProvider.resolveTrustedProvenance(pkg, plan);
+            const expectedMusicXml = exactScoreMusicXml(pkg);
+
+            if (
+              candidate !== null &&
+              typeof candidate === "object" &&
+              !Array.isArray(candidate) &&
+              candidate.kind === "EXACT_SCORE_SOURCE" &&
+              typeof candidate.musicXml === "string" &&
+              expectedMusicXml !== null &&
+              candidate.musicXml === expectedMusicXml
+            ) {
+              timingProvenance = Object.freeze({
+                kind: "EXACT_SCORE_SOURCE",
+                musicXml: expectedMusicXml,
+              });
+            }
           } catch {
-            return null;
+            timingProvenance = null;
           }
         }
-      }
 
-      let approximate;
-
-      try {
-        approximate = approximateCompiler(pkg);
-      } catch {
-        return null;
-      }
-
-      if (approximate === null) {
-        return null;
-      }
-
-      try {
-        return assertPlaybackPlan(approximate, {
-          packageId,
-          allowedQuality: PLAYBACK_QUALITIES.APPROXIMATE,
+        return Object.freeze({
+          plan,
+          timingProvenance,
         });
-      } catch {
-        return null;
       }
+    }
+
+    let approximate;
+
+    try {
+      approximate = approximateCompiler(pkg);
+    } catch {
+      return null;
+    }
+
+    if (approximate === null) {
+      return null;
+    }
+
+    let plan;
+
+    try {
+      plan = assertPlaybackPlan(approximate, {
+        packageId,
+        allowedQuality: PLAYBACK_QUALITIES.APPROXIMATE,
+      });
+    } catch {
+      return null;
+    }
+
+    return Object.freeze({
+      plan,
+      timingProvenance: exactScoreProvenance(pkg),
+    });
+  }
+
+  return Object.freeze({
+    resolvePackage(pkg) {
+      return resolvePackageContext(pkg)?.plan ?? null;
     },
+
+    resolvePackageContext,
   });
 }

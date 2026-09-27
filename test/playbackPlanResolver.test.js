@@ -176,3 +176,144 @@ test("canonicalEvents alone never enable playback", () => {
     null,
   );
 });
+
+
+test("approximate context carries exact SCORE timing provenance without changing the plan", () => {
+  const musicXml = '<score-partwise version="4.0"/>';
+  const sourcePackage = pkg({
+    content: {
+      score: { format: "musicxml", data: musicXml },
+      canonicalEvents: [],
+    },
+  });
+  const resolver = createPlaybackPlanResolver({
+    approximateCompiler(received) {
+      assert.equal(received, sourcePackage);
+      return plan(PLAYBACK_QUALITIES.APPROXIMATE);
+    },
+  });
+
+  const context = resolver.resolvePackageContext(sourcePackage);
+
+  assert.equal(context.plan.quality, PLAYBACK_QUALITIES.APPROXIMATE);
+  assert.deepEqual(context.timingProvenance, {
+    kind: "EXACT_SCORE_SOURCE",
+    musicXml,
+  });
+  assert.equal("timingProvenance" in context.plan, false);
+});
+
+test("valid trusted FULL plan stays playable without provenance authority", () => {
+  const resolver = createPlaybackPlanResolver({
+    trustedTimingProvider: {
+      resolveTrustedPlan() {
+        return plan(PLAYBACK_QUALITIES.FULL);
+      },
+    },
+  });
+
+  const context = resolver.resolvePackageContext(pkg());
+
+  assert.equal(context.plan.quality, PLAYBACK_QUALITIES.FULL);
+  assert.equal(context.timingProvenance, null);
+});
+
+test("FULL quality and packageId equality alone never manufacture provenance", () => {
+  const resolver = createPlaybackPlanResolver({
+    trustedTimingProvider: {
+      resolveTrustedPlan() {
+        return plan(PLAYBACK_QUALITIES.FULL, { packageId: "pkg-a" });
+      },
+    },
+  });
+
+  assert.deepEqual(resolver.resolvePackageContext(pkg()).timingProvenance, null);
+});
+
+test("mismatched trusted timing provenance is rejected while FULL playback remains valid", () => {
+  const resolver = createPlaybackPlanResolver({
+    trustedTimingProvider: {
+      resolveTrustedPlan() {
+        return plan(PLAYBACK_QUALITIES.FULL);
+      },
+      resolveTrustedProvenance() {
+        return {
+          kind: "EXACT_SCORE_SOURCE",
+          musicXml: "<score-partwise>OTHER</score-partwise>",
+        };
+      },
+    },
+  });
+
+  const context = resolver.resolvePackageContext(pkg());
+
+  assert.equal(context.plan.quality, PLAYBACK_QUALITIES.FULL);
+  assert.equal(context.timingProvenance, null);
+});
+
+test("trusted timing provenance is accepted only for the exact package SCORE source", () => {
+  const sourcePackage = pkg();
+  const resolver = createPlaybackPlanResolver({
+    trustedTimingProvider: {
+      resolveTrustedPlan() {
+        return plan(PLAYBACK_QUALITIES.FULL);
+      },
+      resolveTrustedProvenance(receivedPackage, receivedPlan) {
+        assert.equal(receivedPackage, sourcePackage);
+        assert.equal(receivedPlan.quality, PLAYBACK_QUALITIES.FULL);
+        return {
+          kind: "EXACT_SCORE_SOURCE",
+          musicXml: sourcePackage.content.score.data,
+        };
+      },
+    },
+  });
+
+  assert.deepEqual(
+    resolver.resolvePackageContext(sourcePackage).timingProvenance,
+    {
+      kind: "EXACT_SCORE_SOURCE",
+      musicXml: sourcePackage.content.score.data,
+    },
+  );
+});
+
+test("trusted provenance failure disables highlight provenance without disabling FULL playback", () => {
+  const resolver = createPlaybackPlanResolver({
+    trustedTimingProvider: {
+      resolveTrustedPlan() {
+        return plan(PLAYBACK_QUALITIES.FULL);
+      },
+      resolveTrustedProvenance() {
+        throw new Error("trusted provenance secret");
+      },
+    },
+  });
+
+  const context = resolver.resolvePackageContext(pkg());
+
+  assert.equal(context.plan.quality, PLAYBACK_QUALITIES.FULL);
+  assert.equal(context.timingProvenance, null);
+});
+
+test("resolvePackage remains backward compatible with resolvePackageContext plan", () => {
+  const resolver = createPlaybackPlanResolver({
+    approximateCompiler() {
+      return plan(PLAYBACK_QUALITIES.APPROXIMATE);
+    },
+  });
+
+  const legacy = resolver.resolvePackage(pkg());
+  const context = resolver.resolvePackageContext(pkg());
+
+  assert.deepEqual(legacy, context.plan);
+  assert.deepEqual(Object.keys(legacy).sort(), [
+    "measures",
+    "notes",
+    "packageId",
+    "quality",
+    "referenceTempoBpm",
+    "schemaVersion",
+    "tempoMap",
+  ]);
+});

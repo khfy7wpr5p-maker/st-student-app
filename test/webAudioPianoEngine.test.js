@@ -468,3 +468,218 @@ test("engine prepare can restore sample-bank support without creating AudioConte
   assert.equal(engine.isSupported(), true);
   assert.equal(created, 0);
 });
+
+
+function makeRangePlan() {
+  return Object.freeze({
+    schemaVersion: 1,
+    quality: "APPROXIMATE",
+    packageId: "pkg-range",
+    referenceTempoBpm: 120,
+    tempoMap: Object.freeze([Object.freeze({ beat: 0, bpm: 120 })]),
+    measures: Object.freeze([
+      Object.freeze({ index: 0, startBeat: 0, endBeat: 2 }),
+      Object.freeze({ index: 1, startBeat: 2, endBeat: 4 }),
+      Object.freeze({ index: 2, startBeat: 4, endBeat: 6 }),
+    ]),
+    notes: Object.freeze([
+      Object.freeze({ startBeat: 0, durationBeats: 1, midi: 55, measureIndex: 0, partId: "P1", voice: "1" }),
+      Object.freeze({ startBeat: 1, durationBeats: 2, midi: 60, measureIndex: 0, partId: "P1", voice: "1" }),
+      Object.freeze({ startBeat: 2.5, durationBeats: 2, midi: 62, measureIndex: 1, partId: "P1", voice: "1" }),
+      Object.freeze({ startBeat: 4, durationBeats: 1, midi: 67, measureIndex: 2, partId: "P1", voice: "1" }),
+    ]),
+  });
+}
+
+test("one-shot range retriggers overlap at range start and clips every source at range end", async () => {
+  const context = makeAudioContext();
+  const clock = makeClock();
+  const engine = createWebAudioPianoEngine({
+    audioContextFactory: () => context,
+    sampleBank: makeSampleBank(),
+    clock,
+  });
+
+  await engine.playRange({
+    plan: makeRangePlan(),
+    tempoBpm: 120,
+    startBeat: 2,
+    endBeat: 4,
+  });
+
+  assert.equal(engine.getCurrentBeat(), 2);
+  assert.equal(engine.getRepeatMeasureIndex(), null);
+  assert.equal(clock.activeCount, 1);
+
+  const overlap = context.sources.find((source) => source.buffer.midi === 60);
+  const inside = context.sources.find((source) => source.buffer.midi === 62);
+  const after = context.sources.find((source) => source.buffer.midi === 67);
+
+  assert.ok(overlap);
+  assert.deepEqual(overlap.starts[0], [0]);
+  assert.deepEqual(overlap.stops[0], [0.5]);
+  assert.ok(inside);
+  assert.deepEqual(inside.starts[0], [0.25]);
+  assert.deepEqual(inside.stops[0], [1]);
+  assert.equal(after, undefined);
+
+  context.currentTime = 1.01;
+  clock.tick();
+
+  assert.equal(engine.getCurrentBeat(), 4);
+  assert.equal(clock.activeCount, 0);
+});
+
+test("second range request atomically replaces the first without repeat wrapping", async () => {
+  const context = makeAudioContext();
+  const clock = makeClock();
+  const plan = makeRangePlan();
+  const engine = createWebAudioPianoEngine({
+    audioContextFactory: () => context,
+    sampleBank: makeSampleBank(),
+    clock,
+  });
+
+  await engine.playRange({
+    plan,
+    tempoBpm: 120,
+    startBeat: 0,
+    endBeat: 2,
+  });
+  const firstSources = [...context.sources];
+
+  context.currentTime = 0.1;
+  await engine.playRange({
+    plan,
+    tempoBpm: 120,
+    startBeat: 2,
+    endBeat: 4,
+  });
+
+  assert.ok(firstSources.every((source) => source.stops.length >= 1));
+  assert.equal(engine.getRepeatMeasureIndex(), null);
+  assert.equal(clock.activeCount, 1);
+  assert.ok(Math.abs(engine.getCurrentBeat() - 2) < 1e-9);
+
+  context.currentTime = 1.11;
+  clock.tick();
+  assert.equal(engine.getCurrentBeat(), 4);
+  assert.equal(clock.activeCount, 0);
+
+  context.currentTime = 5;
+  clock.tick();
+  assert.equal(engine.getCurrentBeat(), 4);
+});
+
+test("position subscription publishes scheduler-owned coherent range snapshots", async () => {
+  const context = makeAudioContext();
+  const clock = makeClock();
+  const engine = createWebAudioPianoEngine({
+    audioContextFactory: () => context,
+    sampleBank: makeSampleBank(),
+    clock,
+  });
+  const snapshots = [];
+  const unsubscribe = engine.subscribePosition((snapshot) => {
+    snapshots.push(snapshot);
+  });
+
+  await engine.playRange({
+    plan: makeRangePlan(),
+    tempoBpm: 120,
+    startBeat: 2,
+    endBeat: 4,
+  });
+  const activeGeneration = snapshots.at(-1).generation;
+  assert.deepEqual(snapshots.at(-1), {
+    generation: activeGeneration,
+    beat: 2,
+    playing: true,
+  });
+
+  context.currentTime = 0.25;
+  clock.tick();
+  assert.deepEqual(snapshots.at(-1), {
+    generation: activeGeneration,
+    beat: 2.5,
+    playing: true,
+  });
+
+  context.currentTime = 1.01;
+  clock.tick();
+  assert.deepEqual(snapshots.at(-1), {
+    generation: activeGeneration,
+    beat: 4,
+    playing: false,
+  });
+
+  const beforeUnsubscribe = snapshots.length;
+  unsubscribe();
+  engine.dispose();
+  clock.tick();
+  assert.equal(snapshots.length, beforeUnsubscribe);
+});
+
+test("pause restart and dispose publish bounded generation-aware position state", async () => {
+  const context = makeAudioContext();
+  const clock = makeClock();
+  const engine = createWebAudioPianoEngine({
+    audioContextFactory: () => context,
+    sampleBank: makeSampleBank(),
+    clock,
+  });
+  const snapshots = [];
+  engine.subscribePosition((snapshot) => snapshots.push(snapshot));
+
+  await engine.play({ plan: makePlan(), tempoBpm: 120 });
+  const playGeneration = snapshots.at(-1).generation;
+  assert.equal(snapshots.at(-1).playing, true);
+
+  context.currentTime = 0.5;
+  engine.pause();
+  assert.deepEqual(snapshots.at(-1), {
+    generation: playGeneration,
+    beat: 1,
+    playing: false,
+  });
+
+  await engine.restart();
+  assert.deepEqual(snapshots.at(-1), {
+    generation: playGeneration,
+    beat: 0,
+    playing: true,
+  });
+
+  engine.dispose();
+  const disposed = snapshots.at(-1);
+  assert.ok(disposed.generation > playGeneration);
+  assert.deepEqual(disposed, {
+    generation: disposed.generation,
+    beat: 0,
+    playing: false,
+  });
+  assert.equal(clock.activeCount, 0);
+
+  const count = snapshots.length;
+  clock.tick();
+  assert.equal(snapshots.length, count);
+});
+
+test("position listener exceptions cannot break playback scheduling", async () => {
+  const context = makeAudioContext();
+  const clock = makeClock();
+  const engine = createWebAudioPianoEngine({
+    audioContextFactory: () => context,
+    sampleBank: makeSampleBank(),
+    clock,
+  });
+  engine.subscribePosition(() => {
+    throw new Error("listener secret");
+  });
+
+  await engine.play({ plan: makePlan(), tempoBpm: 120 });
+  context.currentTime = 0.8;
+
+  assert.doesNotThrow(() => clock.tick());
+  assert.equal(clock.activeCount, 1);
+});

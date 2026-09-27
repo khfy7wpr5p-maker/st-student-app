@@ -34,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      RENDERER_SHA: 375cb5f134a91606eeac59df9cbe33dedbe57e47
+      RENDERER_SHA: 13aa0843158257a207afe062879743d58048cc6d
     steps:
       - name: Checkout Student App CI metadata
         uses: actions/checkout@v5
@@ -94,7 +94,7 @@ jobs:
           path: vendor/st-score-runtime
       - name: Verify runtime provenance
         env:
-          RENDERER_SHA: 375cb5f134a91606eeac59df9cbe33dedbe57e47
+          RENDERER_SHA: 13aa0843158257a207afe062879743d58048cc6d
         run: |
           node -e 'const m=require("./vendor/st-score-runtime/runtime-manifest.json"); if(m.runtimeTarget!=="browser" || m.rendererSourceRevision!==process.env.RENDERER_SHA || m.scoreRendererContractVersion!=="0.2.0") process.exit(1)'
       - name: Install browser

@@ -93,6 +93,24 @@ Offline cache ve foreground sync katmanı production provider kararıyla tanıml
 STUDENT-06 fiziksel iPhone / Safari / VoiceOver kabul testi tamamlanmıştır. STUDENT-07A'nın yeni renderer runtime davranışı için notation-specific fiziksel tekrar doğrulaması ayrıca gereklidir.
 
 
+## STUDENT-09 — Interactive Score Follow v1
+
+STUDENT-09, salt-okunur SCORE görünümüne renderer kanıtına bağlı etkileşim ekler:
+
+- yalnız aktif **SCORE** sunumu measure-tap replay yetkisine sahiptir;
+- notehead, rest ve gerçek measure whitespace tıklamaları renderer'ın deterministic measure hit-test sonucuyla tek ölçülük playback range'ine çevrilir;
+- measure dışı veya stale `sourceId + renderEpoch` kanıtı replay başlatmaz;
+- playback position observation aktif ölçü cursor'unu otomatik ilerletir;
+- exact timing provenance bulunan destekli tek-staff materyalde note/chord highlight uygulanır;
+- exact event provenance yoksa measure replay ve cursor çalışmaya devam eder, highlight fail-closed biçimde kapalı kalır;
+- TAB ve CHORDS hiçbir zaman SCORE follow identity'sini devralmaz;
+- Student App edit/write authority kazanmaz.
+
+Pinned renderer revision: `13aa0843158257a207afe062879743d58048cc6d`.
+Offline shell cache: `st-student-shell-v17`; `scoreFollowIndex.js` ve `scoreFollowCoordinator.js` same-origin static shell içinde cache edilir. Private Practice Package verisi Cache Storage'a taşınmaz.
+
+Chromium ve WebKit browser kabulü gerçek pinned renderer üzerinde note/rest/whitespace/outside/later-measure geometry, cursor, exact highlight ve network-free follow module import davranışını doğrular.
+
 ## Deployment
 
 The active Student App deployment is `https://st-student-app.onrender.com`. Secure Delivery uses `https://st-student-api.onrender.com/api/secure-delivery/v1`.

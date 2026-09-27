@@ -3,6 +3,7 @@ import { createDefaultOfflineInfrastructure } from "../offline/defaultOfflineInf
 import { createForegroundSyncCoordinator } from "../offline/syncCoordinator.js";
 import { registerStudentAppServiceWorker } from "../offline/serviceWorkerRegistration.js";
 import { createStNotationAdapter } from "../practice/notationAdapter.js";
+import { createScoreFollowCoordinator } from "../practice/scoreFollowCoordinator.js";
 import { createNotationRuntimeLoader } from "../practice/notationRuntimeLoader.js";
 import { createPlaybackPlanResolver } from "../playback/playbackPlanResolver.js";
 import { createPianoSampleBank } from "../playback/pianoSampleBank.js";
@@ -47,6 +48,11 @@ const playbackPort = createStudentPlaybackPort({
   playbackPlanResolver,
   engine: playbackEngine,
 });
+const scoreFollowCoordinator =
+  createScoreFollowCoordinator({
+    notationAdapter,
+    playbackPort,
+  });
 const firebaseRuntime = createFirebaseBrowserRuntime();
 
 let initialSession = null;
@@ -102,6 +108,7 @@ const mounted = mountStudentApp({
   root,
   controller,
   notationAdapter,
+  scoreFollowCoordinator,
   connectivityPort: offlineInfrastructure.connectivityPort,
   requestSignIn(credentials) {
     return firebaseRuntime.authAdapter.signIn(credentials);

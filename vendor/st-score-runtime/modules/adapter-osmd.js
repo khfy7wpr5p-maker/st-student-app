@@ -12,6 +12,10 @@ const CAPABILITIES = new Set([
 const DEFAULT_HIGHLIGHT_CLASS = "st-score-highlight";
 const HIGHLIGHT_CLASS_PATTERN = /^[A-Za-z_][A-Za-z0-9_-]{0,63}$/;
 const MAX_HIT_TEST_NOTE_ELEMENTS = 200_000;
+const MAX_MEASURE_HIT_REGIONS = 100_000;
+const MEASURE_PART_ID_MAX_LENGTH = 128;
+const OSMD_SVG_UNITS_PER_UNIT = 10;
+const OSMD_SVG_PAGE_ID_PREFIX = "osmdSvgPage";
 const AMBIGUOUS_HIT_OWNER = "AMBIGUOUS";
 const NO_NOTE_HIT_OWNER = "NO_NOTE_OWNER";
 function resolveOpenSheetMusicDisplay() {
@@ -67,6 +71,20 @@ function renderedEventMiss(reason) {
 function renderedEventHit(target) {
     return Object.freeze({ kind: "HIT", target });
 }
+function measureMiss(reason) {
+    return Object.freeze({ kind: "MISS", reason });
+}
+function measureHit(target) {
+    return Object.freeze({ kind: "HIT", target });
+}
+function sameMeasureHitTarget(left, right) {
+    return left.partId === right.partId && left.measureIndex === right.measureIndex;
+}
+function isBoundedMeasurePartId(value) {
+    return value.length > 0
+        && value.length <= MEASURE_PART_ID_MAX_LENGTH
+        && value === value.trim();
+}
 function isScoreNoteRefOwner(owner) {
     return owner !== AMBIGUOUS_HIT_OWNER && owner !== NO_NOTE_HIT_OWNER;
 }
@@ -81,6 +99,8 @@ export class OsmdRenderer {
     #highlighted = new Map();
     #noteRefByElement = new WeakMap();
     #renderedEventRefByElement = new WeakMap();
+    #measureHitRegions = Object.freeze([]);
+    #measureGeometryAvailable = false;
     #osmd;
     #loaded = false;
     #rendered = false;
@@ -185,6 +205,44 @@ export class OsmdRenderer {
         if (sawNoNoteOwner)
             return miss("NO_NOTE_OWNER");
         return miss("UNMAPPED_ELEMENT");
+    }
+    resolveMeasureAtClientPointDetailed(point) {
+        this.#requireRendered("resolveMeasureAtClientPointDetailed()");
+        requireFiniteCoordinate(point.clientX, "clientX");
+        requireFiniteCoordinate(point.clientY, "clientY");
+        const initial = this.#container.ownerDocument.elementFromPoint(point.clientX, point.clientY);
+        if (initial === null)
+            return measureMiss("NO_ELEMENT_AT_POINT");
+        if (!this.#isInsideContainer(initial))
+            return measureMiss("OUTSIDE_RENDER_CONTAINER");
+        const pageResolution = this.#resolveMeasurePage(initial);
+        if (pageResolution.kind === "UNMAPPED")
+            return measureMiss("UNMAPPED_ELEMENT");
+        if (pageResolution.kind === "UNAVAILABLE" || !this.#measureGeometryAvailable) {
+            return measureMiss("MEASURE_GEOMETRY_UNAVAILABLE");
+        }
+        const projected = this.#projectClientPointToOsmd(pageResolution.pageNumber, point);
+        if (projected === undefined)
+            return measureMiss("MEASURE_GEOMETRY_UNAVAILABLE");
+        const targets = [];
+        for (const region of this.#measureHitRegions) {
+            if (region.pageNumber !== pageResolution.pageNumber)
+                continue;
+            if (projected.x < region.left || projected.x > region.right
+                || projected.y < region.top || projected.y > region.bottom)
+                continue;
+            if (!targets.some((candidate) => sameMeasureHitTarget(candidate, region.target))) {
+                targets.push(region.target);
+            }
+        }
+        if (targets.length === 0)
+            return measureMiss("NO_MEASURE_OWNER");
+        if (targets.length > 1)
+            return measureMiss("AMBIGUOUS_OWNERSHIP");
+        const target = targets[0];
+        if (target === undefined)
+            return measureMiss("NO_MEASURE_OWNER");
+        return measureHit(target);
     }
     resolveRenderedEventAtClientPointDetailed(point) {
         this.#requireRendered("resolveRenderedEventAtClientPointDetailed()");
@@ -530,6 +588,140 @@ export class OsmdRenderer {
                 }
             }
         }
+        this.#rebuildMeasureHitIndex();
+    }
+    #rebuildMeasureHitIndex() {
+        try {
+            const osmd = this.#ensureOsmd();
+            const instruments = osmd.Sheet?.Instruments ?? [];
+            const measureList = osmd.graphic?.measureList ?? [];
+            const regions = [];
+            for (const instrument of instruments) {
+                if (!instrument.Visible)
+                    continue;
+                if (!isBoundedMeasurePartId(instrument.IdString)) {
+                    throw new Error("Rendered measure partId is invalid for measure hit-test.");
+                }
+                const staffIds = instrument.Staves.map((staff) => staff.idInMusicSheet).sort((a, b) => a - b);
+                for (let measureIndex = 0; measureIndex < measureList.length; measureIndex += 1) {
+                    requireNonNegativeInteger(measureIndex, "measureIndex");
+                    const measure = measureList[measureIndex];
+                    for (const staffId of staffIds) {
+                        const graphicalMeasure = measure?.[staffId];
+                        if (graphicalMeasure === undefined)
+                            continue;
+                        const shape = graphicalMeasure.PositionAndShape;
+                        const pageNumber = graphicalMeasure.ParentMusicSystem?.Parent?.PageNumber;
+                        if (shape === undefined
+                            || !Number.isSafeInteger(pageNumber)
+                            || pageNumber < 0) {
+                            throw new Error("Rendered graphical measure page identity is unavailable.");
+                        }
+                        const absoluteX = shape.AbsolutePosition?.x;
+                        const absoluteY = shape.AbsolutePosition?.y;
+                        const borderLeft = shape.BorderLeft;
+                        const borderRight = shape.BorderRight;
+                        const borderTop = shape.BorderTop;
+                        const borderBottom = shape.BorderBottom;
+                        for (const value of [absoluteX, absoluteY, borderLeft, borderRight, borderTop, borderBottom]) {
+                            if (!Number.isFinite(value)) {
+                                throw new Error("Rendered graphical measure geometry is unavailable.");
+                            }
+                        }
+                        const left = absoluteX + borderLeft;
+                        const right = absoluteX + borderRight;
+                        const top = absoluteY + borderTop;
+                        const bottom = absoluteY + borderBottom;
+                        if (!(right > left) || !(bottom > top)) {
+                            throw new Error("Rendered graphical measure borders are invalid.");
+                        }
+                        regions.push(Object.freeze({
+                            pageNumber: pageNumber,
+                            left,
+                            right,
+                            top,
+                            bottom,
+                            target: Object.freeze({ partId: instrument.IdString, measureIndex }),
+                        }));
+                        if (regions.length > MAX_MEASURE_HIT_REGIONS) {
+                            throw new RangeError(`Rendered measure hit-test index exceeds ${MAX_MEASURE_HIT_REGIONS} regions.`);
+                        }
+                    }
+                }
+            }
+            this.#measureHitRegions = Object.freeze(regions);
+            this.#measureGeometryAvailable = true;
+        }
+        catch {
+            this.#measureHitRegions = Object.freeze([]);
+            this.#measureGeometryAvailable = false;
+        }
+    }
+    #isInsideContainer(element) {
+        let current = element;
+        while (current !== null) {
+            if (current === this.#container)
+                return true;
+            current = current.parentElement;
+        }
+        return false;
+    }
+    #resolveOwnedSvgPage(pageNumber) {
+        if (!Number.isSafeInteger(pageNumber) || pageNumber < 0)
+            return undefined;
+        const id = `${OSMD_SVG_PAGE_ID_PREFIX}${pageNumber}`;
+        const matches = [...this.#container.querySelectorAll(`[id="${id}"]`)];
+        if (matches.length !== 1)
+            return undefined;
+        const page = matches[0];
+        return this.#isInsideContainer(page) ? page : undefined;
+    }
+    #resolveMeasurePage(initial) {
+        let current = initial;
+        while (current !== null && current !== this.#container) {
+            const id = current.id;
+            if (typeof id === "string" && id.startsWith(OSMD_SVG_PAGE_ID_PREFIX)) {
+                const rawPageNumber = id.slice(OSMD_SVG_PAGE_ID_PREFIX.length);
+                if (!/^(0|[1-9][0-9]*)$/.test(rawPageNumber)) {
+                    return Object.freeze({ kind: "UNAVAILABLE" });
+                }
+                const pageNumber = Number(rawPageNumber);
+                if (!Number.isSafeInteger(pageNumber))
+                    return Object.freeze({ kind: "UNAVAILABLE" });
+                const mapped = this.#resolveOwnedSvgPage(pageNumber);
+                if (mapped === undefined || mapped !== current) {
+                    return Object.freeze({ kind: "UNAVAILABLE" });
+                }
+                return Object.freeze({ kind: "PAGE", pageNumber });
+            }
+            current = current.parentElement;
+        }
+        return Object.freeze({ kind: "UNMAPPED" });
+    }
+    #projectClientPointToOsmd(pageNumber, point) {
+        const svg = this.#resolveOwnedSvgPage(pageNumber);
+        const ctm = svg?.getScreenCTM?.();
+        const createPoint = svg?.createSVGPoint;
+        if (ctm === null || ctm === undefined || typeof ctm.inverse !== "function" || typeof createPoint !== "function") {
+            return undefined;
+        }
+        try {
+            const inverse = ctm.inverse();
+            const svgPoint = createPoint.call(svg);
+            svgPoint.x = point.clientX;
+            svgPoint.y = point.clientY;
+            const local = svgPoint.matrixTransform(inverse);
+            if (!Number.isFinite(local.x) || !Number.isFinite(local.y))
+                return undefined;
+            const x = local.x / OSMD_SVG_UNITS_PER_UNIT;
+            const y = local.y / OSMD_SVG_UNITS_PER_UNIT;
+            if (!Number.isFinite(x) || !Number.isFinite(y))
+                return undefined;
+            return Object.freeze({ x, y });
+        }
+        catch {
+            return undefined;
+        }
     }
     #registerHitTestElement(element, owner) {
         if (!this.#noteRefByElement.has(element)) {
@@ -568,6 +760,8 @@ export class OsmdRenderer {
     #resetHitTestIndex() {
         this.#noteRefByElement = new WeakMap();
         this.#renderedEventRefByElement = new WeakMap();
+        this.#measureHitRegions = Object.freeze([]);
+        this.#measureGeometryAvailable = false;
     }
     #ensureHighlightStyle() {
         if (this.#container.querySelector("style[data-st-score-highlight-style]") !== null)

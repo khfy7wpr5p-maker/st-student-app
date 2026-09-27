@@ -27,45 +27,73 @@ export function createStudentPlaybackPort({
   playbackPlanResolver,
   engine,
 } = {}) {
-  const planCache = new Map();
+  const contextCache = new Map();
   const selectedTempo = new Map();
   const repeatEnabled = new Map();
+  const positionSubscriptions = new Map();
   let activePackageId = null;
 
-  function resolve(pkg) {
+  function validPlanForPackage(plan, packageId) {
+    return (
+      plan !== null &&
+      typeof plan === "object" &&
+      plan.packageId === packageId &&
+      PLAYBACK_QUALITIES.has(plan.quality) &&
+      tempoInRange(plan.referenceTempoBpm)
+    );
+  }
+
+  function resolveContext(pkg) {
     const packageId = packageIdOf(pkg);
 
-    if (
-      packageId === null ||
-      typeof playbackPlanResolver?.resolvePackage !== "function"
-    ) {
+    if (packageId === null) {
       return null;
     }
 
-    if (planCache.has(packageId)) {
-      return planCache.get(packageId);
+    if (contextCache.has(packageId)) {
+      return contextCache.get(packageId);
     }
 
-    let plan = null;
+    let context = null;
 
     try {
-      plan = playbackPlanResolver.resolvePackage(pkg);
+      if (
+        typeof playbackPlanResolver?.resolvePackageContext === "function"
+      ) {
+        const resolved =
+          playbackPlanResolver.resolvePackageContext(pkg);
+        if (
+          resolved !== null &&
+          typeof resolved === "object" &&
+          validPlanForPackage(resolved.plan, packageId)
+        ) {
+          context = Object.freeze({
+            plan: resolved.plan,
+            timingProvenance:
+              resolved.timingProvenance ?? null,
+          });
+        }
+      } else if (
+        typeof playbackPlanResolver?.resolvePackage === "function"
+      ) {
+        const plan = playbackPlanResolver.resolvePackage(pkg);
+        if (validPlanForPackage(plan, packageId)) {
+          context = Object.freeze({
+            plan,
+            timingProvenance: null,
+          });
+        }
+      }
     } catch {
-      plan = null;
+      context = null;
     }
 
-    if (
-      plan === null ||
-      typeof plan !== "object" ||
-      plan.packageId !== packageId ||
-      !PLAYBACK_QUALITIES.has(plan.quality) ||
-      !tempoInRange(plan.referenceTempoBpm)
-    ) {
-      plan = null;
-    }
+    contextCache.set(packageId, context);
+    return context;
+  }
 
-    planCache.set(packageId, plan);
-    return plan;
+  function resolve(pkg) {
+    return resolveContext(pkg)?.plan ?? null;
   }
 
   function engineSupported() {
@@ -102,6 +130,57 @@ export function createStudentPlaybackPort({
     }
 
     return packageId;
+  }
+
+  function releaseEngineOwnershipFor(packageId) {
+    if (
+      activePackageId === null ||
+      activePackageId === packageId
+    ) {
+      return;
+    }
+
+    try {
+      engine?.dispose?.();
+    } catch {
+      // Old audio ownership must not block the new package.
+    }
+    activePackageId = null;
+  }
+
+  function disposePositionSubscriptions(packageId) {
+    const subscriptions =
+      positionSubscriptions.get(packageId);
+    if (subscriptions === undefined) {
+      return;
+    }
+
+    positionSubscriptions.delete(packageId);
+    for (const subscription of subscriptions) {
+      subscription.active = false;
+      try {
+        subscription.unsubscribeEngine();
+      } catch {
+        // Subscription teardown is best-effort.
+      }
+    }
+  }
+
+  function validMeasureRange(plan, startBeat, endBeat) {
+    if (
+      !Number.isFinite(startBeat) ||
+      !Number.isFinite(endBeat) ||
+      endBeat <= startBeat ||
+      !Array.isArray(plan?.measures)
+    ) {
+      return false;
+    }
+
+    return plan.measures.some(
+      (measure) =>
+        measure?.startBeat === startBeat &&
+        measure?.endBeat === endBeat,
+    );
   }
 
   function wrapFailure(message, operation) {
@@ -176,21 +255,115 @@ export function createStudentPlaybackPort({
         : null;
     },
 
+    getScoreFollowPlaybackContextForPackage(pkg) {
+      return resolveContext(pkg);
+    },
+
+    async playMeasureOnceForPackage(
+      pkg,
+      { startBeat, endBeat } = {},
+    ) {
+      const plan = requirePlayable(pkg);
+      const packageId = plan.packageId;
+
+      if (!validMeasureRange(plan, startBeat, endBeat)) {
+        throw bounded("playback operation failed");
+      }
+
+      releaseEngineOwnershipFor(packageId);
+
+      const tempo =
+        selectedTempo.get(packageId) ??
+        plan.referenceTempoBpm;
+
+      activePackageId = packageId;
+
+      try {
+        await engine.playRange({
+          plan,
+          tempoBpm: tempo,
+          startBeat,
+          endBeat,
+        });
+      } catch {
+        if (activePackageId === packageId) {
+          try {
+            engine?.dispose?.();
+          } catch {
+            // Failure cleanup remains bounded.
+          }
+          activePackageId = null;
+        }
+        throw bounded("playback operation failed");
+      }
+    },
+
+    subscribePositionForPackage(pkg, listener) {
+      const plan = requirePlayable(pkg);
+      if (typeof listener !== "function") {
+        throw new TypeError("position listener required");
+      }
+
+      const packageId = plan.packageId;
+      const subscription = {
+        active: true,
+        unsubscribeEngine: () => {},
+      };
+
+      try {
+        subscription.unsubscribeEngine =
+          engine.subscribePosition((snapshot) => {
+            if (
+              subscription.active &&
+              activePackageId === packageId
+            ) {
+              listener(snapshot);
+            }
+          });
+      } catch {
+        subscription.active = false;
+        throw bounded("playback operation failed");
+      }
+
+      if (
+        typeof subscription.unsubscribeEngine !==
+        "function"
+      ) {
+        subscription.active = false;
+        throw bounded("playback operation failed");
+      }
+
+      const subscriptions =
+        positionSubscriptions.get(packageId) ??
+        new Set();
+      subscriptions.add(subscription);
+      positionSubscriptions.set(
+        packageId,
+        subscriptions,
+      );
+
+      return () => {
+        if (!subscription.active) {
+          return;
+        }
+        subscription.active = false;
+        subscriptions.delete(subscription);
+        if (subscriptions.size === 0) {
+          positionSubscriptions.delete(packageId);
+        }
+        try {
+          subscription.unsubscribeEngine();
+        } catch {
+          // Subscription teardown is best-effort.
+        }
+      };
+    },
+
     async playPackage(pkg) {
       const plan = requirePlayable(pkg);
       const packageId = plan.packageId;
 
-      if (
-        activePackageId !== null &&
-        activePackageId !== packageId
-      ) {
-        try {
-          engine?.dispose?.();
-        } catch {
-          // Old audio ownership must not block the new package.
-        }
-        activePackageId = null;
-      }
+      releaseEngineOwnershipFor(packageId);
 
       const tempo =
         selectedTempo.get(packageId) ?? plan.referenceTempoBpm;
@@ -314,6 +487,8 @@ export function createStudentPlaybackPort({
 
       selectedTempo.delete(packageId);
       repeatEnabled.delete(packageId);
+      contextCache.delete(packageId);
+      disposePositionSubscriptions(packageId);
 
       if (activePackageId !== packageId) {
         return;
