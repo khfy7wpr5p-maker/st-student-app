@@ -294,8 +294,10 @@ test(
       assert.equal(state.activeString, "D");
       assert.equal(state.finger, "2");
       assert.equal(state.placement, "HIGH");
-      assert.equal(state.stopRatio, "0.206299");
-      assert.match(state.html, /20\.6299%/);
+      assert.ok(
+        Math.abs(Number(state.stopRatio) - 0.2062994740159002) < 1e-12,
+      );
+      assert.match(state.html, /20\.6299/);
       assert.doesNotMatch(state.html, /25(?:\.0+)?%/);
 
       await page.evaluate(() =>
