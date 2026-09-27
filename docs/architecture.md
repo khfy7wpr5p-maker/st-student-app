@@ -619,3 +619,88 @@ Feature, stage, acceptance, date-stamped or platform-specific Render services/UR
 Branch and pull-request validation uses CI, browser/runtime gates and physical-device acceptance against the permanent contract when deployment evidence is required. Creating a new Render service/domain requires separate explicit human approval.
 
 Secure Delivery production activation is a separate gate from deployment naming: enabling Firebase production identity/rules/credentials, Secure Delivery flags or backend production composition remains human-gated under SES-15.
+
+## 16. STUDENT-09 — Interactive Score Follow v1
+
+### Yetki ve kimlik sınırı
+
+Interactive score follow yalnız aktif SCORE presentation için oluşturulur. Controller'ın `getScoreFollowSource()` yüzeyi ancak:
+
+- aktif package mevcutsa;
+- render source `musicxml` ise;
+- render source `sourceId` exact package identity ile eşleşiyorsa;
+- Piece Workspace görünümü SCORE ise
+
+kaynak döndürür. TAB ve CHORDS bu kaynağı alamaz.
+
+Renderer interaction authority iki kanıtla sınırlandırılır:
+
+`sourceId + renderEpoch`
+
+Stale render kanıtı, başka package identity'si veya renderer MISS sonucu replay/cursor/highlight authority üretmez.
+
+### Measure replay ve position observation
+
+`ScoreFollowIndex`, MusicXML source measure üyeliğini validated PlaybackPlan measure range'leriyle eşler. Bir renderer measure HIT ancak exact `partId + measureIndex` üyeliği bulunursa bounded `startBeat/endBeat` range'ine dönüşür.
+
+`StudentPlaybackPort`:
+
+- `playMeasureOnceForPackage`;
+- package-scoped `subscribePositionForPackage`;
+- score-follow playback context
+
+yüzeylerini sağlar. Package switch ve dispose stale position callback'lerini geçersiz kılar.
+
+### Cursor ve highlight
+
+Playback position snapshot'ı aynı measure içinde değişirken cursor gereksiz tekrar hareket ettirilmez. Measure değişiminde renderer cursor exact measure target'a taşınır.
+
+Note/chord highlight yalnız exact score timing provenance mevcutsa etkinleşir. Event mapping `UNAVAILABLE` ise:
+
+- measure replay çalışabilir;
+- measure cursor çalışabilir;
+- note/chord highlight çalışmaz.
+
+Bu ayrım playback kalitesinin (`FULL` / `APPROXIMATE`) tek başına highlight authority oluşturmasını engeller.
+
+### Renderer ve offline invariantları
+
+Accepted Rendering Layer revision:
+
+`13aa0843158257a207afe062879743d58048cc6d`
+
+Renderer public contract `0.2.0` değiştirilmez.
+
+Service Worker shell cache:
+
+`st-student-shell-v17`
+
+v17 static shell'e şu follow modüllerini ekler:
+
+- `src/practice/scoreFollowIndex.js`
+- `src/practice/scoreFollowCoordinator.js`
+
+Private Practice Package authority IndexedDB'de kalır; Cache Storage yalnız static app/runtime asset'lerini taşır.
+
+### Browser kabulü
+
+Pinned Chromium ve WebKit doğrulaması şu davranışları executable evidence olarak kapsar:
+
+- notehead point → containing measure one-shot replay;
+- rest point → containing measure replay;
+- true measure whitespace → containing measure replay;
+- outside measure → no replay;
+- scroll sonrası later measure → fresh client coordinates ile doğru replay;
+- playback position → automatic measure cursor;
+- exact supported chord/note → exact highlight;
+- unsupported event provenance → cursor/replay var, highlight yok;
+- follow module graph → origin yolları bloklandığında service-worker cache üzerinden gerçek module import.
+
+Student edit authority, yeni runtime dependency, Python service, yeni repository veya yeni Render service/domain eklenmez.
+
+### Reference hardening sonucu
+
+MSMD geometry yaklaşımından yalnız regresyon test fikri benimsenmiştir: gerçek renderer geometri ownership'i note/rest/measure whitespace/outside/later-scroll browser fixture'larıyla sınanır. SES-38 public hit-test contract'ı yeniden açılmaz.
+
+Partitura runtime/toolchain dependency olarak eklenmez. Semantik karşılaştırma referans olarak tutulur; Student runtime authority `ScoreNoteRef`, `sourceId`, `renderEpoch`, PlaybackPlan ve ScoreFollowIndex'te kalır.
+
