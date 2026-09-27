@@ -689,7 +689,7 @@ test("Piece SCORE binds follow only from current render evidence and routes nota
         const next = {
           childNodes: [{}],
           contains(target) {
-            return target === notationTarget;
+            return target?.kind === notationTarget.kind;
           },
           remove() {
             if (notationRoot === next) notationRoot = null;
