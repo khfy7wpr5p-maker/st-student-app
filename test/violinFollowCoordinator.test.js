@@ -326,3 +326,39 @@ test("coordinator source contains no independent timer or audio clock", async ()
 
   assert.doesNotMatch(source, /setInterval|setTimeout|requestAnimationFrame|AudioContext|webkitAudioContext/);
 });
+
+test("non-zero target-part transposition fails closed without showing violin fingering", async () => {
+  const playbackPort = makePlaybackPort();
+  const presentationPort = makePresentation();
+  const coordinator = createViolinFollowCoordinator({
+    playbackPort,
+    presentationPort,
+    createIndex: () =>
+      makeIndex({
+        activeEvents: [
+          Object.freeze({
+            ...fSharpEvent(),
+            transpositionSemitones: 2,
+          }),
+        ],
+      }),
+  });
+
+  coordinator.bind({
+    pkg: pkg(),
+    sourceId: "pkg-a",
+    musicXml: "<score-partwise/>",
+    targetPartId: "P1",
+  });
+  playbackPort.callbacks[0].listener({ beat: 0, playing: true, generation: 1 });
+  await flush();
+
+  assert.equal(
+    presentationPort.calls.some(([name]) => name === "show"),
+    false,
+  );
+  assert.equal(
+    presentationPort.calls.some(([name]) => name === "clear"),
+    true,
+  );
+});
