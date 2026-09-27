@@ -245,6 +245,7 @@ test("multi-staff traversal keeps measure mapping but disables exact event mappi
     measureIndex: 0,
     cursorTarget: { partId: "P1", measureIndex: 0 },
     highlightRefs: null,
+    activeEvents: null,
   });
 });
 
