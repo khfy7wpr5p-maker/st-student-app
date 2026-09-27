@@ -67,7 +67,7 @@ STUDENT-07B Task 1–13 otomatik doğrulama kapsamı tamamlanmıştır. Son otom
 
 STUDENT-07B çekirdeği iki kalite kullanır: güvenilir dış timing provider'dan doğrulanmış plan varsa `FULL`; aksi halde desteklenen MusicXML'den bounded derlenen `APPROXIMATE`. Default route `APPROXIMATE`'tır. Ses motoru aynı-origin Web Audio + deterministik yerel piyano bankası kullanır. Banka bir oktavdaki 12 kromatik perde sınıfını (C–B) temsil eden 12 PCM16 WAV örneğidir; bu ifade “aynı anda yalnız 12 ses” anlamına gelmez. Farklı oktavlar `playbackRate` ile eşlenir ve çok sesli MusicXML aynı anda birden fazla note event çalabilir.
 
-`content.guitarTab` ve `content.violin` nesnelerinin iç sözleşmesi henüz tanımlı değildir; yalnız nesnenin varlığı bu capability'leri açmaz. MusicXML'in kendi içinde bulunan tablature, ST renderer tarafından notation sunumunun parçası olarak gösterilebilir.
+`content.guitarTab` nesnesi yalnız doğrulanmış tablature MusicXML ile açılır. `content.violin` için VIOLIN-02 V1 sözleşmesi `schemaVersion: 1`, explicit `targetPartId`, `position: 1` ve isteğe bağlı `stringLengthMm` (250–400 mm) alanlarını kabul eder; yalnız exact score provenance + playback mevcutsa violin capability `AVAILABLE` olur. MusicXML'in kendi içinde bulunan tablature, ST renderer tarafından notation sunumunun parçası olarak gösterilebilir.
 
 STUDENT-07A durumunda default bootstrap yalnız Practice ekranında ihtiyaç olduğunda same-origin runtime loader'ı çalıştırır. Pin: Rendering Layer `78eec1d958923e871b5069f5026eed9e4ead2c33`, renderer contract `0.2.0`, OSMD `2.1.2`. Runtime önce vendor OSMD varlığını, sonra ST browser bootstrap'ını yükler; contract/asset hatası notation capability'sini bounded `ERROR`/`UNAVAILABLE` durumuna düşürür ve diğer Practice capability'lerini kilitlemez. Service Worker v6 notation runtime modülleriyle birlikte playback modüllerini de static shell'e alır; piano manifest/license/notices ve 12 WAV dosyası best-effort static playback cache'ine girer. Private Practice Package verisi yalnız IndexedDB'de kalır ve Cache Storage'a taşınmaz. STUDENT-07A renderer-specific fiziksel iPhone/Safari kabul testi tamamlanmıştır: nota ilk render, 10–15 saniye stabil kalma, yön değişimi, Ana Sayfa'dan yeniden açma ve offline reload/reopen akışları PASS.
 
@@ -107,7 +107,7 @@ STUDENT-09, salt-okunur SCORE görünümüne renderer kanıtına bağlı etkile�
 - Student App edit/write authority kazanmaz.
 
 Pinned renderer revision: `13aa0843158257a207afe062879743d58048cc6d`.
-Offline shell cache: `st-student-shell-v17`; `scoreFollowIndex.js` ve `scoreFollowCoordinator.js` same-origin static shell içinde cache edilir. Private Practice Package verisi Cache Storage'a taşınmaz.
+Offline shell cache VIOLIN-02 ile `st-student-shell-v18`'dir; score-follow modüllerine ek olarak `violinFollowCoordinator.js`, `violinFingerboard.js` ve exact pinned `vendor/st-violin-learning/` runtime graph'ı same-origin static shell içinde cache edilir. Private Practice Package verisi Cache Storage'a girmez. Private Practice Package verisi Cache Storage'a taşınmaz.
 
 Chromium ve WebKit browser kabulü gerçek pinned renderer üzerinde note/rest/whitespace/outside/later-measure geometry, cursor, exact highlight ve network-free follow module import davranışını doğrular.
 
@@ -116,3 +116,21 @@ Chromium ve WebKit browser kabulü gerçek pinned renderer üzerinde note/rest/w
 The active Student App deployment is `https://st-student-app.onrender.com`. Secure Delivery uses `https://st-student-api.onrender.com/api/secure-delivery/v1`.
 
 Do not create feature-, stage-, test- or date-specific Render services for Student App work. Older preview URLs in historical evidence are not active deployment targets. A new Render service/domain or production Secure Delivery activation requires separate explicit approval.
+
+## VIOLIN-02 — First Position Playback Follow
+
+VIOLIN-02, Student playback zamanını değiştirmeden aynı trusted MusicXML olayını keman birinci pozisyon parmaklamasına bağlar.
+
+- tek transport/zaman otoritesi `StudentPlaybackPort` olarak kalır;
+- exact source event kimliği `partId + measureIndex + voice + noteIndex` üzerinden deterministiktir;
+- pitch renderer DOM/SVG geometrisinden değil MusicXML `step/alter/octave` semantiğinden gelir;
+- hedef keman partisi yalnız explicit `content.violin.targetPartId` ile seçilir;
+- bir target-part akoru/çoklu aktif pitch V1'de `AMBIGUOUS_EVENT` olup fail-closed davranır;
+- D teli F#4, 2. parmak HIGH olarak çözülür ve 328 mm varsayılan mensürde yaklaşık 67.666 mm stop konumu üretir;
+- UI eşit parmak aralığı çizmez; engine'in `normalizedPosition` değerini kullanır;
+- pause aynı parmaklamayı `playing:false` ile korur; rest/unsupported/ambiguous durumda aktif marker temizlenir;
+- VoiceOver için görünür/semantik Türkçe fingering metni vardır; V1 hızlı playback sırasında `aria-live` ile otomatik konuşma spam'i üretmez;
+- pinned engine source: `khfy7wpr5p-maker/st-violin-learning-engine@0ec3f3252111db10f9f381d22d29e57fa8cc2c6f`;
+- keman sample/scheduled audio entegrasyonu bu aşamaya dahil değildir; **VIOLIN-03** olarak ayrı kalır.
+
+Chromium + WebKit browser kapısı D–E–F#–G senkronizasyonu, pause/restart/tempo kimliği, measure replay, rest/chord fail-closed ve offline violin runtime import davranışını doğrular.
