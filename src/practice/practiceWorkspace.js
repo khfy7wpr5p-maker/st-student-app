@@ -2,6 +2,7 @@ import { assertPublishablePracticePackage } from "../sharing/packageEligibility.
 import {
   PRACTICE_CAPABILITY_STATES,
   derivePracticeCapabilities,
+  readViolinConfiguration,
 } from "./practiceCapabilities.js";
 import {
   createPracticeAccessRef,
@@ -103,6 +104,10 @@ export function createPracticeWorkspace({
     title: pkg.title,
     playbackQuality,
     capabilities,
+    violin:
+      capabilities.violin === PRACTICE_CAPABILITY_STATES.AVAILABLE
+        ? readViolinConfiguration(pkg)
+        : null,
     practice: Object.freeze({
       tempoBpm:
         referenceTempo ??
