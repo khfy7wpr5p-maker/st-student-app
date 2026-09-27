@@ -18,10 +18,10 @@ const STRING_NAMES = Object.freeze({
 });
 
 const FINGER_NAMES = Object.freeze({
-  1: "Birinci",
-  2: "İkinci",
-  3: "Üçüncü",
-  4: "Dördüncü",
+  1: Object.freeze({ title: "Birinci", lower: "birinci" }),
+  2: Object.freeze({ title: "İkinci", lower: "ikinci" }),
+  3: Object.freeze({ title: "Üçüncü", lower: "üçüncü" }),
+  4: Object.freeze({ title: "Dördüncü", lower: "dördüncü" }),
 });
 
 const PLACEMENT_NAMES = Object.freeze({
@@ -74,7 +74,7 @@ function semanticText(snapshot) {
   const placementName = PLACEMENT_NAMES[snapshot.primary?.placement];
   if (fingerName === undefined || placementName === undefined) return null;
 
-  return `${name}. ${stringName} teli. ${fingerName} parmak. ${placementName} ${fingerName.toLowerCase()} parmak.`;
+  return `${name}. ${stringName} teli. ${fingerName.title} parmak. ${placementName} ${fingerName.lower} parmak.`;
 }
 
 function validAvailable(snapshot) {
