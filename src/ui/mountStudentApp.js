@@ -144,6 +144,7 @@ export function mountStudentApp({
   requestSignIn,
   requestSignOut,
   notationAdapter = null,
+  scoreFollowCoordinator = null,
   connectivityPort = null,
 }) {
   if (
@@ -167,6 +168,8 @@ export function mountStudentApp({
   let domGeneration = 0;
   let activeNotationKey = null;
   let activeNotationPresentationKey = null;
+  let activeRenderEvidence = null;
+  let activeScoreFollowKey = null;
   let persistentNotationRoot = null;
   let lifecycle = Promise.resolve();
   let destroyed = false;
@@ -241,13 +244,153 @@ export function mountStudentApp({
     });
   }
 
+  function targetInsidePersistentNotation(target) {
+    if (
+      persistentNotationRoot === null ||
+      target === null ||
+      target === undefined
+    ) {
+      return false;
+    }
+
+    if (target === persistentNotationRoot) {
+      return true;
+    }
+
+    try {
+      if (
+        typeof persistentNotationRoot.contains === "function" &&
+        persistentNotationRoot.contains(target)
+      ) {
+        return true;
+      }
+    } catch {
+      // Fall through to the bounded closest check.
+    }
+
+    try {
+      return (
+        target.closest?.("#st-score-root") ===
+        persistentNotationRoot
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  async function clearScoreFollow() {
+    if (activeScoreFollowKey === null) {
+      return;
+    }
+
+    activeScoreFollowKey = null;
+    if (
+      typeof scoreFollowCoordinator?.clear ===
+      "function"
+    ) {
+      try {
+        await scoreFollowCoordinator.clear();
+      } catch {
+        // Follow presentation is independently degradable.
+      }
+    }
+  }
+
+  async function synchronizeScoreFollow({
+    state,
+    renderSource,
+    generation,
+    renderKey,
+    renderEvidence,
+  }) {
+    if (
+      scoreFollowCoordinator === null ||
+      typeof scoreFollowCoordinator?.bind !==
+        "function"
+    ) {
+      return;
+    }
+
+    let followSource = null;
+    try {
+      followSource =
+        controller.getScoreFollowSource?.() ??
+        null;
+    } catch {
+      followSource = null;
+    }
+
+    if (
+      followSource === null ||
+      renderSource === null ||
+      renderSource.sourceId !==
+        followSource.sourceId ||
+      renderEvidence === null ||
+      typeof renderEvidence !== "object" ||
+      renderEvidence.sourceId !==
+        followSource.sourceId ||
+      typeof renderEvidence.renderEpoch !==
+        "string" ||
+      renderEvidence.renderEpoch.length === 0
+    ) {
+      await clearScoreFollow();
+      return;
+    }
+
+    if (!currentPracticeMatches(state, generation)) {
+      return;
+    }
+
+    const followKey =
+      `${renderKey}:${renderEvidence.renderEpoch}`;
+    if (activeScoreFollowKey === followKey) {
+      return;
+    }
+
+    await clearScoreFollow();
+
+    if (!currentPracticeMatches(state, generation)) {
+      return;
+    }
+
+    let bound = false;
+    try {
+      bound =
+        scoreFollowCoordinator.bind({
+          pkg: followSource.pkg,
+          sourceId: followSource.sourceId,
+          musicXml: followSource.musicXml,
+          renderEvidence,
+        }) === true;
+    } catch {
+      bound = false;
+    }
+
+    if (
+      bound &&
+      currentPracticeMatches(state, generation)
+    ) {
+      activeScoreFollowKey = followKey;
+    } else if (bound) {
+      try {
+        await scoreFollowCoordinator.clear?.();
+      } catch {
+        // Stale follow binding is abandoned.
+      }
+    }
+  }
+
   async function disposeActiveNotation() {
+    await clearScoreFollow();
+
     if (activeNotationKey === null) {
+      activeRenderEvidence = null;
       return;
     }
 
     activeNotationKey = null;
     activeNotationPresentationKey = null;
+    activeRenderEvidence = null;
 
     if (typeof notationAdapter?.dispose === "function") {
       try {
@@ -290,6 +433,7 @@ export function mountStudentApp({
       state.pieceWorkspace?.selectedView ===
         "CHORDS"
     ) {
+      await clearScoreFollow();
       return;
     }
 
@@ -341,6 +485,13 @@ export function mountStudentApp({
       activeNotationKey === renderKey &&
       notationRootHasContent
     ) {
+      await synchronizeScoreFollow({
+        state,
+        renderSource,
+        generation,
+        renderKey,
+        renderEvidence: activeRenderEvidence,
+      });
       return;
     }
 
@@ -363,11 +514,15 @@ export function mountStudentApp({
       return;
     }
 
+    await clearScoreFollow();
+    activeRenderEvidence = null;
+
     let result;
 
     try {
       result = await notationAdapter.render({
         musicXml: renderSource.musicXml,
+        sourceId: renderSource.sourceId,
       });
     } catch {
       result = {
@@ -401,10 +556,21 @@ export function mountStudentApp({
       activeNotationKey = renderKey;
       activeNotationPresentationKey =
         presentationKey;
+      activeRenderEvidence =
+        result?.evidence ?? null;
+      await synchronizeScoreFollow({
+        state,
+        renderSource,
+        generation,
+        renderKey,
+        renderEvidence: activeRenderEvidence,
+      });
       return;
     }
 
     activeNotationKey = null;
+    activeRenderEvidence = null;
+    await clearScoreFollow();
 
     const tabRenderFailed =
       state.screen ===
@@ -441,13 +607,34 @@ export function mountStudentApp({
   }
 
   async function onClick(event) {
-    const actionElement = event.target?.closest?.("[data-action]");
+    const actionElement =
+      event.target?.closest?.("[data-action]");
 
     if (
       actionElement === null ||
-      actionElement === undefined ||
-      !root.contains(actionElement)
+      actionElement === undefined
     ) {
+      if (
+        typeof scoreFollowCoordinator
+          ?.handlePoint === "function" &&
+        targetInsidePersistentNotation(
+          event.target,
+        )
+      ) {
+        try {
+          await scoreFollowCoordinator
+            .handlePoint({
+              clientX: event.clientX,
+              clientY: event.clientY,
+            });
+        } catch {
+          // Score interaction failure must not repaint or expose internals.
+        }
+      }
+      return;
+    }
+
+    if (!root.contains(actionElement)) {
       return;
     }
 
@@ -602,6 +789,17 @@ export function mountStudentApp({
 
       lifecycle = lifecycle.then(async () => {
         await disposeActiveNotation();
+        if (
+          typeof scoreFollowCoordinator?.dispose ===
+          "function"
+        ) {
+          try {
+            await scoreFollowCoordinator.dispose();
+          } catch {
+            // Final follow teardown cannot block app cleanup.
+          }
+        }
+        activeScoreFollowKey = null;
         lastMarkup = null;
         lastPresentationKey = null;
         persistentNotationRoot = null;
