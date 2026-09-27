@@ -763,11 +763,20 @@ test(
       viewport: { width: 320, height: 700 },
     });
     const page = await context.newPage();
+    let offlineServer = null;
 
     try {
-      await page.goto(
-        `${baseUrl}/vendor/st-score-runtime/index.html`,
+      offlineServer =
+        await startRepositoryStaticServer({
+          htmlRoutes: Object.freeze({
+            "/": "<!doctype html><html><body>Student shell offline fixture</body></html>",
+          }),
+        });
+
+      const response = await page.goto(
+        `${offlineServer.baseUrl}/vendor/st-score-runtime/index.html`,
       );
+      assert.equal(response?.status(), 200);
 
       const registration = await page.evaluate(
         async () => {
@@ -806,10 +815,9 @@ test(
             });
           }
 
-          const names = await caches.keys();
           return {
-            names,
-            controller:
+            names: await caches.keys(),
+            controlled:
               navigator.serviceWorker.controller !==
               null,
           };
@@ -823,12 +831,15 @@ test(
         "v17 shell cache must exist",
       );
 
-      if (!registration.controller) {
+      if (!registration.controlled) {
         await page.reload();
-        await page.locator(
-          "html[data-st-score-runtime-ready='true']",
-        ).waitFor();
       }
+
+      await page.waitForFunction(
+        () =>
+          navigator.serviceWorker.controller !==
+          null,
+      );
 
       const offlinePrerequisites =
         await page.evaluate(async () => ({
@@ -855,7 +866,8 @@ test(
         "offline follow prerequisites must be controlled and cached before disconnect",
       );
 
-      await context.setOffline(true);
+      await offlineServer.close();
+      offlineServer = null;
 
       const offlineResult = await page.evaluate(
         async () => {
@@ -891,7 +903,7 @@ test(
         exported: true,
       });
     } finally {
-      await context.setOffline(false).catch(
+      await offlineServer?.close().catch(
         () => {},
       );
       await context.close();
