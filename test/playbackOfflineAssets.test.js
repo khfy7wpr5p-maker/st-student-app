@@ -12,6 +12,11 @@ const REQUIRED_PLAYBACK_MODULES = [
   "./src/playback/studentPlaybackPort.js",
 ];
 
+const REQUIRED_SCORE_FOLLOW_MODULES = [
+  "./src/practice/scoreFollowIndex.js",
+  "./src/practice/scoreFollowCoordinator.js",
+];
+
 const REQUIRED_PIANO_ASSETS = [
   "./vendor/st-piano/runtime-manifest.json",
   "./vendor/st-piano/LICENSE.txt",
@@ -30,14 +35,17 @@ const REQUIRED_PIANO_ASSETS = [
   "./vendor/st-piano/samples/B4.wav",
 ];
 
-test("service worker v15 pins the complete local playback module graph", async () => {
+test("service worker v17 pins the complete local playback and score-follow module graph", async () => {
   const source = await readFile(
     new URL("../service-worker.js", import.meta.url),
     "utf8",
   );
 
-  assert.match(source, /const CACHE_NAME = "st-student-shell-v16"/);
-  for (const asset of REQUIRED_PLAYBACK_MODULES) {
+  assert.match(source, /const CACHE_NAME = "st-student-shell-v17"/);
+  for (const asset of [
+    ...REQUIRED_PLAYBACK_MODULES,
+    ...REQUIRED_SCORE_FOLLOW_MODULES,
+  ]) {
     assert.equal(source.includes(`"${asset}"`), true, asset);
   }
 });
