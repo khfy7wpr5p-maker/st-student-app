@@ -17,6 +17,12 @@ import {
   createStNotationAdapter,
 } from "../../src/practice/notationAdapter.js";
 import {
+  createScoreFollowCoordinator,
+} from "../../src/practice/scoreFollowCoordinator.js";
+import {
+  createViolinFollowCoordinator,
+} from "../../src/practice/violinFollowCoordinator.js";
+import {
   createNotationRuntimeLoader,
 } from "../../src/practice/notationRuntimeLoader.js";
 import {
@@ -37,6 +43,9 @@ import {
 import {
   mountStudentApp,
 } from "../../src/ui/mountStudentApp.js";
+import {
+  createViolinFingerboardPresentation,
+} from "../../src/ui/violinFingerboard.js";
 import {
   createSes13OnlineReadService,
   createSes13StatusServices,
@@ -125,6 +134,24 @@ const playbackPort =
     engine: playbackEngine,
   });
 
+const scoreFollowCoordinator =
+  createScoreFollowCoordinator({
+    notationAdapter,
+    playbackPort,
+  });
+
+const violinFingerboardPresentation =
+  createViolinFingerboardPresentation({
+    root,
+  });
+
+const violinFollowCoordinator =
+  createViolinFollowCoordinator({
+    playbackPort,
+    presentationPort:
+      violinFingerboardPresentation,
+  });
+
 const {
   publicationStatusService,
   secureDeliveryStatusService,
@@ -173,6 +200,8 @@ mountStudentApp({
   root,
   controller,
   notationAdapter,
+  scoreFollowCoordinator,
+  violinFollowCoordinator,
   connectivityPort,
   requestSignIn(credentials) {
     if (
