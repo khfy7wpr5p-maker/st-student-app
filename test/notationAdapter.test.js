@@ -352,3 +352,113 @@ test("stale renderer source evidence is rejected after replacement render", asyn
     null,
   );
 });
+
+
+test("rendered event evidence is translated only for the current renderer source", async () => {
+  const runtime = {
+    async renderMusicXml() {
+      return {
+        contractVersion: ST_SCORE_RENDERER_CONTRACT_VERSION,
+        renderEpoch: "render-7",
+        sourceId: "workstation:7",
+      };
+    },
+    hitTestRenderedEventDetailed() {
+      return {
+        kind: "HIT",
+        renderEpoch: "render-7",
+        sourceId: "workstation:7",
+        target: {
+          kind: "NOTE",
+          partId: "P1",
+          measureIndex: 0,
+          eventIndex: 1,
+          voice: 1,
+        },
+      };
+    },
+    async dispose() {},
+  };
+  const adapter = createStNotationAdapter({ getRuntime: () => runtime });
+  await adapter.render({ musicXml: "<score-partwise/>", sourceId: "pkg-a" });
+
+  assert.deepEqual(
+    adapter.hitTestRenderedEventDetailed({ clientX: 5, clientY: 8 }),
+    {
+      kind: "HIT",
+      renderEpoch: "render-7",
+      sourceId: "pkg-a",
+      target: {
+        kind: "NOTE",
+        partId: "P1",
+        measureIndex: 0,
+        eventIndex: 1,
+        voice: 1,
+      },
+    },
+  );
+});
+
+test("dispose invalidates active interaction evidence", async () => {
+  const runtime = {
+    async renderMusicXml() {
+      return {
+        contractVersion: ST_SCORE_RENDERER_CONTRACT_VERSION,
+        renderEpoch: "render-1",
+        sourceId: "workstation:1",
+      };
+    },
+    hitTestMeasureDetailed() {
+      return {
+        kind: "HIT",
+        renderEpoch: "render-1",
+        sourceId: "workstation:1",
+        target: { partId: "P1", measureIndex: 0 },
+      };
+    },
+    async dispose() {},
+  };
+  const adapter = createStNotationAdapter({ getRuntime: () => runtime });
+  await adapter.render({ musicXml: "<score-partwise/>", sourceId: "pkg-a" });
+  await adapter.dispose();
+
+  assert.equal(
+    adapter.hitTestMeasureDetailed({ clientX: 5, clientY: 8 }),
+    null,
+  );
+});
+
+test("render failure invalidates previously active interaction evidence", async () => {
+  let fail = false;
+  const runtime = {
+    async renderMusicXml() {
+      if (fail) throw new Error("renderer secret");
+      return {
+        contractVersion: ST_SCORE_RENDERER_CONTRACT_VERSION,
+        renderEpoch: "render-1",
+        sourceId: "workstation:1",
+      };
+    },
+    hitTestMeasureDetailed() {
+      return {
+        kind: "HIT",
+        renderEpoch: "render-1",
+        sourceId: "workstation:1",
+        target: { partId: "P1", measureIndex: 0 },
+      };
+    },
+    async dispose() {},
+  };
+  const adapter = createStNotationAdapter({ getRuntime: () => runtime });
+  await adapter.render({ musicXml: "<score-partwise/>", sourceId: "pkg-a" });
+  fail = true;
+  assert.deepEqual(
+    await adapter.render({ musicXml: "<score-partwise/>", sourceId: "pkg-a" }),
+    { capability: PRACTICE_CAPABILITY_STATES.ERROR },
+  );
+
+  assert.equal(
+    adapter.hitTestMeasureDetailed({ clientX: 5, clientY: 8 }),
+    null,
+  );
+});
