@@ -214,8 +214,8 @@ test("render binds caller sourceId to current renderer evidence", async () => {
       renderCount += 1;
       return {
         contractVersion: ST_SCORE_RENDERER_CONTRACT_VERSION,
-        renderEpoch: \`render-\${renderCount}\`,
-        sourceId: \`workstation:\${renderCount}\`,
+        renderEpoch: `render-${renderCount}`,
+        sourceId: `workstation:${renderCount}`,
       };
     },
     async dispose() {},
@@ -328,8 +328,8 @@ test("stale renderer source evidence is rejected after replacement render", asyn
       renderCount += 1;
       return {
         contractVersion: ST_SCORE_RENDERER_CONTRACT_VERSION,
-        renderEpoch: \`render-\${renderCount}\`,
-        sourceId: \`workstation:\${renderCount}\`,
+        renderEpoch: `render-${renderCount}`,
+        sourceId: `workstation:${renderCount}`,
       };
     },
     hitTestMeasureDetailed() {
