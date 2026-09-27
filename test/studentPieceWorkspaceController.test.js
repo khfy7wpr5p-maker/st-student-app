@@ -506,3 +506,56 @@ test("Piece TAB view uses the exact package TAB MusicXML and preserves playback 
     "pkg-score-a:guitar-tab",
   );
 });
+
+
+test("score follow source exists only for the current SCORE presentation", async () => {
+  const tabXml = "<score-partwise>TAB FOLLOW MUST NOT USE</score-partwise>";
+  const packageWithTab = makeApprovedPracticePackage({
+    packageId: "pkg-score-a",
+    scope: "student_private",
+    recipientStudentId: "server-student-a",
+    guitarTabMusicXml: tabXml,
+  });
+  const score = Object.freeze({
+    accessRef: Object.freeze({
+      kind: "SECURE_DELIVERY",
+      deliveryId: "assignment-score-a",
+    }),
+    practiceType: "SCORE",
+    package: packageWithTab,
+  });
+  const { service } = makeService({ score });
+  const controller = createStudentAppController({
+    sharingService: legacySharing(),
+    student08ReadService: service,
+    initialSession: studentA,
+    notationAdapter: { isAvailable: () => true },
+    playbackPort: {
+      canPlayPackage: () => true,
+      canChangeTempoForPackage: () => false,
+      canRepeatMeasureForPackage: () => false,
+      pausePackage() {},
+      disposePackage() {},
+    },
+  });
+
+  await controller.openPiece("piece-a");
+  const scoreRenderSource = controller.getPracticeRenderSource();
+  const followSource = controller.getScoreFollowSource();
+
+  assert.equal(followSource.pkg, packageWithTab);
+  assert.equal(followSource.sourceId, "pkg-score-a");
+  assert.equal(followSource.musicXml, scoreRenderSource.musicXml);
+
+  controller.selectPieceView("TAB");
+  assert.equal(controller.getScoreFollowSource(), null);
+
+  controller.selectPieceView("CHORDS");
+  assert.equal(controller.getScoreFollowSource(), null);
+
+  controller.selectPieceView("SCORE");
+  assert.equal(controller.getScoreFollowSource().sourceId, "pkg-score-a");
+
+  controller.backFromPiece();
+  assert.equal(controller.getScoreFollowSource(), null);
+});
