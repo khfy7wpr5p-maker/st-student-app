@@ -830,6 +830,31 @@ test(
         ).waitFor();
       }
 
+      const offlinePrerequisites =
+        await page.evaluate(async () => ({
+          controlled:
+            navigator.serviceWorker.controller !==
+            null,
+          coordinatorCached:
+            (await caches.match(
+              "/src/practice/scoreFollowCoordinator.js",
+            )) !== undefined,
+          indexCached:
+            (await caches.match(
+              "/src/practice/scoreFollowIndex.js",
+            )) !== undefined,
+        }));
+
+      assert.deepEqual(
+        offlinePrerequisites,
+        {
+          controlled: true,
+          coordinatorCached: true,
+          indexCached: true,
+        },
+        "offline follow prerequisites must be controlled and cached before disconnect",
+      );
+
       await context.setOffline(true);
 
       const offlineResult = await page.evaluate(
