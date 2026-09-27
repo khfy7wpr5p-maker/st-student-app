@@ -419,3 +419,30 @@ test("microtonal pitch disables exact event mapping instead of inventing integer
     activeEvents: null,
   });
 });
+
+test("exact event preserves non-zero MusicXML transposition as source metadata", () => {
+  const xml = `<score-partwise version="4.0">
+    <part-list><score-part id="P1"><part-name>Transposed</part-name></score-part></part-list>
+    <part id="P1"><measure number="1">
+      <attributes>
+        <divisions>1</divisions>
+        <transpose><chromatic>2</chromatic><octave-change>1</octave-change></transpose>
+      </attributes>
+      <note><pitch><step>D</step><octave>4</octave></pitch><duration>4</duration><voice>1</voice></note>
+    </measure></part>
+  </score-partwise>`;
+  const index = makeIndex(xml);
+
+  assert.equal(index.eventMapping, "EXACT");
+  assert.deepEqual(index.resolveBeat(0).activeEvents, [{
+    eventId: "P1:0:1:0",
+    partId: "P1",
+    measureIndex: 0,
+    midi: 62,
+    pitch: { step: "D", alter: 0, octave: 4 },
+    transpositionSemitones: 14,
+  }]);
+  assert.deepEqual(index.resolveBeat(0).highlightRefs, [
+    { partId: "P1", measureIndex: 0, noteIndex: 0, voice: 1 },
+  ]);
+});
