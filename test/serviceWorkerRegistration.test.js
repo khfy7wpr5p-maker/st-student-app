@@ -35,7 +35,7 @@ test("service worker caches explicit app-shell and playback assets plus pinned F
     "utf8",
   );
 
-  assert.match(source, /st-student-shell-v17/);
+  assert.match(source, /st-student-shell-v18/);
   assert.match(source, /self\.skipWaiting\(\)/);
   assert.match(source, /self\.clients\.claim\(\)/);
   assert.match(source, /index\.html/);
@@ -125,4 +125,27 @@ test("an already controlled page reloads once when the fresh service worker take
 
   assert.deepEqual(result, { registered: true });
   assert.equal(reloadCount, 1);
+});
+
+test("service worker v18 caches violin follow and pinned violin-learning runtime without private packages", async () => {
+  const source = await readFile(
+    new URL("../service-worker.js", import.meta.url),
+    "utf8",
+  );
+
+  for (const asset of [
+    "src/practice/violinFollowCoordinator.js",
+    "src/ui/violinFingerboard.js",
+    "vendor/st-violin-learning/runtime-manifest.json",
+    "vendor/st-violin-learning/src/firstPosition.js",
+    "vendor/st-violin-learning/src/followSnapshot.js",
+    "vendor/st-violin-learning/src/index.js",
+  ]) {
+    assert.equal(source.includes(asset), true, asset);
+  }
+
+  assert.doesNotMatch(
+    source,
+    /practicePackages|recipientStudentId|approvedRevision|accessToken|refreshToken/i,
+  );
 });

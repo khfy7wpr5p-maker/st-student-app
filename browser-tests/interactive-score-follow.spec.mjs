@@ -753,7 +753,7 @@ test(
 );
 
 test(
-  "service worker v17 serves score-follow modules while offline",
+  "service worker v18 serves score-follow and violin-learning modules while offline",
   { timeout: 90_000 },
   async () => {
     const browser = await browserType().launch({
@@ -826,9 +826,9 @@ test(
 
       assert.ok(
         registration.names.includes(
-          "st-student-shell-v17",
+          "st-student-shell-v18",
         ),
-        "v17 shell cache must exist",
+        "v18 shell cache must exist",
       );
 
       if (!registration.controlled) {
@@ -857,6 +857,18 @@ test(
             (await caches.match(
               "/src/practice/scoreFollowIndex.js",
             )) !== undefined,
+          violinCoordinatorCached:
+            (await caches.match(
+              "/src/practice/violinFollowCoordinator.js",
+            )) !== undefined,
+          violinFingerboardCached:
+            (await caches.match(
+              "/src/ui/violinFingerboard.js",
+            )) !== undefined,
+          violinEngineCached:
+            (await caches.match(
+              "/vendor/st-violin-learning/src/index.js",
+            )) !== undefined,
         }));
 
       assert.deepEqual(
@@ -870,6 +882,9 @@ test(
             ).href,
           coordinatorCached: true,
           indexCached: true,
+          violinCoordinatorCached: true,
+          violinFingerboardCached: true,
+          violinEngineCached: true,
         },
         "offline follow prerequisites must be controlled and cached before disconnect",
       );
@@ -878,20 +893,39 @@ test(
         "/src/practice/scoreFollowCoordinator.js",
         "/src/practice/scoreFollowIndex.js",
         "/src/playback/musicXmlPlaybackDom.js",
+        "/src/practice/violinFollowCoordinator.js",
+        "/src/ui/violinFingerboard.js",
+        "/vendor/st-violin-learning/src/index.js",
+        "/vendor/st-violin-learning/src/followSnapshot.js",
+        "/vendor/st-violin-learning/src/firstPosition.js",
       ]);
 
       const offlineResult = await page.evaluate(
         async () => {
           try {
-            const module =
+            const scoreModule =
               await import(
                 "/src/practice/scoreFollowCoordinator.js"
               );
+            const violinModule =
+              await import(
+                "/src/practice/violinFollowCoordinator.js"
+              );
+            const fingerboardModule =
+              await import(
+                "/src/ui/violinFingerboard.js"
+              );
             return {
               imported:
-                typeof module
+                typeof scoreModule
                   .createScoreFollowCoordinator ===
-                "function",
+                  "function" &&
+                typeof violinModule
+                  .createViolinFollowCoordinator ===
+                  "function" &&
+                typeof fingerboardModule
+                  .createViolinFingerboardPresentation ===
+                  "function",
               importError: null,
             };
           } catch (error) {

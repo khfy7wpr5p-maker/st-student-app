@@ -11,6 +11,15 @@ import {
 
 const EPSILON = 1e-9;
 const PART_ID_MAX_LENGTH = 128;
+const STEP_TO_SEMITONE = Object.freeze({
+  C: 0,
+  D: 2,
+  E: 4,
+  F: 5,
+  G: 7,
+  A: 9,
+  B: 11,
+});
 
 function validIdentity(value, maxLength = PART_ID_MAX_LENGTH) {
   return (
@@ -63,6 +72,38 @@ function explicitStaff(note) {
   if (staffNode === null) return 1;
   const staff = numberText(staffNode);
   return Number.isSafeInteger(staff) && staff >= 1 ? staff : null;
+}
+
+function parseWrittenPitch(note) {
+  const pitchNode = firstChildNamed(note, "pitch");
+  if (pitchNode === null) return null;
+
+  const step = textOf(firstChildNamed(pitchNode, "step")).toUpperCase();
+  const octave = numberText(firstChildNamed(pitchNode, "octave"));
+  const alterNode = firstChildNamed(pitchNode, "alter");
+  const alter = alterNode === null ? 0 : numberText(alterNode);
+
+  if (
+    !(step in STEP_TO_SEMITONE) ||
+    !Number.isInteger(octave) ||
+    !Number.isInteger(alter)
+  ) {
+    return null;
+  }
+
+  const midi =
+    (octave + 1) * 12 +
+    STEP_TO_SEMITONE[step] +
+    alter;
+
+  if (!Number.isInteger(midi) || midi < 0 || midi > 127) {
+    return null;
+  }
+
+  return Object.freeze({
+    midi,
+    pitch: Object.freeze({ step, alter, octave }),
+  });
 }
 
 function freezeRef(ref) {
@@ -210,6 +251,30 @@ function updateMeasureAttributes(attributes, state) {
     }
   }
 
+  const transpose = firstChildNamed(attributes, "transpose");
+  if (transpose !== null) {
+    const chromaticNode = firstChildNamed(transpose, "chromatic");
+    const octaveNode = firstChildNamed(transpose, "octave-change");
+    const chromatic =
+      chromaticNode === null ? 0 : numberText(chromaticNode);
+    const octaveChange =
+      octaveNode === null ? 0 : numberText(octaveNode);
+
+    if (
+      !Number.isInteger(chromatic) ||
+      !Number.isInteger(octaveChange)
+    ) {
+      return false;
+    }
+
+    const transpositionSemitones =
+      chromatic + 12 * octaveChange;
+    if (!Number.isSafeInteger(transpositionSemitones)) {
+      return false;
+    }
+    state.transpositionSemitones = transpositionSemitones;
+  }
+
   return true;
 }
 
@@ -227,7 +292,10 @@ function buildExactEvents({ parts, measureIndex, musicXml, playbackContext }) {
   const events = [];
 
   for (const part of parts) {
-    const state = { divisions: null };
+    const state = {
+      divisions: null,
+      transpositionSemitones: 0,
+    };
 
     for (
       let currentMeasureIndex = 0;
@@ -314,17 +382,35 @@ function buildExactEvents({ parts, measureIndex, musicXml, playbackContext }) {
 
         const rest = firstChildNamed(child, "rest") !== null;
         if (!rest) {
+          const writtenPitch = parseWrittenPitch(child);
+          if (writtenPitch === null) {
+            return null;
+          }
+
+          const ref = freezeRef({
+            partId: part.partId,
+            measureIndex: currentMeasureIndex,
+            noteIndex,
+            voice,
+          });
+
           events.push(
             Object.freeze({
               startBeat,
               endBeat,
               measureIndex: currentMeasureIndex,
-              ref: freezeRef({
-                partId: part.partId,
-                measureIndex: currentMeasureIndex,
-                noteIndex,
-                voice,
-              }),
+              ref,
+              eventId:
+                `${part.partId}:${currentMeasureIndex}:${voice}:${noteIndex}`,
+              partId: part.partId,
+              midi: writtenPitch.midi,
+              pitch: writtenPitch.pitch,
+              ...(state.transpositionSemitones === 0
+                ? {}
+                : {
+                    transpositionSemitones:
+                      state.transpositionSemitones,
+                  }),
             }),
           );
         }
@@ -443,17 +529,35 @@ export function createScoreFollowIndex({
         measureIndex: measure.measureIndex,
         cursorTarget: measure.cursorTarget,
         highlightRefs: null,
+        activeEvents: null,
       });
     }
 
     const highlightRefs = [];
+    const activeEvents = [];
     for (const event of exactEvents) {
       if (
         beat + EPSILON >= event.startBeat &&
-        beat < event.endBeat - EPSILON &&
-        !highlightRefs.some((candidate) => sameRef(candidate, event.ref))
+        beat < event.endBeat - EPSILON
       ) {
-        highlightRefs.push(event.ref);
+        if (!highlightRefs.some((candidate) => sameRef(candidate, event.ref))) {
+          highlightRefs.push(event.ref);
+        }
+        activeEvents.push(
+          Object.freeze({
+            eventId: event.eventId,
+            partId: event.partId,
+            measureIndex: event.measureIndex,
+            midi: event.midi,
+            pitch: event.pitch,
+            ...(event.transpositionSemitones === undefined
+              ? {}
+              : {
+                  transpositionSemitones:
+                    event.transpositionSemitones,
+                }),
+          }),
+        );
       }
     }
 
@@ -461,6 +565,7 @@ export function createScoreFollowIndex({
       measureIndex: measure.measureIndex,
       cursorTarget: measure.cursorTarget,
       highlightRefs: Object.freeze(highlightRefs),
+      activeEvents: Object.freeze(activeEvents),
     });
   }
 

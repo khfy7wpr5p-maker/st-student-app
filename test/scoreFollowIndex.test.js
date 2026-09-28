@@ -245,6 +245,7 @@ test("multi-staff traversal keeps measure mapping but disables exact event mappi
     measureIndex: 0,
     cursorTarget: { partId: "P1", measureIndex: 0 },
     highlightRefs: null,
+    activeEvents: null,
   });
 });
 
@@ -295,4 +296,153 @@ test("mismatched source provenance fails closed even when playback notes appear 
 
   assert.equal(index.eventMapping, "UNAVAILABLE");
   assert.equal(index.resolveBeat(0).highlightRefs, null);
+});
+
+test("exact score event exposes trusted F#4 pitch identity and MIDI 66", () => {
+  const xml = `<score-partwise version="4.0">
+    <part-list><score-part id="P1"><part-name>Violin</part-name></score-part></part-list>
+    <part id="P1"><measure number="1">
+      <attributes><divisions>1</divisions></attributes>
+      <note><pitch><step>F</step><alter>1</alter><octave>4</octave></pitch><duration>2</duration><voice>1</voice></note>
+      <forward><duration>2</duration></forward>
+    </measure></part>
+  </score-partwise>`;
+  const index = makeIndex(xml);
+
+  assert.equal(index.eventMapping, "EXACT");
+  assert.deepEqual(index.resolveBeat(0).activeEvents, [{
+    eventId: "P1:0:1:0",
+    partId: "P1",
+    measureIndex: 0,
+    midi: 66,
+    pitch: { step: "F", alter: 1, octave: 4 },
+  }]);
+});
+
+test("rest beat exposes no active pitched event", () => {
+  const xml = `<score-partwise version="4.0">
+    <part-list><score-part id="P1"><part-name>Violin</part-name></score-part></part-list>
+    <part id="P1"><measure number="1">
+      <attributes><divisions>1</divisions></attributes>
+      <note><rest/><duration>2</duration><voice>1</voice></note>
+      <note><pitch><step>D</step><octave>4</octave></pitch><duration>2</duration><voice>1</voice></note>
+    </measure></part>
+  </score-partwise>`;
+  const index = makeIndex(xml);
+
+  assert.deepEqual(index.resolveBeat(0).activeEvents, []);
+  assert.deepEqual(index.resolveBeat(2).activeEvents, [{
+    eventId: "P1:0:1:1",
+    partId: "P1",
+    measureIndex: 0,
+    midi: 62,
+    pitch: { step: "D", alter: 0, octave: 4 },
+  }]);
+});
+
+test("chord members expose distinct simultaneous active events", () => {
+  const xml = `<score-partwise version="4.0">
+    <part-list><score-part id="P1"><part-name>Violin</part-name></score-part></part-list>
+    <part id="P1"><measure number="1">
+      <attributes><divisions>1</divisions></attributes>
+      <note><pitch><step>D</step><octave>4</octave></pitch><duration>2</duration><voice>1</voice></note>
+      <note><chord/><pitch><step>F</step><alter>1</alter><octave>4</octave></pitch><duration>2</duration><voice>1</voice></note>
+      <forward><duration>2</duration></forward>
+    </measure></part>
+  </score-partwise>`;
+  const index = makeIndex(xml);
+
+  assert.deepEqual(index.resolveBeat(0).activeEvents.map((item) => item.eventId), [
+    "P1:0:1:0",
+    "P1:0:1:1",
+  ]);
+  assert.deepEqual(index.resolveBeat(0).highlightRefs, [
+    { partId: "P1", measureIndex: 0, noteIndex: 0, voice: 1 },
+    { partId: "P1", measureIndex: 0, noteIndex: 1, voice: 1 },
+  ]);
+});
+
+test("accompaniment active events preserve their own part identity", () => {
+  const xml = `<score-partwise version="4.0">
+    <part-list>
+      <score-part id="P1"><part-name>Violin</part-name></score-part>
+      <score-part id="P2"><part-name>Piano</part-name></score-part>
+    </part-list>
+    <part id="P1"><measure number="1">
+      <attributes><divisions>1</divisions></attributes>
+      <note><pitch><step>D</step><octave>4</octave></pitch><duration>4</duration><voice>1</voice></note>
+    </measure></part>
+    <part id="P2"><measure number="1">
+      <attributes><divisions>1</divisions></attributes>
+      <note><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration><voice>1</voice></note>
+    </measure></part>
+  </score-partwise>`;
+  const index = makeIndex(xml);
+
+  assert.deepEqual(
+    index.resolveBeat(0).activeEvents.map((item) => item.partId).sort(),
+    ["P1", "P2"],
+  );
+});
+
+test("beat exactly at note end excludes the ended active event", () => {
+  const xml = `<score-partwise version="4.0">
+    <part-list><score-part id="P1"><part-name>Violin</part-name></score-part></part-list>
+    <part id="P1"><measure number="1">
+      <attributes><divisions>1</divisions></attributes>
+      <note><pitch><step>D</step><octave>4</octave></pitch><duration>1</duration><voice>1</voice></note>
+      <note><pitch><step>E</step><octave>4</octave></pitch><duration>1</duration><voice>1</voice></note>
+      <forward><duration>2</duration></forward>
+    </measure></part>
+  </score-partwise>`;
+  const index = makeIndex(xml);
+
+  assert.deepEqual(index.resolveBeat(1).activeEvents.map((item) => item.midi), [64]);
+});
+
+test("microtonal pitch disables exact event mapping instead of inventing integer MIDI", () => {
+  const xml = `<score-partwise version="4.0">
+    <part-list><score-part id="P1"><part-name>Violin</part-name></score-part></part-list>
+    <part id="P1"><measure number="1">
+      <attributes><divisions>1</divisions></attributes>
+      <note><pitch><step>F</step><alter>0.5</alter><octave>4</octave></pitch><duration>4</duration><voice>1</voice></note>
+    </measure></part>
+  </score-partwise>`;
+  const index = makeIndex(xml);
+
+  assert.equal(index.measureMapping, "EXACT");
+  assert.equal(index.eventMapping, "UNAVAILABLE");
+  assert.deepEqual(index.resolveBeat(0), {
+    measureIndex: 0,
+    cursorTarget: { partId: "P1", measureIndex: 0 },
+    highlightRefs: null,
+    activeEvents: null,
+  });
+});
+
+test("exact event preserves non-zero MusicXML transposition as source metadata", () => {
+  const xml = `<score-partwise version="4.0">
+    <part-list><score-part id="P1"><part-name>Transposed</part-name></score-part></part-list>
+    <part id="P1"><measure number="1">
+      <attributes>
+        <divisions>1</divisions>
+        <transpose><chromatic>2</chromatic><octave-change>1</octave-change></transpose>
+      </attributes>
+      <note><pitch><step>D</step><octave>4</octave></pitch><duration>4</duration><voice>1</voice></note>
+    </measure></part>
+  </score-partwise>`;
+  const index = makeIndex(xml);
+
+  assert.equal(index.eventMapping, "EXACT");
+  assert.deepEqual(index.resolveBeat(0).activeEvents, [{
+    eventId: "P1:0:1:0",
+    partId: "P1",
+    measureIndex: 0,
+    midi: 62,
+    pitch: { step: "D", alter: 0, octave: 4 },
+    transpositionSemitones: 14,
+  }]);
+  assert.deepEqual(index.resolveBeat(0).highlightRefs, [
+    { partId: "P1", measureIndex: 0, noteIndex: 0, voice: 1 },
+  ]);
 });

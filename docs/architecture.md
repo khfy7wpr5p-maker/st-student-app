@@ -369,7 +369,7 @@ Feature branch: `feat/student-07b-hybrid-playback`.
 
 ### TAB ve keman
 
-`content.guitarTab` ve `content.violin` nesnelerinin item contract'ları tanımlı olmadığı için non-null olmaları capability'yi AVAILABLE yapmaz.
+`content.guitarTab` varlığı tek başına capability açmaz. VIOLIN-02 ile `content.violin` V1 consumer sözleşmesi tanımlıdır: yalnız `{ schemaVersion: 1, targetPartId, position: 1, stringLengthMm? }` kabul edilir; unknown alanlar, implicit part tahmini, başka pozisyon veya 250–400 mm dışı mensür fail-closed `UNAVAILABLE` olur.
 
 MusicXML içinde renderer'ın desteklediği tablature varsa bu notation rendering'in parçası olarak gösterilebilir; Student App ayrıca string/fret çıkarımı yapmaz.
 
@@ -673,12 +673,18 @@ Renderer public contract `0.2.0` değiştirilmez.
 
 Service Worker shell cache:
 
-`st-student-shell-v17`
+`st-student-shell-v18`
 
-v17 static shell'e şu follow modüllerini ekler:
+v18 static shell şu follow graph'ını taşır:
 
 - `src/practice/scoreFollowIndex.js`
 - `src/practice/scoreFollowCoordinator.js`
+- `src/practice/violinFollowCoordinator.js`
+- `src/ui/violinFingerboard.js`
+- `vendor/st-violin-learning/runtime-manifest.json`
+- `vendor/st-violin-learning/src/firstPosition.js`
+- `vendor/st-violin-learning/src/followSnapshot.js`
+- `vendor/st-violin-learning/src/index.js`
 
 Private Practice Package authority IndexedDB'de kalır; Cache Storage yalnız static app/runtime asset'lerini taşır.
 
@@ -703,4 +709,81 @@ Student edit authority, yeni runtime dependency, Python service, yeni repository
 MSMD geometry yaklaşımından yalnız regresyon test fikri benimsenmiştir: gerçek renderer geometri ownership'i note/rest/measure whitespace/outside/later-scroll browser fixture'larıyla sınanır. SES-38 public hit-test contract'ı yeniden açılmaz.
 
 Partitura runtime/toolchain dependency olarak eklenmez. Semantik karşılaştırma referans olarak tutulur; Student runtime authority `ScoreNoteRef`, `sourceId`, `renderEpoch`, PlaybackPlan ve ScoreFollowIndex'te kalır.
+## VIOLIN-02 vendored learning runtime
 
+Student App pins the source-neutral violin-learning domain runtime at
+`khfy7wpr5p-maker/st-violin-learning-engine@0ec3f3252111db10f9f381d22d29e57fa8cc2c6f`.
+
+Vendored files live under `vendor/st-violin-learning/` with SHA-256 and byte-length
+integrity recorded in `runtime-manifest.json`. Engine source is copied byte-for-byte;
+fixes are made upstream and repinned rather than edited locally.
+
+VIOLIN-02 uses this runtime only for first-position fingering/follow snapshots.
+`StudentPlaybackPort` remains the only playback clock. Scheduled violin audio remains
+separate VIOLIN-03 work.
+
+## 17. VIOLIN-02 — First Position Playback + Fingering Synchronization
+
+### Otorite sınırı
+
+VIOLIN-02 ikinci bir transport veya audio clock oluşturmaz. Tek semantik zaman otoritesi mevcut `StudentPlaybackPort` position stream'idir. `ViolinFollowCoordinator` yalnız bu stream'e subscribe olur; timer, `requestAnimationFrame` veya AudioContext açmaz.
+
+### Trusted event sözleşmesi
+
+Exact `ScoreFollowIndex` her aktif pitched source event için:
+
+```text
+eventId + partId + measureIndex + midi + MusicXML pitch(step/alter/octave)
+```
+
+üretir. `eventId`, source traversal kimliği `partId:measureIndex:voice:noteIndex` üzerinden deterministiktir. MIDI ile MusicXML pitch uyuşmazsa veya microtonal/non-integer pitch exact kanıtlanamazsa event mapping fail-closed olur. Renderer DOM/SVG pitch authority değildir.
+
+### Violin V1 capability
+
+`content.violin` yalnız şu bounded descriptor ile desteklenir:
+
+```json
+{
+  "schemaVersion": 1,
+  "targetPartId": "P1",
+  "position": 1,
+  "stringLengthMm": 328
+}
+```
+
+`targetPartId` explicit olmak zorundadır. Student App clef, part adı, staff konumu veya pitch range üzerinden violin part tahmini yapmaz.
+
+### Parmaklama ve fiziksel koordinat
+
+Pinned `st-violin-learning-engine` revision:
+
+`0ec3f3252111db10f9f381d22d29e57fa8cc2c6f`
+
+Runtime Student App'e byte-for-byte vendor edilir ve SHA-256 + byte length manifest ile doğrulanır. Default 4/4 string length 328 mm'dir. Stop coordinate:
+
+```text
+normalized = 1 - 2^(-n/12)
+distanceMm = stringLengthMm * normalized
+```
+
+F#4 için canonical V1 sonuç: D string, finger 2, HIGH, yaklaşık 67.666 mm. Fingerboard UI eşit aralıklı finger grid üretmez; `normalizedPosition` kullanır.
+
+### Fail-closed ve yaşam döngüsü
+
+- rest/boş beat -> marker temizlenir;
+- target-part simultaneous pitches -> `AMBIGUOUS_EVENT`;
+- accompaniment event'leri hedef violin fingering'i olmaz;
+- package/source/generation değişimi stale callback'i etkisizleştirir;
+- violin presentation hatası playback veya notation'ı durdurmaz;
+- SCORE dışı Piece view'da violin binding tutulmaz;
+- pause mevcut fingering'i `playing:false` ile korur.
+
+### Accessibility ve offline
+
+Fingerboard görseli supplemental'dır. Görünür semantik metin örneği: `Fa diyez. Re teli. İkinci parmak. Yüksek ikinci parmak.` V1 `aria-live` ile hızlı otomatik anons yapmaz.
+
+Service Worker `st-student-shell-v18`, yalnız statik violin follow/runtime dosyalarını cache eder. Private Practice Package ve MusicXML authority IndexedDB sınırında kalır.
+
+### VIOLIN-03 sınırı
+
+`st-score-audio-engine` VIOLIN-02'de değiştirilmez. Existing qualified VIOLIN sample runtime'ın Student transport ile scheduled bağlanması ayrı VIOLIN-03 tasarım/geliştirme aşamasıdır.

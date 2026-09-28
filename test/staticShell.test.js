@@ -162,3 +162,21 @@ test("browser bootstrap passes Web Audio constructor availability without instan
     /createWebAudioPianoEngine\(\{[\s\S]*?audioContextFactory,[\s\S]*?audioContextSupported,[\s\S]*?sampleBank/,
   );
 });
+
+test("browser bootstrap wires violin follow presentation without creating a second audio clock", async () => {
+  const source = await readFile(
+    new URL("../src/ui/main.js", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /createViolinFollowCoordinator/);
+  assert.match(source, /createViolinFingerboardPresentation/);
+  assert.match(
+    source,
+    /mountStudentApp\(\{[\s\S]*?violinFollowCoordinator[\s\S]*?\}\)/,
+  );
+  assert.match(
+    source,
+    /createViolinFollowCoordinator\(\{[\s\S]*?playbackPort,[\s\S]*?presentationPort:\s*violinFingerboardPresentation[\s\S]*?\}\)/,
+  );
+});
