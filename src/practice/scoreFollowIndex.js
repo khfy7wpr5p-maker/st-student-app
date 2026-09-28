@@ -251,6 +251,30 @@ function updateMeasureAttributes(attributes, state) {
     }
   }
 
+  const transpose = firstChildNamed(attributes, "transpose");
+  if (transpose !== null) {
+    const chromaticNode = firstChildNamed(transpose, "chromatic");
+    const octaveNode = firstChildNamed(transpose, "octave-change");
+    const chromatic =
+      chromaticNode === null ? 0 : numberText(chromaticNode);
+    const octaveChange =
+      octaveNode === null ? 0 : numberText(octaveNode);
+
+    if (
+      !Number.isInteger(chromatic) ||
+      !Number.isInteger(octaveChange)
+    ) {
+      return false;
+    }
+
+    const transpositionSemitones =
+      chromatic + 12 * octaveChange;
+    if (!Number.isSafeInteger(transpositionSemitones)) {
+      return false;
+    }
+    state.transpositionSemitones = transpositionSemitones;
+  }
+
   return true;
 }
 
@@ -268,7 +292,10 @@ function buildExactEvents({ parts, measureIndex, musicXml, playbackContext }) {
   const events = [];
 
   for (const part of parts) {
-    const state = { divisions: null };
+    const state = {
+      divisions: null,
+      transpositionSemitones: 0,
+    };
 
     for (
       let currentMeasureIndex = 0;
@@ -378,6 +405,12 @@ function buildExactEvents({ parts, measureIndex, musicXml, playbackContext }) {
               partId: part.partId,
               midi: writtenPitch.midi,
               pitch: writtenPitch.pitch,
+              ...(state.transpositionSemitones === 0
+                ? {}
+                : {
+                    transpositionSemitones:
+                      state.transpositionSemitones,
+                  }),
             }),
           );
         }
@@ -517,6 +550,12 @@ export function createScoreFollowIndex({
             measureIndex: event.measureIndex,
             midi: event.midi,
             pitch: event.pitch,
+            ...(event.transpositionSemitones === undefined
+              ? {}
+              : {
+                  transpositionSemitones:
+                    event.transpositionSemitones,
+                }),
           }),
         );
       }
