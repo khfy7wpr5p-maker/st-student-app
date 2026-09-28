@@ -117,6 +117,18 @@ export function createViolinFollowCoordinator({
       return;
     }
 
+    const targetHasTransposition =
+      beatResult.activeEvents.some(
+        (event) =>
+          event?.partId === active.targetPartId &&
+          event?.transpositionSemitones !== undefined &&
+          event.transpositionSemitones !== 0,
+      );
+    if (targetHasTransposition) {
+      await clearPresentation(expectedGeneration);
+      return;
+    }
+
     let resolved;
     try {
       resolved = resolveSnapshot({
