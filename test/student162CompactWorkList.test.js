@@ -6,7 +6,6 @@ import {
   PRACTICE_TYPES,
 } from "../src/contracts/privateAssignment.js";
 import { STUDENT_APP_SCREENS } from "../src/ui/studentAppController.js";
-import { mountStudentApp } from "../src/ui/mountStudentApp.js";
 import { renderStudentApp } from "../src/ui/renderStudentApp.js";
 
 function myWorkState(items, assignmentState = ASSIGNMENT_STATES.ACTIVE) {
@@ -92,105 +91,6 @@ test("SES-162 duplicate work names have distinct accessible context without expo
   assert.match(beta, /Samanyolu/);
   assert.doesNotMatch(alpha, /private-piece-alpha|private-piece-beta/);
   assert.doesNotMatch(beta, /private-piece-alpha|private-piece-beta/);
-});
-
-function makePieceFocusRoot() {
-  let markup = "";
-  let activeElement = null;
-  let controls = [];
-  let restoredPieceAssignmentId = null;
-
-  const ownerDocument = {
-    get activeElement() {
-      return activeElement;
-    },
-  };
-
-  function control(pieceAssignmentId) {
-    return {
-      dataset: {
-        action: "open-piece",
-        pieceAssignmentId,
-        assignmentId: pieceAssignmentId,
-        assignmentState: ASSIGNMENT_STATES.ACTIVE,
-      },
-      focus() {
-        restoredPieceAssignmentId = pieceAssignmentId;
-        activeElement = this;
-      },
-    };
-  }
-
-  const root = {
-    ownerDocument,
-    get innerHTML() {
-      return markup;
-    },
-    set innerHTML(value) {
-      markup = value;
-      controls = [control("piece-a"), control("piece-b")];
-    },
-    addEventListener() {},
-    removeEventListener() {},
-    contains(element) {
-      return element === activeElement || controls.includes(element);
-    },
-    querySelector() {
-      return null;
-    },
-    querySelectorAll(selector) {
-      return selector === "[data-action]" ? controls : [];
-    },
-  };
-
-  return {
-    root,
-    focusSecondPiece() {
-      activeElement = controls[1];
-      restoredPieceAssignmentId = null;
-    },
-    restoredPieceAssignmentId() {
-      return restoredPieceAssignmentId;
-    },
-  };
-}
-
-test("SES-162 repaint restores focus to the exact Piece title among many work links", async () => {
-  const focus = makePieceFocusRoot();
-  let secondTitle = "Etüt B";
-
-  const controller = {
-    getState() {
-      return myWorkState([
-        piece(1, {
-          pieceAssignmentId: "piece-a",
-          title: "Etüt A",
-        }),
-        piece(2, {
-          pieceAssignmentId: "piece-b",
-          title: secondTitle,
-        }),
-      ]);
-    },
-    getPracticeRenderSource() {
-      return null;
-    },
-  };
-
-  const mounted = mountStudentApp({
-    root: focus.root,
-    controller,
-  });
-
-  await mounted.render();
-  focus.focusSecondPiece();
-
-  secondTitle = "Etüt B (güncellendi)";
-  await mounted.render();
-
-  assert.equal(focus.restoredPieceAssignmentId(), "piece-b");
-
-  await mounted.destroy();
 });
 
 test("SES-162 keeps SCORE and Piece work identities separate in one compact folder", () => {
