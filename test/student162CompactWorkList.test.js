@@ -111,6 +111,7 @@ function makePieceFocusRoot() {
       dataset: {
         action: "open-piece",
         pieceAssignmentId,
+        assignmentId: pieceAssignmentId,
         assignmentState: ASSIGNMENT_STATES.ACTIVE,
       },
       focus() {
