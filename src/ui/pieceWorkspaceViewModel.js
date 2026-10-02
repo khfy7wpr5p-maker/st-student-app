@@ -195,3 +195,16 @@ export function withPieceSelectedChord(
     selectedChordId: id,
   });
 }
+
+export function withPieceScorePractice(
+  workspace,
+  practice,
+) {
+  return Object.freeze({
+    ...workspace,
+    score: Object.freeze({
+      ...workspace.score,
+      practice,
+    }),
+  });
+}
