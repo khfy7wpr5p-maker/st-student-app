@@ -256,7 +256,15 @@ function accessibleLabelAttribute(value) {
     : "";
 }
 
-function renderPieceItem(item, accessibleLabel = "") {
+function autofocusAttribute(active) {
+  return active === true ? " autofocus" : "";
+}
+
+function renderPieceItem(
+  item,
+  accessibleLabel = "",
+  returnPieceAssignmentId = null,
+) {
   return `
     <li>
       <button
@@ -271,7 +279,9 @@ function renderPieceItem(item, accessibleLabel = "") {
         )}"
         data-assignment-state="${escapeHtml(
           item.state,
-        )}"${accessibleLabelAttribute(accessibleLabel)}
+        )}"${accessibleLabelAttribute(accessibleLabel)}${autofocusAttribute(
+          returnPieceAssignmentId === item.pieceAssignmentId,
+        )}
       >
         ${escapeHtml(
           item.title,
@@ -359,6 +369,10 @@ function renderMyWork(state) {
     ...pieceItems,
     ...scoreItems,
   ]);
+  const returnPieceAssignmentId =
+    typeof state.returnContext?.pieceAssignmentId === "string"
+      ? state.returnContext.pieceAssignmentId
+      : null;
 
   const content =
     state.items.length === 0
@@ -366,7 +380,13 @@ function renderMyWork(state) {
       : `
         <ul class="assignment-list">
           ${pieceItems
-            .map((item) => renderPieceItem(item, accessibleLabels.get(item)))
+            .map((item) =>
+              renderPieceItem(
+                item,
+                accessibleLabels.get(item),
+                returnPieceAssignmentId,
+              ),
+            )
             .join("")}
           ${scoreItems
             .map((item) =>
