@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "runtimeTarget": "student-static",
+  "audioEngineSourceRevision": "298ddd61ba3854231ff7e59a88c22c4a01530a41",
+  "browserRuntimeVersion": "0.2.0",
+  "publicContractVersion": "0.2.0",
+  "violin": {
+    "manifestId": "vsco2ce-solo-violin-arco-vib-p-v1",
+    "sourceTag": "1.1.0",
+    "sourceTreeSha1": "fa78dd38fcf6d707d46eca4a1d46df32788bc99d",
+    "licenseId": "CC0-1.0",
+    "samples": [
+      { "rootMidi": 55, "file": "samples/LLVln_ArcoVib_G3_p.wav" },
+      { "rootMidi": 57, "file": "samples/LLVln_ArcoVib_A3_p.wav" },
+      { "rootMidi": 60, "file": "samples/LLVln_ArcoVib_C4_p.wav" },
+      { "rootMidi": 64, "file": "samples/LLVln_ArcoVib_E4_p.wav" },
+      { "rootMidi": 67, "file": "samples/LLVln_ArcoVib_G4_p.wav" },
+      { "rootMidi": 69, "file": "samples/LLVln_ArcoVib_A4_p.wav" },
+      { "rootMidi": 72, "file": "samples/LLVln_ArcoVib_C5_p.wav" },
+      { "rootMidi": 76, "file": "samples/LLVln_ArcoVib_E5_p.wav" },
+      { "rootMidi": 79, "file": "samples/LLVln_ArcoVib_G5_p.wav" },
+      { "rootMidi": 81, "file": "samples/LLVln_ArcoVib_A5_p.wav" },
+      { "rootMidi": 84, "file": "samples/LLVln_ArcoVib_C6_p.wav" },
+      { "rootMidi": 88, "file": "samples/LLVln_ArcoVib_E6_p.wav" },
+      { "rootMidi": 91, "file": "samples/LLVln_ArcoVib_G6_p.wav" },
+      { "rootMidi": 93, "file": "samples/LLVln_ArcoVib_A6_p.wav" },
+      { "rootMidi": 96, "file": "samples/LLVln_ArcoVib_C7_p.wav" }
+    ]
+  },
+  "assets": [
+    { "path": "st-score-audio-engine.js", "bytes": 22499, "sha256": "babf2a12d2c1000a8bc781c084c844b1dcd8cf4072ce9d56f273888a4782efe5" },
+    { "path": "CC0-PROVENANCE.md", "bytes": 611, "sha256": "1a778e982def6e8444f196ec088eb59d15fd361b9eebdf355f1421e75b032d0e" },
+    { "path": "samples/LLVln_ArcoVib_G3_p.wav", "bytes": 2788822, "sha256": "c52d8ef3e2882984c09da1b7c7ef40b82e997bc78cfdd380fe167bbcb94b03de" },
+    { "path": "samples/LLVln_ArcoVib_A3_p.wav", "bytes": 2911130, "sha256": "8daa4ca0eba8a834814435047e36b47826e730a7796c325966323f53debc9e46" },
+    { "path": "samples/LLVln_ArcoVib_C4_p.wav", "bytes": 3096650, "sha256": "592ebf4404ccafc7164c13cc543911ba9a2fe5f5e70dbb200807e2ae37b25035" },
+    { "path": "samples/LLVln_ArcoVib_E4_p.wav", "bytes": 2600174, "sha256": "57c5aec0678a5d582d87ab33cd2f8954fea26ffd04c932eb6753d6a78e08736b" },
+    { "path": "samples/LLVln_ArcoVib_G4_p.wav", "bytes": 2594066, "sha256": "ad1ba8442a6b40919093c9c831a8171c7030f7e651fbe075ab87764665deef88" },
+    { "path": "samples/LLVln_ArcoVib_A4_p.wav", "bytes": 2612122, "sha256": "0d05607b46b78690893006d5aa7923ac304c7fb497df1e96536dc88ac5ac487f" },
+    { "path": "samples/LLVln_ArcoVib_C5_p.wav", "bytes": 2498790, "sha256": "77a2133b5f97e1ec0edb759c0c552fc3efa7caf4ce1e0a4aa22625cf4c9da130" },
+    { "path": "samples/LLVln_ArcoVib_E5_p.wav", "bytes": 2517094, "sha256": "c60c3bcfc64ea00ebf8d97b16f2876c892393839a017a945c5e557359b6369a4" },
+    { "path": "samples/LLVln_ArcoVib_G5_p.wav", "bytes": 2596714, "sha256": "537df6072b0922a0231a6b3fad117e84bcaaa3e60ca68c665776a83c9bd9062d" },
+    { "path": "samples/LLVln_ArcoVib_A5_p.wav", "bytes": 2562122, "sha256": "204834bfb91ee62d53d3b2c9e9d37928617f643922f434323508a15a70ee591c" },
+    { "path": "samples/LLVln_ArcoVib_C6_p.wav", "bytes": 2358906, "sha256": "48039f28964328d0b8235b8d61e39b06f8d22f836a6940fa036fe7004fc58e6c" },
+    { "path": "samples/LLVln_ArcoVib_E6_p.wav", "bytes": 2514702, "sha256": "f1f0f8062eda1af6147852bf61b39e6b8734d4b0236737810c9d660297a34f0c" },
+    { "path": "samples/LLVln_ArcoVib_G6_p.wav", "bytes": 2417222, "sha256": "eb40e796d0e40ff4a729fd93dc9436ac08b30de308a8191e944351fee49aef9d" },
+    { "path": "samples/LLVln_ArcoVib_A6_p.wav", "bytes": 2614110, "sha256": "0f212759660b2fb0d645b2089adbf4222eebc829927c1e002caa434ecd804f0b" },
+    { "path": "samples/LLVln_ArcoVib_C7_p.wav", "bytes": 2274706, "sha256": "02b077cecc5002156fb439c5e0edfb75dbed94a97502a0252e57a76930415889" }
+  ]
+}
