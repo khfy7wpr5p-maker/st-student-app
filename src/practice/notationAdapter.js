@@ -4,6 +4,7 @@ export const ST_SCORE_RENDERER_CONTRACT_VERSION = "0.2.0";
 
 const SOURCE_ID_MAX_LENGTH = 256;
 const RENDER_EPOCH_MAX_LENGTH = 128;
+const MUSICXML_DECLARATION = '<?xml version="1.0" encoding="UTF-8"?>';
 
 function boundedText(value, maxLength) {
   return (
@@ -15,6 +16,13 @@ function boundedText(value, maxLength) {
       ? value
       : null
   );
+}
+
+function musicXmlForRuntime(musicXml) {
+  if (typeof musicXml !== "string") return musicXml;
+  if (musicXml.startsWith("<?xml")) return musicXml;
+  if (!/^<score-partwise(?:\s|>)/.test(musicXml)) return musicXml;
+  return `${MUSICXML_DECLARATION}\n${musicXml}`;
 }
 
 function finitePoint(point) {
@@ -189,7 +197,7 @@ export function createStNotationAdapter({
       const requestedSourceId = boundedText(sourceId, SOURCE_ID_MAX_LENGTH);
       const payload = {
         contractVersion: ST_SCORE_RENDERER_CONTRACT_VERSION,
-        musicxml: musicXml,
+        musicxml: musicXmlForRuntime(musicXml),
         ticket: nextTicket(),
         pageMode: "continuous",
         autoResize: true,
