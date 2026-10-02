@@ -223,49 +223,83 @@ function folderButton(state, value, label) {
   `;
 }
 
+function duplicateWorkAccessibleLabels(items) {
+  const counts = new Map();
 
-function renderPieceItem(item) {
+  for (const item of items) {
+    const title = typeof item.title === "string" ? item.title : "";
+    counts.set(title, (counts.get(title) ?? 0) + 1);
+  }
+
+  const seen = new Map();
+  const labels = new Map();
+
+  for (const item of items) {
+    const title = typeof item.title === "string" ? item.title : "";
+    const count = counts.get(title) ?? 0;
+
+    if (count <= 1) {
+      continue;
+    }
+
+    const ordinal = (seen.get(title) ?? 0) + 1;
+    seen.set(title, ordinal);
+    labels.set(item, `${title}, aynı adlı çalışma ${ordinal}/${count}`);
+  }
+
+  return labels;
+}
+
+function accessibleLabelAttribute(value) {
+  return typeof value === "string" && value.length > 0
+    ? ` aria-label="${escapeHtml(value)}"`
+    : "";
+}
+
+function autofocusAttribute(active) {
+  return active === true ? " autofocus" : "";
+}
+
+function renderPieceItem(
+  item,
+  accessibleLabel = "",
+  returnPieceAssignmentId = null,
+) {
   return `
     <li>
       <button
         type="button"
-        class="piece-card"
+        class="work-title-link"
         data-action="open-piece"
         data-piece-assignment-id="${escapeHtml(
           item.pieceAssignmentId,
         )}"
+        data-assignment-id="${escapeHtml(
+          item.pieceAssignmentId,
+        )}"
         data-assignment-state="${escapeHtml(
           item.state,
-        )}"
+        )}"${accessibleLabelAttribute(accessibleLabel)}${autofocusAttribute(
+          returnPieceAssignmentId === item.pieceAssignmentId,
+        )}
       >
-        <strong>${escapeHtml(
+        ${escapeHtml(
           item.title,
-        )}</strong>
+        )}
       </button>
     </li>
   `;
 }
 
-function renderScoreAssignmentItem(item) {
-  const note =
-    typeof item.teacherNote === "string" && item.teacherNote.length > 0
-      ? `<p class="teacher-note"><span class="teacher-note-label">Öğretmen notu</span>${escapeHtml(
-          item.teacherNote,
-        )}</p>`
-      : "";
-
+function renderScoreAssignmentItem(item, accessibleLabel = "") {
   return `
     <li>
-      <article class="assignment-card assignment-card-score">
-        <span class="assignment-type">Nota çalışması</span>
-        <h2>${escapeHtml(item.title)}</h2>
-        ${note}
-        <button
-          type="button"
-          data-action="open-assignment"
-          data-assignment-id="${escapeHtml(item.assignmentId)}"
-        >Çalışmayı Aç</button>
-      </article>
+      <button
+        type="button"
+        class="work-title-link"
+        data-action="open-assignment"
+        data-assignment-id="${escapeHtml(item.assignmentId)}"${accessibleLabelAttribute(accessibleLabel)}
+      >${escapeHtml(item.title)}</button>
     </li>
   `;
 }
@@ -331,6 +365,14 @@ function renderMyWork(state) {
       item.practiceType ===
       PRACTICE_TYPES.CHORD_BOARD,
   );
+  const accessibleLabels = duplicateWorkAccessibleLabels([
+    ...pieceItems,
+    ...scoreItems,
+  ]);
+  const returnPieceAssignmentId =
+    typeof state.returnContext?.pieceAssignmentId === "string"
+      ? state.returnContext.pieceAssignmentId
+      : null;
 
   const content =
     state.items.length === 0
@@ -338,10 +380,18 @@ function renderMyWork(state) {
       : `
         <ul class="assignment-list">
           ${pieceItems
-            .map(renderPieceItem)
+            .map((item) =>
+              renderPieceItem(
+                item,
+                accessibleLabels.get(item),
+                returnPieceAssignmentId,
+              ),
+            )
             .join("")}
           ${scoreItems
-            .map(renderScoreAssignmentItem)
+            .map((item) =>
+              renderScoreAssignmentItem(item, accessibleLabels.get(item)),
+            )
             .join("")}
           ${renderChordAssignmentGroup(
             chordItems,

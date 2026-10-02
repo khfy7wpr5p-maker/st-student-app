@@ -17,7 +17,7 @@ function chordAssignmentId(item) {
     : null;
 }
 
-function freezeReturnContext(value = {}) {
+function freezeReturnContext(value = {}, pieceAssignmentId = null) {
   const folderState =
     typeof value.folderState === "string" &&
     value.folderState.length > 0
@@ -28,11 +28,28 @@ function freezeReturnContext(value = {}) {
     value.scrollPosition >= 0
       ? value.scrollPosition
       : 0;
-
-  return Object.freeze({
+  const context = {
     folderState,
     scrollPosition,
-  });
+  };
+
+  if (
+    typeof pieceAssignmentId === "string" &&
+    pieceAssignmentId.length > 0
+  ) {
+    Object.defineProperty(
+      context,
+      "pieceAssignmentId",
+      {
+        value: pieceAssignmentId,
+        enumerable: false,
+        writable: false,
+        configurable: false,
+      },
+    );
+  }
+
+  return Object.freeze(context);
 }
 
 export function createPieceWorkspaceViewModel({
@@ -96,6 +113,7 @@ export function createPieceWorkspaceViewModel({
     returnContext:
       freezeReturnContext(
         returnContext,
+        piece.pieceAssignmentId,
       ),
     score: Object.freeze({
       status:

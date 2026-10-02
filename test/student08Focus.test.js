@@ -69,7 +69,7 @@ function makeFocusRoot() {
 
 test("STUDENT-08 repaint restores focus to the exact assignment action", async () => {
   const focus = makeFocusRoot();
-  let note = "İlk not";
+  let secondTitle = "Etüt B";
 
   const controller = {
     getState() {
@@ -83,14 +83,14 @@ test("STUDENT-08 repaint restores focus to the exact assignment action", async (
             assignmentId: "assignment-a",
             title: "Etüt A",
             practiceType: PRACTICE_TYPES.SCORE,
-            teacherNote: note,
+            teacherNote: "İlk not",
             state: ASSIGNMENT_STATES.ACTIVE,
           },
           {
             assignmentId: "assignment-b",
-            title: "Etüt B",
+            title: secondTitle,
             practiceType: PRACTICE_TYPES.SCORE,
-            teacherNote: note,
+            teacherNote: "İlk not",
             state: ASSIGNMENT_STATES.ACTIVE,
           },
         ],
@@ -110,7 +110,7 @@ test("STUDENT-08 repaint restores focus to the exact assignment action", async (
   await mounted.render();
   focus.focusSecondAssignment();
 
-  note = "Güncellenen not";
+  secondTitle = "Etüt B (güncellendi)";
   await mounted.render();
 
   assert.equal(focus.restoredAssignmentId(), "assignment-b");

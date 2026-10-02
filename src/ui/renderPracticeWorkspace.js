@@ -195,6 +195,12 @@ export function renderPracticeWorkspace(
         practice.title ?? "Çalışma",
       )}</h1>`
     : "";
+  const teacherNote =
+    showTitle &&
+    typeof practice.teacherNote === "string" &&
+    practice.teacherNote.length > 0
+      ? `<p class="teacher-note"><span class="teacher-note-label">Öğretmen notu</span>${escapeHtml(practice.teacherNote)}</p>`
+      : "";
   const sectionLabel = showTitle
     ? 'aria-labelledby="page-title"'
     : 'aria-label="Nota çalışması"';
@@ -202,6 +208,7 @@ export function renderPracticeWorkspace(
   return `
     <section class="practice-workspace" ${sectionLabel}>
       ${title}
+      ${teacherNote}
       ${homeAction}
       ${renderNotation(
         practice,

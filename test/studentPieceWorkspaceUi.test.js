@@ -90,7 +90,7 @@ function workspace(selectedView = "SCORE") {
   });
 }
 
-test("Piece-enabled My Work shows one musical work card instead of child assignment cards", () => {
+test("Piece-enabled My Work shows one musical work title instead of child assignments", () => {
   const html = renderStudentApp({
     student08: true,
     screen: STUDENT_APP_SCREENS.MY_WORK,
