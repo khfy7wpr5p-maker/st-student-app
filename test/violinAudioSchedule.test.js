@@ -82,6 +82,7 @@ test("monophonic target produces a deterministic frozen schedule and excludes ac
       startBeat: 0,
       durationBeats: 2,
       midi: 66,
+      voice: "1",
     },
     {
       sourceEventId: "P1:0:1:1",
@@ -90,6 +91,7 @@ test("monophonic target produces a deterministic frozen schedule and excludes ac
       startBeat: 2,
       durationBeats: 2,
       midi: 62,
+      voice: "1",
     },
   ]);
   assert.equal(result.events.some((event) => event.partId === "P2"), false);
