@@ -80,6 +80,7 @@ function snapshotSchedule(schedule) {
     !schedule ||
     !validIdentity(schedule.packageId) ||
     !validIdentity(schedule.sourceId) ||
+    schedule.sourceId !== schedule.packageId ||
     !validIdentity(schedule.targetPartId, 128) ||
     !Array.isArray(schedule.pitches) ||
     schedule.pitches.length < 1 ||
@@ -214,11 +215,25 @@ export function createViolinAudioLane({
   async function prepareForPackage({ schedule, generation } = {}) {
     if (disposed || !validGeneration(generation)) return false;
 
-    const preparedSchedule = snapshotSchedule(schedule);
-    if (preparedSchedule === null) return false;
-
     epoch += 1;
     safeStopAll(engine);
+
+    const preparedSchedule = snapshotSchedule(schedule);
+    if (preparedSchedule === null) {
+      active = {
+        epoch,
+        generation,
+        packageId: null,
+        sourceId: null,
+        targetPartId: null,
+        pitches: Object.freeze([]),
+        eventsByKey: new Map(),
+        mode: "PIANO",
+        externalStarted: false,
+        requestCounter: 0,
+      };
+      return false;
+    }
 
     const candidate = {
       epoch,
@@ -286,6 +301,7 @@ export function createViolinAudioLane({
     if (active === null) return "PIANO";
     if (!Object.is(generation, active.generation)) return "SUPPRESS";
 
+    if (active.mode === "PIANO") return "PIANO";
     if (note?.partId !== active.targetPartId) return "PIANO";
     if (active.mode === "SUPPRESS") return "SUPPRESS";
     if (active.mode !== "READY") return "PIANO";
