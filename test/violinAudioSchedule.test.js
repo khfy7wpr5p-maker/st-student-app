@@ -127,6 +127,21 @@ test("exact package/source provenance and PlaybackPlan MIDI must match exact sou
   );
 });
 
+test("PlaybackPlan onset must match the exact source event onset", () => {
+  const xml = `<score-partwise version="4.0">
+    <part-list><score-part id="P1"><part-name>Violin</part-name></score-part></part-list>
+    <part id="P1"><measure number="1">
+      <attributes><divisions>1</divisions></attributes>
+      <note><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration><voice>1</voice></note>
+    </measure></part>
+  </score-partwise>`;
+  const shifted = [
+    { startBeat: 1, durationBeats: 3, midi: 60, measureIndex: 0, partId: "P1", voice: "1" },
+  ];
+
+  assert.equal(schedule({ musicXml: xml, notes: shifted }), null);
+});
+
 test("non-zero target transposition fails closed", () => {
   const xml = `<score-partwise version="4.0">
     <part-list><score-part id="P1"><part-name>Violin</part-name></score-part></part-list>
@@ -179,11 +194,13 @@ test("missing or ambiguous exact target mapping returns null instead of guessing
   const ambiguousIndex = () => Object.freeze({
     measureMapping: "EXACT",
     eventMapping: "EXACT",
-    listExactEventsForPart() {
-      return Object.freeze([
-        Object.freeze({ eventId: "a", partId: "P1", measureIndex: 0, startBeat: 0, endBeat: 2, midi: 66 }),
-        Object.freeze({ eventId: "b", partId: "P1", measureIndex: 0, startBeat: 0, endBeat: 2, midi: 66 }),
-      ]);
+    resolveBeat() {
+      return Object.freeze({
+        activeEvents: Object.freeze([
+          Object.freeze({ eventId: "a", partId: "P1", measureIndex: 0, midi: 66 }),
+          Object.freeze({ eventId: "b", partId: "P1", measureIndex: 0, midi: 66 }),
+        ]),
+      });
     },
   });
 
