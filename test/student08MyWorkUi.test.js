@@ -20,7 +20,7 @@ function myWorkState(items, assignmentState = ASSIGNMENT_STATES.ACTIVE) {
   };
 }
 
-test("S08-4B My Work gives SCORE items a clear hierarchy while preserving the existing open action", () => {
+test("My Work shows a SCORE title as a compact open control", () => {
   const html = renderStudentApp(
     myWorkState([
       {
@@ -36,17 +36,23 @@ test("S08-4B My Work gives SCORE items a clear hierarchy while preserving the ex
 
   assert.match(
     html,
-    /<article class="assignment-card assignment-card-score">/,
+    /class="work-title-link"[^>]*data-action="open-assignment"[^>]*data-assignment-id="score-1"[^>]*>\s*Gitar Etüdü\s*<\/button>/s,
   );
-  assert.match(html, /class="assignment-type">Nota çalışması/);
-  assert.match(
-    html,
-    /class="teacher-note"><span class="teacher-note-label">Öğretmen notu<\/span>İkinci ölçüyü yavaş çalış\./,
-  );
-  assert.match(
-    html,
-    /data-action="open-assignment"[^>]*data-assignment-id="score-1"/s,
-  );
+  assert.doesNotMatch(html, /İkinci ölçüyü yavaş çalış\.|Çalışmayı Aç|assignment-card-score/);
+});
+
+test("My Work includes every title in a 50-piece folder", () => {
+  const items = Array.from({ length: 50 }, (_, index) => ({
+    itemKind: "PIECE",
+    pieceAssignmentId: `piece-${index + 1}`,
+    title: `Etüt ${index + 1}`,
+    state: ASSIGNMENT_STATES.ACTIVE,
+  }));
+  const html = renderStudentApp(myWorkState(items));
+
+  assert.equal((html.match(/data-action="open-piece"/g) ?? []).length, 50);
+  assert.match(html, /data-piece-assignment-id="piece-50"[^>]*>[\s\S]*?Etüt 50/);
+  assert.doesNotMatch(html, /class="piece-card"/);
 });
 
 test("S08-4B My Work groups CHORD_BOARD assignments under one expandable Akor çalışması entry", () => {
@@ -115,7 +121,7 @@ test("S08-4B My Work groups CHORD_BOARD assignments under one expandable Akor ç
   assert.doesNotMatch(html, />\s*(?:Düzenle|Çal|Dinle)\s*</);
 });
 
-test("S08-4B My Work folders are compact, visibly selected, and responsive", async () => {
+test("My Work folders remain selected and the assignment list uses compact rows", async () => {
   const html = await readFile(
     new URL("../index.html", import.meta.url),
     "utf8",
@@ -131,11 +137,11 @@ test("S08-4B My Work folders are compact, visibly selected, and responsive", asy
   );
   assert.match(
     html,
-    /\.assignment-list\s*\{[^}]*grid-template-columns:\s*repeat\(auto-fit,\s*minmax\(min\(100%,\s*18rem\),\s*1fr\)\)/s,
+    /\.assignment-list\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/s,
   );
   assert.match(
     html,
-    /\.teacher-note\s*\{[^}]*color:\s*var\(--st-text-muted\)[^}]*font-size:\s*var\(--st-font-size-sm\)/s,
+    /\.assignment-list \.work-title-link\s*\{[^}]*text-decoration:\s*underline/s,
   );
   assert.match(
     html,

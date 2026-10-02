@@ -337,6 +337,7 @@ export function createStudentAppController({
     item,
     session,
     requestGeneration,
+    teacherNote = "",
   }) {
     if (!sessionRequestIsCurrent(session, requestGeneration)) {
       return state;
@@ -358,10 +359,13 @@ export function createStudentAppController({
     state = freezeState({
       screen: STUDENT_APP_SCREENS.PRACTICE,
       session,
-      practice: withOfflinePracticeMetadata(
-        workspace.viewModel,
-        item,
-      ),
+      practice: Object.freeze({
+        ...withOfflinePracticeMetadata(
+          workspace.viewModel,
+          item,
+        ),
+        teacherNote,
+      }),
       syncState: currentSyncState,
       student08: student08Enabled,
     });
@@ -831,6 +835,7 @@ export function createStudentAppController({
             item,
             session,
             requestGeneration,
+            teacherNote: assignment.teacherNote,
           }),
         );
       });

@@ -267,6 +267,10 @@ test("SCORE assignment keeps existing Practice while CHORD_BOARD opens its dedic
   controller.openAssignment("assignment-score");
   assert.equal(controller.getState().screen, STUDENT_APP_SCREENS.PRACTICE);
   assert.equal(controller.getState().practice.title, "Gitar Etüdü");
+  assert.equal(
+    controller.getState().practice.teacherNote,
+    "İkinci ölçüyü yavaş çalış.",
+  );
 
   controller.showMyWork();
   controller.openAssignment("assignment-chord");
@@ -350,7 +354,7 @@ test("STUDENT-08 renderer keeps Havuz presentation-only and exposes lifecycle fo
   }
   assert.match(workHtml, /data-action="open-assignment"/);
   assert.match(workHtml, /Gitar Etüdü/);
-  assert.match(workHtml, /Yavaş çalış/);
+  assert.doesNotMatch(workHtml, /Yavaş çalış/);
   assert.match(workHtml, /Akor çalışması/);
   assert.doesNotMatch(
     workHtml,

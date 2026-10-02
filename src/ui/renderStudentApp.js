@@ -229,7 +229,7 @@ function renderPieceItem(item) {
     <li>
       <button
         type="button"
-        class="piece-card"
+        class="work-title-link"
         data-action="open-piece"
         data-piece-assignment-id="${escapeHtml(
           item.pieceAssignmentId,
@@ -238,34 +238,23 @@ function renderPieceItem(item) {
           item.state,
         )}"
       >
-        <strong>${escapeHtml(
+        ${escapeHtml(
           item.title,
-        )}</strong>
+        )}
       </button>
     </li>
   `;
 }
 
 function renderScoreAssignmentItem(item) {
-  const note =
-    typeof item.teacherNote === "string" && item.teacherNote.length > 0
-      ? `<p class="teacher-note"><span class="teacher-note-label">Öğretmen notu</span>${escapeHtml(
-          item.teacherNote,
-        )}</p>`
-      : "";
-
   return `
     <li>
-      <article class="assignment-card assignment-card-score">
-        <span class="assignment-type">Nota çalışması</span>
-        <h2>${escapeHtml(item.title)}</h2>
-        ${note}
-        <button
-          type="button"
-          data-action="open-assignment"
-          data-assignment-id="${escapeHtml(item.assignmentId)}"
-        >Çalışmayı Aç</button>
-      </article>
+      <button
+        type="button"
+        class="work-title-link"
+        data-action="open-assignment"
+        data-assignment-id="${escapeHtml(item.assignmentId)}"
+      >${escapeHtml(item.title)}</button>
     </li>
   `;
 }

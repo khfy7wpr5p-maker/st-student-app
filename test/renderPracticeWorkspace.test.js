@@ -144,6 +144,17 @@ test("dynamic title is escaped and internal identifiers are not rendered", () =>
   );
 });
 
+test("teacher instructions remain visible inside the opened score, escaped", () => {
+  const html = renderPracticeWorkspace({
+    ...makePractice(),
+    teacherNote: 'İkinci ölçüde <yavaş> çal.',
+  });
+
+  assert.match(html, /Öğretmen notu/);
+  assert.match(html, /İkinci ölçüde &lt;yavaş&gt; çal\./);
+  assert.doesNotMatch(html, /<yavaş>/);
+});
+
 test("missing capability object fails closed to unavailable presentation", () => {
   const html = renderPracticeWorkspace({
     title: "Eski güvenli görünüm",
