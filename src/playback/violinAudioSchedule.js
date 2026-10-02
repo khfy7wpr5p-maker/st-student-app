@@ -1,6 +1,7 @@
 import { createScoreFollowIndex } from "../practice/scoreFollowIndex.js";
 
 const EPSILON = 1e-9;
+const ONSET_PROBE_BEATS = 4 * EPSILON;
 
 function validIdentity(value, maxLength = 256) {
   return (
@@ -57,6 +58,34 @@ function exactTargetSourceEvent(index, note, targetPartId) {
       event.transpositionSemitones !== 0)
   ) {
     return null;
+  }
+
+  if (note.startBeat >= ONSET_PROBE_BEATS) {
+    let immediatelyBefore;
+    try {
+      immediatelyBefore = index.resolveBeat(
+        note.startBeat - ONSET_PROBE_BEATS,
+      );
+    } catch {
+      return null;
+    }
+
+    if (
+      immediatelyBefore === null ||
+      !Array.isArray(immediatelyBefore.activeEvents)
+    ) {
+      return null;
+    }
+
+    const sameSourceEventWasAlreadyActive =
+      immediatelyBefore.activeEvents.some(
+        (candidate) =>
+          candidate?.partId === targetPartId &&
+          candidate?.eventId === event.eventId,
+      );
+    if (sameSourceEventWasAlreadyActive) {
+      return null;
+    }
   }
 
   return event;
