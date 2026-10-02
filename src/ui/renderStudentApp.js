@@ -223,8 +223,40 @@ function folderButton(state, value, label) {
   `;
 }
 
+function duplicateWorkAccessibleLabels(items) {
+  const counts = new Map();
 
-function renderPieceItem(item) {
+  for (const item of items) {
+    const title = typeof item.title === "string" ? item.title : "";
+    counts.set(title, (counts.get(title) ?? 0) + 1);
+  }
+
+  const seen = new Map();
+  const labels = new Map();
+
+  for (const item of items) {
+    const title = typeof item.title === "string" ? item.title : "";
+    const count = counts.get(title) ?? 0;
+
+    if (count <= 1) {
+      continue;
+    }
+
+    const ordinal = (seen.get(title) ?? 0) + 1;
+    seen.set(title, ordinal);
+    labels.set(item, `${title}, aynı adlı çalışma ${ordinal}/${count}`);
+  }
+
+  return labels;
+}
+
+function accessibleLabelAttribute(value) {
+  return typeof value === "string" && value.length > 0
+    ? ` aria-label="${escapeHtml(value)}"`
+    : "";
+}
+
+function renderPieceItem(item, accessibleLabel = "") {
   return `
     <li>
       <button
@@ -234,9 +266,12 @@ function renderPieceItem(item) {
         data-piece-assignment-id="${escapeHtml(
           item.pieceAssignmentId,
         )}"
+        data-assignment-id="${escapeHtml(
+          item.pieceAssignmentId,
+        )}"
         data-assignment-state="${escapeHtml(
           item.state,
-        )}"
+        )}"${accessibleLabelAttribute(accessibleLabel)}
       >
         ${escapeHtml(
           item.title,
@@ -246,14 +281,14 @@ function renderPieceItem(item) {
   `;
 }
 
-function renderScoreAssignmentItem(item) {
+function renderScoreAssignmentItem(item, accessibleLabel = "") {
   return `
     <li>
       <button
         type="button"
         class="work-title-link"
         data-action="open-assignment"
-        data-assignment-id="${escapeHtml(item.assignmentId)}"
+        data-assignment-id="${escapeHtml(item.assignmentId)}"${accessibleLabelAttribute(accessibleLabel)}
       >${escapeHtml(item.title)}</button>
     </li>
   `;
@@ -320,6 +355,10 @@ function renderMyWork(state) {
       item.practiceType ===
       PRACTICE_TYPES.CHORD_BOARD,
   );
+  const accessibleLabels = duplicateWorkAccessibleLabels([
+    ...pieceItems,
+    ...scoreItems,
+  ]);
 
   const content =
     state.items.length === 0
@@ -327,10 +366,12 @@ function renderMyWork(state) {
       : `
         <ul class="assignment-list">
           ${pieceItems
-            .map(renderPieceItem)
+            .map((item) => renderPieceItem(item, accessibleLabels.get(item)))
             .join("")}
           ${scoreItems
-            .map(renderScoreAssignmentItem)
+            .map((item) =>
+              renderScoreAssignmentItem(item, accessibleLabels.get(item)),
+            )
             .join("")}
           ${renderChordAssignmentGroup(
             chordItems,
