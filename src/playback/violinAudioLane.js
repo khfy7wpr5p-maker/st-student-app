@@ -140,6 +140,8 @@ export function createViolinAudioLane({
   let disposed = false;
   let epoch = 0;
   let active = null;
+  let engine = null;
+  let enginePromise = null;
 
   function isCurrent(candidate) {
     return (
@@ -152,9 +154,8 @@ export function createViolinAudioLane({
 
   function setPianoFallback(candidate) {
     if (!isCurrent(candidate)) return false;
-    safeStopAll(candidate.engine);
+    safeStopAll(engine);
     candidate.mode = "PIANO";
-    candidate.engine = null;
     candidate.externalStarted = false;
     return false;
   }
@@ -162,7 +163,52 @@ export function createViolinAudioLane({
   function suppressGeneration(candidate) {
     if (!isCurrent(candidate) || candidate.mode === "SUPPRESS") return;
     candidate.mode = "SUPPRESS";
-    safeStopAll(candidate.engine);
+    safeStopAll(engine);
+  }
+
+  async function ensureEngine() {
+    if (disposed) return null;
+    if (engine !== null) return engine;
+    if (enginePromise !== null) return enginePromise;
+    if (
+      typeof runtimeLoader?.load !== "function" ||
+      typeof audioContextFactory !== "function"
+    ) {
+      return null;
+    }
+
+    enginePromise = (async () => {
+      let created = null;
+      try {
+        const runtime = await runtimeLoader.load();
+        if (disposed || !runtime || typeof runtime.createAudioEngine !== "function") {
+          return null;
+        }
+
+        created = runtime.createAudioEngine({
+          audioContextFactory,
+          defaultInstrument: VIOLIN_INSTRUMENT,
+        });
+        if (!validEngine(created)) {
+          safeStopAll(created);
+          return null;
+        }
+
+        if (disposed) {
+          safeStopAll(created);
+          return null;
+        }
+        engine = created;
+        return engine;
+      } catch {
+        safeStopAll(created);
+        return null;
+      } finally {
+        enginePromise = null;
+      }
+    })();
+
+    return enginePromise;
   }
 
   async function prepareForPackage({ schedule, generation } = {}) {
@@ -171,9 +217,8 @@ export function createViolinAudioLane({
     const preparedSchedule = snapshotSchedule(schedule);
     if (preparedSchedule === null) return false;
 
-    const previous = active;
     epoch += 1;
-    if (previous?.engine) safeStopAll(previous.engine);
+    safeStopAll(engine);
 
     const candidate = {
       epoch,
@@ -183,60 +228,31 @@ export function createViolinAudioLane({
       targetPartId: preparedSchedule.targetPartId,
       pitches: preparedSchedule.pitches,
       eventsByKey: preparedSchedule.eventsByKey,
-      engine: null,
       mode: "PREPARING",
       externalStarted: false,
       requestCounter: 0,
     };
     active = candidate;
 
-    if (
-      typeof runtimeLoader?.load !== "function" ||
-      typeof audioContextFactory !== "function"
-    ) {
-      return setPianoFallback(candidate);
-    }
-
     try {
-      const runtime = await runtimeLoader.load();
+      const reusableEngine = await ensureEngine();
       if (!isCurrent(candidate)) return false;
-      if (!runtime || typeof runtime.createAudioEngine !== "function") {
-        return setPianoFallback(candidate);
-      }
+      if (reusableEngine === null) return setPianoFallback(candidate);
 
-      const engine = runtime.createAudioEngine({
-        audioContextFactory,
-        defaultInstrument: VIOLIN_INSTRUMENT,
-      });
-      if (!validEngine(engine)) {
-        safeStopAll(engine);
-        return setPianoFallback(candidate);
-      }
-      candidate.engine = engine;
+      await reusableEngine.setInstrument(VIOLIN_INSTRUMENT);
+      if (!isCurrent(candidate)) return false;
 
-      await engine.setInstrument(VIOLIN_INSTRUMENT);
-      if (!isCurrent(candidate)) {
-        safeStopAll(engine);
-        return false;
-      }
-
-      const unlockResult = await engine.unlockFromUserGesture();
-      if (!isCurrent(candidate)) {
-        safeStopAll(engine);
-        return false;
-      }
+      const unlockResult = await reusableEngine.unlockFromUserGesture();
+      if (!isCurrent(candidate)) return false;
       if (!isSuccessfulResult(unlockResult)) {
         return setPianoFallback(candidate);
       }
 
-      const prepareResult = await engine.preparePitches({
+      const prepareResult = await reusableEngine.preparePitches({
         instrumentId: VIOLIN_INSTRUMENT,
         pitches: candidate.pitches,
       });
-      if (!isCurrent(candidate)) {
-        safeStopAll(engine);
-        return false;
-      }
+      if (!isCurrent(candidate)) return false;
       if (!isSuccessfulResult(prepareResult)) {
         return setPianoFallback(candidate);
       }
@@ -290,8 +306,7 @@ export function createViolinAudioLane({
     }
 
     const candidate = active;
-    const engine = candidate.engine;
-    if (!engine || typeof engine.scheduleNote !== "function") {
+    if (engine === null || typeof engine.scheduleNote !== "function") {
       return degradeCurrentRoute(candidate);
     }
 
@@ -325,14 +340,14 @@ export function createViolinAudioLane({
   }
 
   function stopAll() {
-    safeStopAll(active?.engine);
+    safeStopAll(engine);
   }
 
   function dispose() {
     if (disposed) return;
     disposed = true;
     epoch += 1;
-    safeStopAll(active?.engine);
+    safeStopAll(engine);
     active = null;
     // Do not call Audio Engine dispose(): Student owns the shared AudioContext.
   }
