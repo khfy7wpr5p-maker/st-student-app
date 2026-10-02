@@ -6,6 +6,9 @@ import { createScoreAudioRuntimeLoader } from "../src/playback/scoreAudioRuntime
 const SOURCE_REVISION = "298ddd61ba3854231ff7e59a88c22c4a01530a41";
 const RUNTIME_VERSION = "0.2.0";
 const CONTRACT_VERSION = "0.2.0";
+const RUNTIME_BYTES = 22499;
+const RUNTIME_SHA256 = "babf2a12d2c1000a8bc781c084c844b1dcd8cf4072ce9d56f273888a4782efe5";
+const RUNTIME_INTEGRITY = "sha256-ur8qEtLBAAqLx4HAhMhEsdzYz0Byzp1W8nOIikeC7+U=";
 
 function createManifest(overrides = {}) {
   return {
@@ -17,8 +20,8 @@ function createManifest(overrides = {}) {
     assets: [
       {
         path: "st-score-audio-engine.js",
-        bytes: 22499,
-        sha256: "babf2a12d2c1000a8bc781c084c844b1dcd8cf4072ce9d56f273888a4782efe5",
+        bytes: RUNTIME_BYTES,
+        sha256: RUNTIME_SHA256,
       },
     ],
     ...overrides,
@@ -37,6 +40,7 @@ function createFakeDocument({ onAppend } = {}) {
       return {
         async: false,
         src: "",
+        integrity: "",
         addEventListener(type, listener) {
           listeners.set(type, listener);
         },
@@ -89,6 +93,9 @@ function createLoader({
     expectedSourceRevision: SOURCE_REVISION,
     expectedRuntimeVersion: RUNTIME_VERSION,
     expectedContractVersion: CONTRACT_VERSION,
+    expectedRuntimeBytes: RUNTIME_BYTES,
+    expectedRuntimeSha256: RUNTIME_SHA256,
+    expectedRuntimeIntegrity: RUNTIME_INTEGRITY,
   });
 }
 
@@ -119,6 +126,7 @@ test("loader accepts only the exact pinned manifest and returns the loaded runti
     documentObject.appended[0].src,
     "./vendor/st-score-audio/st-score-audio-engine.js",
   );
+  assert.equal(documentObject.appended[0].integrity, RUNTIME_INTEGRITY);
 });
 
 test("loader is single-flight and injects the runtime script only once", async () => {
@@ -165,11 +173,35 @@ test("loader is single-flight and injects the runtime script only once", async (
   assert.equal(documentObject.appended.length, 1);
 });
 
-test("loader rejects source, runtime, or contract pin mismatches before script injection", async (t) => {
+test("loader rejects source, runtime, contract, or runtime-asset pin mismatches before script injection", async (t) => {
   const cases = [
     ["source revision", { audioEngineSourceRevision: "stale" }],
     ["runtime version", { browserRuntimeVersion: "0.1.0" }],
     ["contract version", { publicContractVersion: "0.1.0" }],
+    [
+      "runtime bytes",
+      {
+        assets: [
+          {
+            path: "st-score-audio-engine.js",
+            bytes: RUNTIME_BYTES + 1,
+            sha256: RUNTIME_SHA256,
+          },
+        ],
+      },
+    ],
+    [
+      "runtime hash",
+      {
+        assets: [
+          {
+            path: "st-score-audio-engine.js",
+            bytes: RUNTIME_BYTES,
+            sha256: "0".repeat(64),
+          },
+        ],
+      },
+    ],
   ];
 
   for (const [name, overrides] of cases) {
