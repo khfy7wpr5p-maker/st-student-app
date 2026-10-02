@@ -1,6 +1,11 @@
 const DEFAULT_SOURCE_REVISION = "298ddd61ba3854231ff7e59a88c22c4a01530a41";
 const DEFAULT_RUNTIME_VERSION = "0.2.0";
 const DEFAULT_CONTRACT_VERSION = "0.2.0";
+const DEFAULT_RUNTIME_BYTES = 22499;
+const DEFAULT_RUNTIME_SHA256 =
+  "babf2a12d2c1000a8bc781c084c844b1dcd8cf4072ce9d56f273888a4782efe5";
+const DEFAULT_RUNTIME_INTEGRITY =
+  "sha256-ur8qEtLBAAqLx4HAhMhEsdzYz0Byzp1W8nOIikeC7+U=";
 
 function safeRuntime(getRuntime) {
   try {
@@ -28,6 +33,8 @@ function isPinnedManifest(
     expectedSourceRevision,
     expectedRuntimeVersion,
     expectedContractVersion,
+    expectedRuntimeBytes,
+    expectedRuntimeSha256,
   },
 ) {
   return Boolean(
@@ -41,10 +48,8 @@ function isPinnedManifest(
       manifest.assets.some(
         (asset) =>
           asset?.path === "st-score-audio-engine.js" &&
-          Number.isInteger(asset.bytes) &&
-          asset.bytes > 0 &&
-          typeof asset.sha256 === "string" &&
-          /^[a-f0-9]{64}$/i.test(asset.sha256),
+          asset.bytes === expectedRuntimeBytes &&
+          asset.sha256 === expectedRuntimeSha256,
       ),
   );
 }
@@ -63,6 +68,9 @@ export function createScoreAudioRuntimeLoader({
   expectedSourceRevision = DEFAULT_SOURCE_REVISION,
   expectedRuntimeVersion = DEFAULT_RUNTIME_VERSION,
   expectedContractVersion = DEFAULT_CONTRACT_VERSION,
+  expectedRuntimeBytes = DEFAULT_RUNTIME_BYTES,
+  expectedRuntimeSha256 = DEFAULT_RUNTIME_SHA256,
+  expectedRuntimeIntegrity = DEFAULT_RUNTIME_INTEGRITY,
   fetchImpl = globalThis.fetch,
   documentObject = globalThis.document,
   getRuntime = () => globalThis.STScoreAudioEngine,
@@ -74,6 +82,12 @@ export function createScoreAudioRuntimeLoader({
       typeof fetchImpl === "function" &&
         documentObject?.createElement &&
         documentObject?.head?.append &&
+        Number.isInteger(expectedRuntimeBytes) &&
+        expectedRuntimeBytes > 0 &&
+        typeof expectedRuntimeSha256 === "string" &&
+        /^[a-f0-9]{64}$/.test(expectedRuntimeSha256) &&
+        typeof expectedRuntimeIntegrity === "string" &&
+        expectedRuntimeIntegrity.startsWith("sha256-") &&
         isSameOriginUrl(manifestUrl, documentObject) &&
         isSameOriginUrl(runtimeUrl, documentObject),
     );
@@ -85,6 +99,7 @@ export function createScoreAudioRuntimeLoader({
         const script = documentObject.createElement("script");
         script.async = false;
         script.src = runtimeUrl;
+        script.integrity = expectedRuntimeIntegrity;
         script.addEventListener?.("load", () => resolve(), { once: true });
         script.addEventListener?.(
           "error",
@@ -114,6 +129,8 @@ export function createScoreAudioRuntimeLoader({
           expectedSourceRevision,
           expectedRuntimeVersion,
           expectedContractVersion,
+          expectedRuntimeBytes,
+          expectedRuntimeSha256,
         })
       ) {
         return null;
