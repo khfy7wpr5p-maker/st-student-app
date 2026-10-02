@@ -206,11 +206,20 @@ test("loader rejects source, runtime, contract, or runtime-asset pin mismatches 
 
   for (const [name, overrides] of cases) {
     await t.test(name, async () => {
-      const documentObject = createFakeDocument();
+      let runtime = null;
+      const documentObject = createFakeDocument({
+        onAppend(script) {
+          runtime = Object.freeze({
+            version: RUNTIME_VERSION,
+            createAudioEngine() {},
+          });
+          script.dispatch("load");
+        },
+      });
       const loader = createLoader({
         documentObject,
         fetchImpl: createSuccessfulFetch(createManifest(overrides)).fetchImpl,
-        getRuntime: () => null,
+        getRuntime: () => runtime,
       });
 
       assert.equal(await loader.load(), null);
