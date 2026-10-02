@@ -26,7 +26,8 @@ function validTargetNote(note, targetPartId) {
       note.midi >= 0 &&
       note.midi <= 127 &&
       Number.isInteger(note.measureIndex) &&
-      note.measureIndex >= 0,
+      note.measureIndex >= 0 &&
+      validIdentity(note.voice, 64),
   );
 }
 
@@ -38,22 +39,35 @@ function exactTargetSourceEvent(index, note, targetPartId) {
     return null;
   }
 
-  if (resolved === null || !Array.isArray(resolved.activeEvents)) {
+  if (
+    resolved === null ||
+    !Array.isArray(resolved.activeEvents) ||
+    !Array.isArray(resolved.highlightRefs)
+  ) {
     return null;
   }
 
   const targetEvents = resolved.activeEvents.filter(
     (event) => event?.partId === targetPartId,
   );
-  if (targetEvents.length !== 1) {
+  const targetRefs = resolved.highlightRefs.filter(
+    (ref) => ref?.partId === targetPartId,
+  );
+  if (targetEvents.length !== 1 || targetRefs.length !== 1) {
     return null;
   }
 
   const event = targetEvents[0];
+  const ref = targetRefs[0];
+  const sourceVoice = Number.isSafeInteger(ref?.voice)
+    ? String(ref.voice)
+    : null;
   if (
     !validIdentity(event?.eventId, 512) ||
     event.measureIndex !== note.measureIndex ||
     event.midi !== note.midi ||
+    sourceVoice === null ||
+    note.voice !== sourceVoice ||
     (event.transpositionSemitones !== undefined &&
       event.transpositionSemitones !== 0)
   ) {
@@ -88,7 +102,7 @@ function exactTargetSourceEvent(index, note, targetPartId) {
     }
   }
 
-  return event;
+  return Object.freeze({ event, voice: sourceVoice });
 }
 
 export function createViolinAudioSchedule({
@@ -172,24 +186,25 @@ export function createViolinAudioSchedule({
   const midiSet = new Set();
 
   for (const note of targetNotes) {
-    const sourceEvent = exactTargetSourceEvent(
+    const exactSource = exactTargetSourceEvent(
       index,
       note,
       targetPartId,
     );
-    if (sourceEvent === null) {
+    if (exactSource === null) {
       return null;
     }
 
     midiSet.add(note.midi);
     events.push(
       Object.freeze({
-        sourceEventId: sourceEvent.eventId,
+        sourceEventId: exactSource.event.eventId,
         partId: targetPartId,
         measureIndex: note.measureIndex,
         startBeat: note.startBeat,
         durationBeats: note.durationBeats,
         midi: note.midi,
+        voice: exactSource.voice,
       }),
     );
   }
