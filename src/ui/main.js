@@ -10,6 +10,7 @@ import { createPlaybackPlanResolver } from "../playback/playbackPlanResolver.js"
 import { createPianoSampleBank } from "../playback/pianoSampleBank.js";
 import { createScoreAudioRuntimeLoader } from "../playback/scoreAudioRuntimeLoader.js";
 import { createStudentAudioSession } from "../playback/studentAudioSession.js";
+import { createViolinAudioLane } from "../playback/violinAudioLane.js";
 import { createWebAudioPianoEngine } from "../playback/webAudioPianoEngine.js";
 import { createStudentPlaybackPort } from "../playback/studentPlaybackPort.js";
 import { createFirebaseBrowserRuntime } from "../providers/firebase/firebaseBrowserRuntime.js";
@@ -44,15 +45,21 @@ const scoreAudioRuntimeLoader = createScoreAudioRuntimeLoader({
   expectedRuntimeVersion: "0.2.0",
   expectedContractVersion: "0.2.0",
 });
+const violinAudioLane = createViolinAudioLane({
+  runtimeLoader: scoreAudioRuntimeLoader,
+  audioContextFactory,
+});
 
 const playbackEngine = createWebAudioPianoEngine({
   audioContextFactory,
   audioContextSupported,
   sampleBank,
+  noteRouter: violinAudioLane,
 });
 const playbackPort = createStudentPlaybackPort({
   playbackPlanResolver,
   engine: playbackEngine,
+  violinAudioLane,
 });
 const scoreFollowCoordinator =
   createScoreFollowCoordinator({
@@ -67,9 +74,6 @@ const violinFollowCoordinator =
     presentationPort: violinFingerboardPresentation,
   });
 const firebaseRuntime = createFirebaseBrowserRuntime();
-
-// Task 4 configures the trusted runtime boundary only. Violin audio routing starts later.
-void scoreAudioRuntimeLoader;
 
 let initialSession = null;
 
