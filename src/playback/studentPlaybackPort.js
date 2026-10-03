@@ -1,3 +1,6 @@
+import { readViolinConfiguration } from "../practice/practiceCapabilities.js";
+import { createViolinAudioSchedule } from "./violinAudioSchedule.js";
+
 const MIN_TEMPO_BPM = 20;
 const MAX_TEMPO_BPM = 300;
 const PLAYBACK_QUALITIES = new Set(["FULL", "APPROXIMATE"]);
@@ -26,12 +29,15 @@ function bounded(message) {
 export function createStudentPlaybackPort({
   playbackPlanResolver,
   engine,
+  violinAudioLane = null,
+  violinAudioScheduleFactory = createViolinAudioSchedule,
 } = {}) {
   const contextCache = new Map();
   const selectedTempo = new Map();
   const repeatEnabled = new Map();
   const positionSubscriptions = new Map();
   let activePackageId = null;
+  let violinRoutingGeneration = 0;
 
   function validPlanForPackage(plan, packageId) {
     return (
@@ -199,6 +205,70 @@ export function createStudentPlaybackPort({
     }
   }
 
+  function nextViolinRoutingGeneration() {
+    violinRoutingGeneration =
+      violinRoutingGeneration >= Number.MAX_SAFE_INTEGER
+        ? 1
+        : violinRoutingGeneration + 1;
+    return violinRoutingGeneration;
+  }
+
+  function stopViolinLaneBestEffort(generation = null) {
+    try {
+      violinAudioLane?.stopAll?.(
+        generation === null ? undefined : { generation },
+      );
+    } catch {
+      // Optional violin audio cleanup must never block normal playback.
+    }
+  }
+
+  async function prepareViolinRouting(pkg) {
+    let violinConfiguration;
+    try {
+      violinConfiguration = readViolinConfiguration(pkg);
+    } catch {
+      violinConfiguration = null;
+    }
+
+    if (
+      violinConfiguration === null ||
+      typeof violinAudioLane?.prepareForPackage !== "function" ||
+      typeof violinAudioScheduleFactory !== "function"
+    ) {
+      return null;
+    }
+
+    const packageId = packageIdOf(pkg);
+    const musicXml = pkg?.content?.score?.data;
+    const playbackContext = resolveContext(pkg);
+    const generation = nextViolinRoutingGeneration();
+
+    let schedule = null;
+    try {
+      schedule = violinAudioScheduleFactory({
+        pkg,
+        sourceId: packageId,
+        musicXml,
+        targetPartId: violinConfiguration.targetPartId,
+        playbackContext,
+      });
+    } catch {
+      schedule = null;
+    }
+
+    try {
+      await violinAudioLane.prepareForPackage({
+        schedule,
+        generation,
+      });
+      return generation;
+    } catch {
+      stopViolinLaneBestEffort(generation);
+      return null;
+    }
+  }
+
   const port = {
     canPlayPackage(pkg) {
       return playablePlan(pkg) !== null;
@@ -275,6 +345,7 @@ export function createStudentPlaybackPort({
       const tempo =
         selectedTempo.get(packageId) ??
         plan.referenceTempoBpm;
+      const routingGeneration = await prepareViolinRouting(pkg);
 
       activePackageId = packageId;
 
@@ -284,6 +355,9 @@ export function createStudentPlaybackPort({
           tempoBpm: tempo,
           startBeat,
           endBeat,
+          ...(routingGeneration === null
+            ? {}
+            : { routingGeneration }),
         });
       } catch {
         if (activePackageId === packageId) {
@@ -367,11 +441,18 @@ export function createStudentPlaybackPort({
 
       const tempo =
         selectedTempo.get(packageId) ?? plan.referenceTempoBpm;
+      const routingGeneration = await prepareViolinRouting(pkg);
 
       activePackageId = packageId;
 
       try {
-        await engine.play({ plan, tempoBpm: tempo });
+        await engine.play({
+          plan,
+          tempoBpm: tempo,
+          ...(routingGeneration === null
+            ? {}
+            : { routingGeneration }),
+        });
 
         if (repeatEnabled.get(packageId) === true) {
           engine.setMeasureRepeatEnabled(true);
