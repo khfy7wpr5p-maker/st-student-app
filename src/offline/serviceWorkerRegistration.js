@@ -36,10 +36,23 @@ export async function registerStudentAppServiceWorker({
   }
 
   try {
-    await serviceWorker.register("./service-worker.js", {
-      scope: "./",
-      updateViaCache: "none",
-    });
+    const registration = await serviceWorker.register(
+      "./service-worker.js",
+      {
+        scope: "./",
+        updateViaCache: "none",
+      },
+    );
+
+    if (typeof registration?.update === "function") {
+      try {
+        await registration.update();
+      } catch {
+        // An update check may fail while the student is offline. The existing
+        // registered worker must remain usable instead of downgrading the app.
+      }
+    }
+
     return Object.freeze({ registered: true });
   } catch {
     if (
