@@ -11,6 +11,18 @@ function validTempo(value) {
   );
 }
 
+function validRoutingGeneration(value) {
+  return (
+    value === null ||
+    (Number.isSafeInteger(value) && value >= 0) ||
+    (typeof value === "string" &&
+      value.length > 0 &&
+      value.length <= 64 &&
+      value === value.trim() &&
+      !value.includes("\u0000"))
+  );
+}
+
 function sortedTempoMap(plan) {
   return Array.isArray(plan?.tempoMap) ? plan.tempoMap : [];
 }
@@ -129,6 +141,7 @@ export function createWebAudioPianoEngine({
   audioContextFactory,
   audioContextSupported = null,
   sampleBank,
+  noteRouter = null,
   clock = globalThis,
 } = {}) {
   let context = null;
@@ -144,6 +157,7 @@ export function createWebAudioPianoEngine({
   let repeatMeasureIndex = null;
   let activeRange = null;
   let generation = 0;
+  let routingGeneration = null;
   const activeSources = new Set();
   const positionListeners = new Set();
 
@@ -190,6 +204,21 @@ export function createWebAudioPianoEngine({
     }
   }
 
+  function stopExternalSources() {
+    if (
+      routingGeneration === null ||
+      typeof noteRouter?.stopAll !== "function"
+    ) {
+      return;
+    }
+
+    try {
+      noteRouter.stopAll({ generation: routingGeneration });
+    } catch {
+      // External lane teardown is best-effort and cannot break Student transport.
+    }
+  }
+
   function stopSources() {
     for (const source of activeSources) {
       try {
@@ -199,6 +228,7 @@ export function createWebAudioPianoEngine({
       }
     }
     activeSources.clear();
+    stopExternalSources();
     scheduled = new Set();
   }
 
@@ -356,8 +386,40 @@ export function createWebAudioPianoEngine({
     );
   }
 
+  function routeScheduledNote(note, when, duration) {
+    if (
+      routingGeneration === null ||
+      typeof noteRouter?.routeNote !== "function"
+    ) {
+      return "PIANO";
+    }
+
+    try {
+      const route = noteRouter.routeNote({
+        note,
+        startTimeSeconds: when,
+        durationSeconds: duration,
+        generation: routingGeneration,
+      });
+      return route === "PIANO" ||
+        route === "EXTERNAL" ||
+        route === "SUPPRESS"
+        ? route
+        : "SUPPRESS";
+    } catch {
+      return "SUPPRESS";
+    }
+  }
+
   function scheduleSource(note, index, now, startBeat, duration) {
     const when = Math.max(now, beatWhen(startBeat));
+    const route = routeScheduledNote(note, when, duration);
+    scheduled.add(index);
+
+    if (route !== "PIANO") {
+      return;
+    }
+
     const end = when + duration;
     const resolved = sampleBank.resolveMidi(note.midi);
     const source = context.createBufferSource();
@@ -382,7 +444,6 @@ export function createWebAudioPianoEngine({
     source.start(when);
     source.stop(end);
     activeSources.add(source);
-    scheduled.add(index);
   }
 
   function scheduleNote(note, index, now) {
@@ -541,6 +602,13 @@ export function createWebAudioPianoEngine({
     }
   }
 
+  function normalizeRoutingGeneration(value) {
+    if (!validRoutingGeneration(value)) {
+      throw boundedError("audio playback unavailable");
+    }
+    return value;
+  }
+
   return Object.freeze({
     isSupported,
 
@@ -560,7 +628,11 @@ export function createWebAudioPianoEngine({
       }
     },
 
-    async play({ plan, tempoBpm } = {}) {
+    async play({
+      plan,
+      tempoBpm,
+      routingGeneration: requestedRoutingGeneration = null,
+    } = {}) {
       if (
         plan === null ||
         typeof plan !== "object" ||
@@ -569,6 +641,9 @@ export function createWebAudioPianoEngine({
         throw boundedError("audio playback unavailable");
       }
 
+      const nextRoutingGeneration = normalizeRoutingGeneration(
+        requestedRoutingGeneration,
+      );
       const requestGeneration = ++generation;
       const nextContext = ensureContext();
       await resumeContext();
@@ -596,14 +671,28 @@ export function createWebAudioPianoEngine({
         clearScheduler();
         stopSources();
         currentPlan = plan;
+        routingGeneration = nextRoutingGeneration;
         pausedBeat = 0;
         repeatMeasureIndex = null;
         activeRange = null;
       } else if (playing) {
-        if (selectedTempoBpm !== tempoBpm) {
-          this.setTempo(tempoBpm);
+        if (
+          selectedTempoBpm === tempoBpm &&
+          Object.is(routingGeneration, nextRoutingGeneration)
+        ) {
+          return;
         }
+
+        const beat = currentBeatSnapshot();
+        clearScheduler();
+        stopSources();
+        selectedTempoBpm = tempoBpm;
+        routingGeneration = nextRoutingGeneration;
+        pausedBeat = beat;
+        startAt(beat);
         return;
+      } else {
+        routingGeneration = nextRoutingGeneration;
       }
 
       selectedTempoBpm = tempoBpm;
@@ -615,6 +704,7 @@ export function createWebAudioPianoEngine({
       tempoBpm,
       startBeat,
       endBeat,
+      routingGeneration: requestedRoutingGeneration = null,
     } = {}) {
       if (
         plan === null ||
@@ -625,6 +715,9 @@ export function createWebAudioPianoEngine({
         throw boundedError("audio playback unavailable");
       }
 
+      const nextRoutingGeneration = normalizeRoutingGeneration(
+        requestedRoutingGeneration,
+      );
       const requestGeneration = ++generation;
       const nextContext = ensureContext();
       await resumeContext();
@@ -647,6 +740,7 @@ export function createWebAudioPianoEngine({
       }
 
       currentPlan = plan;
+      routingGeneration = nextRoutingGeneration;
       selectedTempoBpm = tempoBpm;
       activeRange = Object.freeze({ startBeat, endBeat });
       pausedBeat = startBeat;
@@ -785,6 +879,7 @@ export function createWebAudioPianoEngine({
       selectedTempoBpm = null;
       repeatMeasureIndex = null;
       activeRange = null;
+      routingGeneration = null;
       pausedBeat = 0;
       anchorBeat = 0;
       anchorTime = 0;
