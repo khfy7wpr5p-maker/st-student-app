@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import vm from "node:vm";
 import { readFile } from "node:fs/promises";
 
+const SCOPE = "https://student.example/";
+
 function makeResponse(body, { ok = true } = {}) {
   return {
     ok,
@@ -14,70 +16,102 @@ function makeResponse(body, { ok = true } = {}) {
 }
 
 function requestKey(request) {
-  return typeof request === "string" ? request : request.url;
+  if (typeof request === "string") {
+    return new URL(request, SCOPE).href;
+  }
+  return request.url;
 }
 
-test("an existing stale Student shell is refreshed online and reused offline", async () => {
+test("installed v18 stale shell migrates atomically to v19 and reopens offline", async () => {
   const source = await readFile(
     new URL("../service-worker.js", import.meta.url),
     "utf8",
   );
   const listeners = new Map();
-  const entries = new Map();
-  const request = {
-    method: "GET",
-    url: "https://student.example/index.html",
-  };
-  entries.set(request.url, makeResponse("old-chip-layout"));
+  const cacheEntries = new Map();
+  const deletedCacheNames = [];
+  let claimCalls = 0;
+  let skipWaitingCalls = 0;
 
-  const cache = {
-    async addAll() {},
-    async add() {},
-    async put(cacheRequest, response) {
-      entries.set(requestKey(cacheRequest), response);
-    },
-  };
+  function entriesFor(name) {
+    if (!cacheEntries.has(name)) {
+      cacheEntries.set(name, new Map());
+    }
+    return cacheEntries.get(name);
+  }
+
+  function cacheFor(name) {
+    const entries = entriesFor(name);
+    return {
+      async addAll(assets) {
+        for (const asset of assets) {
+          const key = requestKey(asset);
+          const body = key.endsWith("/index.html")
+            ? "compact-work-title-link"
+            : `current:${key}`;
+          entries.set(key, makeResponse(body));
+        }
+      },
+      async add(asset) {
+        const key = requestKey(asset);
+        entries.set(key, makeResponse(`runtime:${key}`));
+      },
+      async put(request, response) {
+        entries.set(requestKey(request), response);
+      },
+      async match(request) {
+        return entries.get(requestKey(request));
+      },
+      async delete(request) {
+        return entries.delete(requestKey(request));
+      },
+    };
+  }
+
+  entriesFor("st-student-shell-v17").set(
+    "https://student.example/index.html",
+    makeResponse("older-shell"),
+  );
+  entriesFor("st-student-shell-v18").set(
+    "https://student.example/index.html",
+    makeResponse("old-chip-layout"),
+  );
+  entriesFor("st-student-shell-v18").set(
+    "https://student.example/src/ui/renderStudentApp.js",
+    makeResponse("old-render-student-app"),
+  );
 
   const cachesObject = {
     async open(name) {
-      assert.equal(name, "st-student-shell-v18");
-      return cache;
-    },
-    async match(cacheRequest) {
-      return entries.get(requestKey(cacheRequest));
+      return cacheFor(name);
     },
     async keys() {
-      return ["st-student-shell-v18"];
+      return [...cacheEntries.keys()];
     },
-    async delete() {
-      return false;
+    async delete(name) {
+      deletedCacheNames.push(name);
+      return cacheEntries.delete(name);
     },
   };
 
-  let networkMode = "online";
-  const fetchFunction = async (fetchRequest) => {
-    if (networkMode === "offline") {
-      throw new Error("offline");
-    }
-
-    if (typeof fetchRequest === "string") {
-      return makeResponse("firebase-runtime", { ok: false });
-    }
-
-    return makeResponse("compact-work-title-link");
-  };
+  const fetchFunction = async () =>
+    makeResponse("firebase-runtime", { ok: false });
 
   const selfObject = {
     registration: {
-      scope: "https://student.example/",
+      scope: SCOPE,
     },
     location: {
       origin: "https://student.example",
     },
     clients: {
-      async claim() {},
+      async claim() {
+        claimCalls += 1;
+      },
     },
-    async skipWaiting() {},
+    async skipWaiting() {
+      skipWaitingCalls += 1;
+    },
     addEventListener(type, listener) {
       listeners.set(type, listener);
     },
@@ -91,33 +125,63 @@ test("an existing stale Student shell is refreshed online and reused offline", a
     console,
   });
 
-  const fetchListener = listeners.get("fetch");
-  assert.equal(typeof fetchListener, "function");
-
-  let onlineResponsePromise;
-  fetchListener({
-    request,
-    respondWith(promise) {
-      onlineResponsePromise = promise;
+  let installPromise;
+  listeners.get("install")({
+    waitUntil(promise) {
+      installPromise = promise;
     },
   });
+  await installPromise;
 
-  const onlineResponse = await onlineResponsePromise;
-  assert.equal(onlineResponse.body, "compact-work-title-link");
+  assert.equal(skipWaitingCalls, 1);
   assert.equal(
-    entries.get(request.url).body,
+    entriesFor("st-student-shell-v18")
+      .get("https://student.example/index.html")
+      .body,
+    "old-chip-layout",
+  );
+  assert.equal(
+    entriesFor("st-student-shell-v19")
+      .get("https://student.example/index.html")
+      .body,
     "compact-work-title-link",
   );
 
-  networkMode = "offline";
-  let offlineResponsePromise;
-  fetchListener({
+  let activatePromise;
+  listeners.get("activate")({
+    waitUntil(promise) {
+      activatePromise = promise;
+    },
+  });
+  await activatePromise;
+
+  assert.deepEqual(deletedCacheNames, ["st-student-shell-v17"]);
+  assert.equal(claimCalls, 1);
+  assert.equal(
+    entriesFor("st-student-shell-v18").has(
+      "https://student.example/index.html",
+    ),
+    false,
+  );
+  assert.equal(
+    entriesFor("st-student-shell-v18").has(
+      "https://student.example/src/ui/renderStudentApp.js",
+    ),
+    false,
+  );
+
+  const request = {
+    method: "GET",
+    url: "https://student.example/index.html",
+  };
+  let responsePromise;
+  listeners.get("fetch")({
     request,
     respondWith(promise) {
-      offlineResponsePromise = promise;
+      responsePromise = promise;
     },
   });
 
-  const offlineResponse = await offlineResponsePromise;
-  assert.equal(offlineResponse.body, "compact-work-title-link");
+  const response = await responsePromise;
+  assert.equal(response.body, "compact-work-title-link");
 });
