@@ -77,6 +77,7 @@ test("service worker caches explicit app-shell and playback assets plus pinned F
   );
 
   assert.match(source, /st-student-shell-v18/);
+  assert.match(source, /st-student-shell-v19/);
   assert.match(source, /self\.skipWaiting\(\)/);
   assert.match(source, /self\.clients\.claim\(\)/);
   assert.match(source, /index\.html/);
@@ -101,33 +102,30 @@ test("service worker fetch handler uses a static allowlist before Cache Storage"
   );
 
   assert.match(source, /SHELL_ASSET_PATHS\.has\(url\.pathname\)/);
-  assert.match(source, /fetchShellWithNetworkRefresh\(event\.request\)/);
+  assert.match(source, /caches\.open\(SHELL_CACHE_NAME\)/);
+  assert.match(source, /cache\.match\(event\.request\)/);
   assert.doesNotMatch(source, /caches\.match\(event\.request\)[\s\S]*without/i);
 });
 
-test("Student shell requests refresh from network before cached fallback", async () => {
+test("Student shell is installed atomically into v19 and stale v18 shell entries are removed", async () => {
   const source = await readFile(
     new URL("../service-worker.js", import.meta.url),
     "utf8",
   );
-  const start = source.indexOf(
-    "async function fetchShellWithNetworkRefresh(request)",
-  );
-  const end = source.indexOf(
-    'self.addEventListener("fetch"',
-    start,
-  );
-  const helper = source.slice(start, end);
 
-  assert.ok(start >= 0);
-  assert.ok(end > start);
-  assert.ok(helper.indexOf("await fetch(request)") >= 0);
-  assert.ok(helper.indexOf("await caches.match(request)") >= 0);
-  assert.ok(
-    helper.indexOf("await fetch(request)") <
-      helper.indexOf("await caches.match(request)"),
+  assert.match(
+    source,
+    /const SHELL_CACHE_NAME = "st-student-shell-v19"/,
   );
-  assert.match(helper, /await cache\.put\(request, response\.clone\(\)\)/);
+  assert.match(
+    source,
+    /cache = await caches\.open\(SHELL_CACHE_NAME\);[\s\S]*?await cache\.addAll\(SHELL_ASSETS\)/,
+  );
+  assert.match(
+    source,
+    /const legacyCache = await caches\.open\(CACHE_NAME\);[\s\S]*?SHELL_ASSETS\.map\(\(asset\) => legacyCache\.delete\(asset\)\)/,
+  );
+  assert.match(source, /!ACTIVE_CACHE_NAMES\.has\(name\)/);
 });
 
 
@@ -194,7 +192,7 @@ test("an already controlled page reloads once when the fresh service worker take
   assert.equal(reloadCount, 1);
 });
 
-test("service worker v18 caches violin follow and pinned violin-learning runtime without private packages", async () => {
+test("service worker shell caches violin follow and pinned violin-learning runtime without private packages", async () => {
   const source = await readFile(
     new URL("../service-worker.js", import.meta.url),
     "utf8",
