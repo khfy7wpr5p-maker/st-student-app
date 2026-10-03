@@ -119,7 +119,11 @@ test("explicit violin V1 prepares before full playback and forwards the same rou
       assert.equal(args.sourceId, work.packageId);
       assert.equal(args.musicXml, work.content.score.data);
       assert.equal(args.targetPartId, "P1");
-      assert.equal(args.playbackContext, resolver.context);
+      assert.equal(args.playbackContext.plan, resolver.context.plan);
+      assert.equal(
+        args.playbackContext.timingProvenance,
+        resolver.context.timingProvenance,
+      );
       return schedule;
     },
   });
