@@ -169,6 +169,29 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+async function fetchShellWithNetworkRefresh(request) {
+  try {
+    const response = await fetch(request);
+
+    if (response?.ok === true) {
+      const cache = await caches.open(CACHE_NAME);
+      await cache.put(request, response.clone());
+      return response;
+    }
+
+    const cached = await caches.match(request);
+    return cached ?? response;
+  } catch (error) {
+    const cached = await caches.match(request);
+
+    if (cached !== undefined) {
+      return cached;
+    }
+
+    throw error;
+  }
+}
+
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") {
     return;
@@ -185,6 +208,11 @@ self.addEventListener("fetch", (event) => {
     PLAYBACK_ASSET_PATHS.has(url.pathname);
 
   if (!shellRequest && !playbackStaticRequest && !firebaseRuntimeRequest) {
+    return;
+  }
+
+  if (shellRequest) {
+    event.respondWith(fetchShellWithNetworkRefresh(event.request));
     return;
   }
 
