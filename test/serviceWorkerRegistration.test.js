@@ -29,6 +29,47 @@ test("registration failure is bounded and does not expose provider error", async
   );
 });
 
+test("registration explicitly requests a fresh service worker check", async () => {
+  let updateCalls = 0;
+
+  const result = await registerStudentAppServiceWorker({
+    navigatorObject: {
+      serviceWorker: {
+        controller: null,
+        async register() {
+          return {
+            async update() {
+              updateCalls += 1;
+            },
+          };
+        },
+      },
+    },
+  });
+
+  assert.deepEqual(result, { registered: true });
+  assert.equal(updateCalls, 1);
+});
+
+test("offline update-check failure preserves the existing registration", async () => {
+  const result = await registerStudentAppServiceWorker({
+    navigatorObject: {
+      serviceWorker: {
+        controller: null,
+        async register() {
+          return {
+            async update() {
+              throw new Error("offline");
+            },
+          };
+        },
+      },
+    },
+  });
+
+  assert.deepEqual(result, { registered: true });
+});
+
 test("service worker caches explicit app-shell and playback assets plus pinned Firebase runtime", async () => {
   const source = await readFile(
     new URL("../service-worker.js", import.meta.url),
@@ -60,7 +101,33 @@ test("service worker fetch handler uses a static allowlist before Cache Storage"
   );
 
   assert.match(source, /SHELL_ASSET_PATHS\.has\(url\.pathname\)/);
+  assert.match(source, /fetchShellWithNetworkRefresh\(event\.request\)/);
   assert.doesNotMatch(source, /caches\.match\(event\.request\)[\s\S]*without/i);
+});
+
+test("Student shell requests refresh from network before cached fallback", async () => {
+  const source = await readFile(
+    new URL("../service-worker.js", import.meta.url),
+    "utf8",
+  );
+  const start = source.indexOf(
+    "async function fetchShellWithNetworkRefresh(request)",
+  );
+  const end = source.indexOf(
+    'self.addEventListener("fetch"',
+    start,
+  );
+  const helper = source.slice(start, end);
+
+  assert.ok(start >= 0);
+  assert.ok(end > start);
+  assert.ok(helper.indexOf("await fetch(request)") >= 0);
+  assert.ok(helper.indexOf("await caches.match(request)") >= 0);
+  assert.ok(
+    helper.indexOf("await fetch(request)") <
+      helper.indexOf("await caches.match(request)"),
+  );
+  assert.match(helper, /await cache\.put\(request, response\.clone\(\)\)/);
 });
 
 
