@@ -1,4 +1,9 @@
 const CACHE_NAME = "st-student-shell-v18";
+const SHELL_CACHE_NAME = "st-student-shell-v19";
+const ACTIVE_CACHE_NAMES = new Set([
+  CACHE_NAME,
+  SHELL_CACHE_NAME,
+]);
 
 const FIREBASE_RUNTIME_ASSETS = Object.freeze([
   "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js",
@@ -119,9 +124,11 @@ const PLAYBACK_ASSET_PATHS = new Set(
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(async (cache) => {
+    (async () => {
+      let cache = await caches.open(SHELL_CACHE_NAME);
       await cache.addAll(SHELL_ASSETS);
 
+      cache = await caches.open(CACHE_NAME);
       for (const asset of PLAYBACK_STATIC_ASSETS) {
         try {
           await cache.add(asset);
@@ -147,50 +154,33 @@ self.addEventListener("install", (event) => {
       );
 
       await self.skipWaiting();
-    }),
+    })(),
   );
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys()
-      .then((names) =>
-        Promise.all(
-          names
-            .filter(
-              (name) =>
-                name.startsWith("st-student-shell-") &&
-                name !== CACHE_NAME,
-            )
-            .map((name) => caches.delete(name)),
-        ),
-      )
-      .then(() => self.clients.claim()),
+    (async () => {
+      const names = await caches.keys();
+      await Promise.all(
+        names
+          .filter(
+            (name) =>
+              name.startsWith("st-student-shell-") &&
+              !ACTIVE_CACHE_NAMES.has(name),
+          )
+          .map((name) => caches.delete(name)),
+      );
+
+      const legacyCache = await caches.open(CACHE_NAME);
+      await Promise.all(
+        SHELL_ASSETS.map((asset) => legacyCache.delete(asset)),
+      );
+
+      await self.clients.claim();
+    })(),
   );
 });
-
-async function fetchShellWithNetworkRefresh(request) {
-  try {
-    const response = await fetch(request);
-
-    if (response?.ok === true) {
-      const cache = await caches.open(CACHE_NAME);
-      await cache.put(request, response.clone());
-      return response;
-    }
-
-    const cached = await caches.match(request);
-    return cached ?? response;
-  } catch (error) {
-    const cached = await caches.match(request);
-
-    if (cached !== undefined) {
-      return cached;
-    }
-
-    throw error;
-  }
-}
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") {
@@ -212,24 +202,41 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (shellRequest) {
-    event.respondWith(fetchShellWithNetworkRefresh(event.request));
+    event.respondWith(
+      caches.open(SHELL_CACHE_NAME).then((cache) =>
+        cache.match(event.request).then((cached) => {
+          if (cached !== undefined) {
+            return cached;
+          }
+
+          return fetch(event.request).then(async (response) => {
+            if (response?.ok === true) {
+              await cache.put(event.request, response.clone());
+            }
+
+            return response;
+          });
+        }),
+      ),
+    );
     return;
   }
 
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached !== undefined) {
-        return cached;
-      }
-
-      return fetch(event.request).then(async (response) => {
-        if (response?.ok === true) {
-          const cache = await caches.open(CACHE_NAME);
-          await cache.put(event.request, response.clone());
+    caches.open(CACHE_NAME).then((cache) =>
+      cache.match(event.request).then((cached) => {
+        if (cached !== undefined) {
+          return cached;
         }
 
-        return response;
-      });
-    }),
+        return fetch(event.request).then(async (response) => {
+          if (response?.ok === true) {
+            await cache.put(event.request, response.clone());
+          }
+
+          return response;
+        });
+      }),
+    ),
   );
 });
