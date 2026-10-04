@@ -124,14 +124,18 @@ Use `accessRef: { kind: "SECURE_DELIVERY", deliveryId: <assignmentId> }` for chi
 
 Add `test("successful reconnect revoke disables Piece and every cached child authority", async () => { ... })`.
 
-Configure `secureDeliveryStatusService.getPieceStatus()` to return `{ state: "REVOKED" }` for `piece-a`.
+Configure the status service so:
+- `getAccessStatus()` returns `{ state: "ACTIVE", packageId: <matching cached packageId> }` for all three cached child records;
+- `getPieceStatus()` returns `{ state: "REVOKED" }` for `piece-a`.
 
-After `await coordinator.sync({ session })`, assert:
-- result is `{ state: SYNC_STATES.SYNCED, checked: 4, revoked: 4, failed: 0 }` if child revocations are counted individually; if the existing coordinator contract counts one Piece graph as one check, preserve that public count and assert child state directly instead of changing counters solely for this test;
+This isolates the behavior under test: child records remain valid on their own status checks and can only become inactive because the Piece revoke closes its authority graph.
+
+After `await coordinator.sync({ session })`, assert exactly:
+- result is `{ state: SYNC_STATES.SYNCED, checked: 4, revoked: 1, failed: 0 }`;
 - `getActivePieceManifest(...) === null`;
 - `getActiveByAccessRef(...) === null` for SCORE and both chords.
 
-This test is expected to reveal the production gap if current sync revokes only the Piece manifest.
+The public sync counter remains Piece-event based here: three child groups are checked as ACTIVE and one Piece revoke increments `revoked` once. Child authorization state is verified directly rather than redefining the counter contract.
 
 - [ ] **Step 3: Run the reconnect revoke test and record RED evidence**
 
@@ -145,28 +149,29 @@ In `src/offline/syncCoordinator.js`, when an authoritative Piece status is exact
 1. read child IDs from the cached `record.piece.contentRefs` already associated with that Piece;
 2. for each non-null SCORE ID and each chord ID, call `offlineRepository.markRevoked({ studentId, accessRef: { kind: "SECURE_DELIVERY", deliveryId }, lastVerifiedAt: verifiedAt })`;
 3. call `markPieceManifestRevoked(...)` for the Piece;
-4. never scan unrelated student assignments and never guess IDs.
+4. increment the existing Piece-level `revoked` counter once, preserving current public sync semantics;
+5. never scan unrelated student assignments and never guess IDs.
 
-The implementation must tolerate a referenced child that has no cached record without authorizing anything new. Preserve existing public sync counters unless the current counter contract already counts each revoked access record.
+The implementation must tolerate a referenced child that has no cached record without authorizing anything new.
 
 - [ ] **Step 5: Add direct-open fail-closed assertions after revoke**
 
 Using `createSecureDeliveryOfflineReadService` in offline mode after successful revoke, assert:
 - `getPiece({ pieceAssignmentId: "piece-a" })` rejects with offline Piece unavailable;
 - `getScorePracticeItem({ assignmentId: "assignment-score-a" })` rejects with offline practice unavailable;
-- the chord child direct cache path likewise rejects.
+- each chord child direct cache path likewise rejects.
 
 - [ ] **Step 6: Pin transient reconnect failure**
 
-Add/extend a test where `getPieceStatus()` throws `temporary network failure` after the graph is warm-cached.
+Add/extend a test where all child `getAccessStatus()` calls return ACTIVE but `getPieceStatus()` throws `temporary network failure` after the graph is warm-cached.
 
 Assert:
-- result state is `SYNC_ERROR`;
+- result is `{ state: SYNC_STATES.SYNC_ERROR, checked: 4, revoked: 0, failed: 1 }`;
 - Piece manifest remains active;
 - all three child `getActiveByAccessRef(...)` lookups remain active;
 - no error text is serialized into the public result.
 
-Then run a second sync with `{ state: "REVOKED" }` and assert the same graph is fully disabled, proving retry safety.
+Then run a second sync where child status remains ACTIVE and Piece status becomes REVOKED; assert the graph is fully disabled with `{ state: SYNC_STATES.SYNCED, checked: 4, revoked: 1, failed: 0 }`, proving retry safety.
 
 - [ ] **Step 7: Re-run the full offline Piece suite**
 
@@ -267,15 +272,15 @@ Switch authoritative fixture state to REPERTOIRE, navigate to `Repertuarım`, an
 - `Aktif Çalışmalar` no longer renders the Piece;
 - child rows remain absent.
 
-- [ ] **Step 4: Write the post-reconciliation revoke browser case if the browser harness exposes reconnect/sync control**
+- [ ] **Step 4: Add the post-reconciliation revoke browser case only if the existing harness can control genuine offline/reconnect authority**
 
-After warm-caching and authoritative revoke, trigger the existing foreground reconciliation path. Assert the Piece is no longer visible/openable. If the browser harness cannot faithfully control offline/reconnect authority, keep this proof in Task 2 and do not add a fake browser-only simulation.
+After warm-caching and authoritative revoke, trigger the existing foreground reconciliation path. Assert the Piece is no longer visible/openable. If the harness cannot faithfully control offline/reconnect authority, keep this proof in Task 2; do not add a fake browser-only simulation.
 
 - [ ] **Step 5: Run the SES-157 browser test**
 
 Run: `node --test browser-tests/ses157-lifecycle-isolation.spec.mjs`
 
-Expected: PASS in both Chromium and WebKit paths used by the existing browser harness.
+Expected: PASS for every browser project instantiated by this spec.
 
 - [ ] **Step 6: Run all browser tests**
 
