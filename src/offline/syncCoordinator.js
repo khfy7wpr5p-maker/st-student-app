@@ -105,6 +105,40 @@ function activeAccessGroups(records) {
   return [...groups.values()];
 }
 
+function pieceChildDeliveryIds(record) {
+  const contentRefs =
+    record?.piece?.contentRefs;
+  const ids = [];
+
+  if (
+    typeof contentRefs
+      ?.scoreAssignmentId ===
+      "string" &&
+    contentRefs.scoreAssignmentId
+      .trim().length > 0
+  ) {
+    ids.push(
+      contentRefs.scoreAssignmentId,
+    );
+  }
+
+  for (
+    const chordAssignmentId of
+    contentRefs?.chordAssignmentIds ?? []
+  ) {
+    if (
+      typeof chordAssignmentId ===
+        "string" &&
+      chordAssignmentId.trim()
+        .length > 0
+    ) {
+      ids.push(chordAssignmentId);
+    }
+  }
+
+  return [...new Set(ids)];
+}
+
 export function createForegroundSyncCoordinator({
   offlineRepository,
   publicationStatusService,
@@ -287,6 +321,8 @@ export function createForegroundSyncCoordinator({
             typeof secureDeliveryStatusService
               ?.getPieceStatus !== "function" ||
             typeof offlineRepository
+              .markRevoked !== "function" ||
+            typeof offlineRepository
               .markPieceManifestRevoked !== "function" ||
             typeof offlineRepository
               .putPieceManifest !== "function"
@@ -308,6 +344,25 @@ export function createForegroundSyncCoordinator({
             status?.state ===
             "REVOKED"
           ) {
+            for (
+              const deliveryId of
+              pieceChildDeliveryIds(
+                record,
+              )
+            ) {
+              await offlineRepository
+                .markRevoked({
+                  studentId,
+                  accessRef: {
+                    kind:
+                      "SECURE_DELIVERY",
+                    deliveryId,
+                  },
+                  lastVerifiedAt:
+                    verifiedAt,
+                });
+            }
+
             await offlineRepository
               .markPieceManifestRevoked({
                 studentId,
