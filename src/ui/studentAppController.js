@@ -28,6 +28,8 @@ export const STUDENT_APP_SCREENS = Object.freeze({
   HOME: "home",
   PUBLIC_POOL: "public_pool",
   MY_WORK: "my_work",
+  WORK_REQUEST: "work_request",
+  SHARED_REQUEST_POOL: "shared_request_pool",
   PRACTICE: "practice",
   CHORD_BOARD: "chord_board",
   PIECE_WORKSPACE: "piece_workspace",
@@ -45,6 +47,7 @@ function freezeState({
   student08 = false,
   poolDetail,
   assignmentState,
+  workRequestStatus,
 }) {
   const value = {
     screen,
@@ -79,6 +82,10 @@ function freezeState({
     value.assignmentState = assignmentState;
   }
 
+  if (workRequestStatus !== undefined) {
+    value.workRequestStatus = workRequestStatus;
+  }
+
   return Object.freeze(value);
 }
 
@@ -90,6 +97,19 @@ function requireSession(session) {
   }
 
   return Object.freeze({ studentId });
+}
+
+function requiredText(value, name) {
+  if (
+    typeof value !== "string" ||
+    value.trim().length === 0
+  ) {
+    throw new TypeError(
+      `${name} must be a non-empty string`,
+    );
+  }
+
+  return value.trim();
 }
 
 function resolveMaybe(value, onResolved) {
@@ -131,6 +151,16 @@ function toPoolDetail(item) {
     shortDescription: item.shortDescription ?? "",
     detailText: item.detailText ?? "",
     publishedAt: item.publishedAt ?? "",
+  });
+}
+
+function toSharedRequestSummary(item) {
+  return Object.freeze({
+    title: requiredText(item?.title, "title"),
+    displayNameOrNickname: requiredText(
+      item?.displayNameOrNickname,
+      "displayNameOrNickname",
+    ),
   });
 }
 
@@ -240,6 +270,7 @@ export function createStudentAppController({
       student08: state.student08 === true,
       poolDetail: state.poolDetail,
       assignmentState: state.assignmentState,
+      workRequestStatus: state.workRequestStatus,
       ...overrides,
     };
   }
@@ -568,6 +599,103 @@ export function createStudentAppController({
         student08: student08Enabled,
       });
       return state;
+    },
+
+    showWorkRequestForm() {
+      if (
+        !student08Enabled ||
+        typeof student08ReadService?.requestWork !==
+          "function"
+      ) {
+        throw new Error("work request unavailable");
+      }
+
+      const session = requireCurrentSession();
+      clearActivePractice();
+      state = freezeState({
+        screen: STUDENT_APP_SCREENS.WORK_REQUEST,
+        session,
+        items: [],
+        workRequestStatus: null,
+        syncState: currentSyncState,
+        student08: true,
+      });
+      return state;
+    },
+
+    submitWorkRequest(title) {
+      if (
+        !student08Enabled ||
+        typeof student08ReadService?.requestWork !==
+          "function"
+      ) {
+        throw new Error("work request unavailable");
+      }
+
+      const session = requireCurrentSession();
+      const requestGeneration = sessionGeneration;
+      const normalizedTitle = requiredText(
+        title,
+        "title",
+      );
+      const result = student08ReadService.requestWork({
+        session,
+        title: normalizedTitle,
+      });
+
+      return resolveMaybe(result, () => {
+        if (!sessionRequestIsCurrent(session, requestGeneration)) {
+          return state;
+        }
+
+        clearActivePractice();
+        state = freezeState({
+          screen: STUDENT_APP_SCREENS.WORK_REQUEST,
+          session,
+          items: [],
+          workRequestStatus: "success",
+          syncState: currentSyncState,
+          student08: true,
+        });
+        return state;
+      });
+    },
+
+    showSharedRequestPool() {
+      if (
+        !student08Enabled ||
+        typeof student08ReadService
+          ?.listSharedWorkRequests !== "function"
+      ) {
+        throw new Error("shared Havuz unavailable");
+      }
+
+      const session = requireCurrentSession();
+      const requestGeneration = sessionGeneration;
+      const result = student08ReadService
+        .listSharedWorkRequests({ session });
+
+      return resolveMaybe(result, (items) => {
+        if (!sessionRequestIsCurrent(session, requestGeneration)) {
+          return state;
+        }
+
+        if (!Array.isArray(items)) {
+          throw new TypeError(
+            "shared work request response must be an array",
+          );
+        }
+
+        clearActivePractice();
+        state = freezeState({
+          screen: STUDENT_APP_SCREENS.SHARED_REQUEST_POOL,
+          session,
+          items: items.map(toSharedRequestSummary),
+          syncState: currentSyncState,
+          student08: true,
+        });
+        return state;
+      });
     },
 
     showPublicPool() {
