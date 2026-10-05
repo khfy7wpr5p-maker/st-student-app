@@ -1,5 +1,5 @@
 const CACHE_NAME = "st-student-shell-v18";
-const SHELL_CACHE_NAME = "st-student-shell-v19";
+const SHELL_CACHE_NAME = "st-student-shell-v20";
 const ACTIVE_CACHE_NAMES = new Set([
   CACHE_NAME,
   SHELL_CACHE_NAME,
