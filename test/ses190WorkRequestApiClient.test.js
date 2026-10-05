@@ -56,7 +56,7 @@ test("SES-190 client posts only work-request title and reads shared pending Havu
   ]);
 });
 
-test("SES-190 client rejects blank work-request title before fetch", async () => {
+test("SES-190 client rejects blank work-request title before fetch", () => {
   let calls = 0;
   const client = createSecureDeliveryApiClient({
     baseUrl: "https://student-api.example.test/api/secure-delivery/v1",
@@ -67,7 +67,7 @@ test("SES-190 client rejects blank work-request title before fetch", async () =>
     },
   });
 
-  await assert.rejects(
+  assert.throws(
     () => client.requestStudentWork("   "),
     /title must be a non-empty string/,
   );
