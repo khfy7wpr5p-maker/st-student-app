@@ -145,6 +145,57 @@ export function createSecureDeliveryOfflineReadService({
       .map(([, item]) => item);
   }
 
+  async function requestWork({
+    session,
+    title,
+  } = {}) {
+    requireStudentId(session);
+
+    if (isOffline()) {
+      throw new Error(
+        "Secure Delivery work request unavailable offline",
+      );
+    }
+
+    if (
+      typeof onlineReadService.requestWork !==
+      "function"
+    ) {
+      throw new TypeError(
+        "online work request service is unavailable",
+      );
+    }
+
+    return onlineReadService.requestWork({
+      session,
+      title,
+    });
+  }
+
+  async function listSharedWorkRequests({
+    session,
+  } = {}) {
+    requireStudentId(session);
+
+    if (isOffline()) {
+      throw new Error(
+        "Secure Delivery shared Havuz unavailable offline",
+      );
+    }
+
+    if (
+      typeof onlineReadService
+        .listSharedWorkRequests !== "function"
+    ) {
+      throw new TypeError(
+        "online shared Havuz service is unavailable",
+      );
+    }
+
+    return onlineReadService
+      .listSharedWorkRequests({ session });
+  }
+
   async function listAssignments({
     session,
     state,
@@ -748,6 +799,8 @@ export function createSecureDeliveryOfflineReadService({
         });
     },
 
+    requestWork,
+    listSharedWorkRequests,
     listAssignments,
     getAssignment,
     getScorePracticeItem,
