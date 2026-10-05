@@ -22,7 +22,7 @@ function requestKey(request) {
   return request.url;
 }
 
-test("installed v18 stale shell migrates atomically to v19 and reopens offline", async () => {
+test("installed v19 stale shell migrates atomically to v20 and reopens offline", async () => {
   const source = await readFile(
     new URL("../service-worker.js", import.meta.url),
     "utf8",
@@ -47,7 +47,7 @@ test("installed v18 stale shell migrates atomically to v19 and reopens offline",
         for (const asset of assets) {
           const key = requestKey(asset);
           const body = key.endsWith("/index.html")
-            ? "compact-work-title-link"
+            ? "ses190-work-request-ui"
             : `current:${key}`;
           entries.set(key, makeResponse(body));
         }
@@ -74,11 +74,19 @@ test("installed v18 stale shell migrates atomically to v19 and reopens offline",
   );
   entriesFor("st-student-shell-v18").set(
     "https://student.example/index.html",
-    makeResponse("old-chip-layout"),
+    makeResponse("legacy-playback-shell-entry"),
   );
   entriesFor("st-student-shell-v18").set(
     "https://student.example/src/ui/renderStudentApp.js",
-    makeResponse("old-render-student-app"),
+    makeResponse("legacy-render-student-app"),
+  );
+  entriesFor("st-student-shell-v19").set(
+    "https://student.example/index.html",
+    makeResponse("pre-ses190-shell"),
+  );
+  entriesFor("st-student-shell-v19").set(
+    "https://student.example/src/ui/renderStudentApp.js",
+    makeResponse("pre-ses190-render-student-app"),
   );
 
   const cachesObject = {
@@ -135,16 +143,16 @@ test("installed v18 stale shell migrates atomically to v19 and reopens offline",
 
   assert.equal(skipWaitingCalls, 1);
   assert.equal(
-    entriesFor("st-student-shell-v18")
-      .get("https://student.example/index.html")
-      .body,
-    "old-chip-layout",
-  );
-  assert.equal(
     entriesFor("st-student-shell-v19")
       .get("https://student.example/index.html")
       .body,
-    "compact-work-title-link",
+    "pre-ses190-shell",
+  );
+  assert.equal(
+    entriesFor("st-student-shell-v20")
+      .get("https://student.example/index.html")
+      .body,
+    "ses190-work-request-ui",
   );
 
   let activatePromise;
@@ -155,8 +163,12 @@ test("installed v18 stale shell migrates atomically to v19 and reopens offline",
   });
   await activatePromise;
 
-  assert.deepEqual(deletedCacheNames, ["st-student-shell-v17"]);
+  assert.deepEqual(deletedCacheNames, [
+    "st-student-shell-v17",
+    "st-student-shell-v19",
+  ]);
   assert.equal(claimCalls, 1);
+  assert.equal(cacheEntries.has("st-student-shell-v19"), false);
   assert.equal(
     entriesFor("st-student-shell-v18").has(
       "https://student.example/index.html",
@@ -183,5 +195,5 @@ test("installed v18 stale shell migrates atomically to v19 and reopens offline",
   });
 
   const response = await responsePromise;
-  assert.equal(response.body, "compact-work-title-link");
+  assert.equal(response.body, "ses190-work-request-ui");
 });
