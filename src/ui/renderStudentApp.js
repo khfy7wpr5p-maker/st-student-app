@@ -402,6 +402,10 @@ function renderMyWork(state) {
   return `
     <section aria-labelledby="page-title">
       <h1 id="page-title">Benim Çalışmalarım</h1>
+      <nav class="work-request-actions" aria-label="Eser istekleri">
+        <button type="button" data-action="show-work-request">Eser İste</button>
+        <button type="button" data-action="show-shared-request-pool">Havuz</button>
+      </nav>
       <nav class="work-folders" aria-label="Çalışma klasörleri">
         ${folderButton(
           state,
@@ -419,6 +423,58 @@ function renderMyWork(state) {
           "Repertuarım",
         )}
       </nav>
+      ${content}
+    </section>
+  `;
+}
+
+function renderWorkRequest(state) {
+  const feedback =
+    state.workRequestStatus === "success"
+      ? '<p class="work-request-status" role="status" aria-live="polite">İsteğiniz öğretmeninize gönderildi.</p>'
+      : "";
+
+  return `
+    <section aria-labelledby="page-title">
+      <h1 id="page-title">Eser İste</h1>
+      <label>
+        Eser adı
+        <input
+          type="text"
+          data-work-request-title
+          autocomplete="off"
+          maxlength="200"
+        >
+      </label>
+      <button type="button" data-action="submit-work-request">Gönder</button>
+      ${feedback}
+    </section>
+  `;
+}
+
+function renderSharedRequestPool(state) {
+  const content =
+    state.items.length === 0
+      ? "<p>Havuzda bekleyen istek yok.</p>"
+      : `
+        <ul class="shared-request-list">
+          ${state.items
+            .map(
+              (item) => `
+                <li>
+                  <strong>${escapeHtml(item.title)}</strong>
+                  <span>${escapeHtml(item.displayNameOrNickname)}</span>
+                </li>
+              `,
+            )
+            .join("")}
+        </ul>
+      `;
+
+  return `
+    <section aria-labelledby="page-title">
+      <h1 id="page-title">Havuz</h1>
+      <p>Öğretmeninizin öğrencilerinden bekleyen eser istekleri.</p>
       ${content}
     </section>
   `;
@@ -449,6 +505,8 @@ function renderStudent08Shell(body, state, statusMarkup = "") {
     STUDENT_APP_SCREENS.CHORD_BOARD;
   const myWorkCurrent =
     state.screen === STUDENT_APP_SCREENS.MY_WORK ||
+    state.screen === STUDENT_APP_SCREENS.WORK_REQUEST ||
+    state.screen === STUDENT_APP_SCREENS.SHARED_REQUEST_POOL ||
     practiceCurrent ||
     chordBoardCurrent;
   const shellClass = practiceCurrent
@@ -510,6 +568,12 @@ export function renderStudentApp(
         break;
       case STUDENT_APP_SCREENS.MY_WORK:
         body = renderMyWork(state);
+        break;
+      case STUDENT_APP_SCREENS.WORK_REQUEST:
+        body = renderWorkRequest(state);
+        break;
+      case STUDENT_APP_SCREENS.SHARED_REQUEST_POOL:
+        body = renderSharedRequestPool(state);
         break;
       case STUDENT_APP_SCREENS.PRACTICE:
         body = renderPractice(state.practice, { showHomeAction: false });

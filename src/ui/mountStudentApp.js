@@ -776,6 +776,10 @@ export function mountStudentApp({
       actionElement.dataset.pieceAssignmentId;
     const pieceView =
       actionElement.dataset.pieceView;
+    const workRequestTitle =
+      action === "submit-work-request"
+        ? root.querySelector?.("[data-work-request-title]")?.value
+        : undefined;
     const scrollPosition =
       action === "open-piece"
         ? root.ownerDocument?.defaultView?.scrollY
@@ -811,6 +815,7 @@ export function mountStudentApp({
         assignmentState,
         pieceAssignmentId,
         pieceView,
+        workRequestTitle,
         scrollPosition,
         tempoBpm,
         repeatEnabled,

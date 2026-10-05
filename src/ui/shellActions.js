@@ -9,6 +9,7 @@ export async function dispatchStudentAppAction({
   assignmentState,
   pieceAssignmentId,
   pieceView,
+  workRequestTitle,
   scrollPosition,
   tempoBpm,
   repeatEnabled,
@@ -23,6 +24,20 @@ export async function dispatchStudentAppAction({
 
     case "show-my-work":
       return controller.showMyWork();
+
+    case "show-work-request":
+      return controller.showWorkRequestForm();
+
+    case "submit-work-request":
+      if (!hasText(workRequestTitle)) {
+        throw new Error("work request title required");
+      }
+      return controller.submitWorkRequest(
+        workRequestTitle.trim(),
+      );
+
+    case "show-shared-request-pool":
+      return controller.showSharedRequestPool();
 
     case "show-work-folder":
       if (!hasText(assignmentState)) {
