@@ -42,6 +42,37 @@ function uniqueById(rows, key, label) {
   return rows;
 }
 
+function toStudentWorkRequestView(raw) {
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+    throw new TypeError("student work request response must be an object");
+  }
+
+  return Object.freeze({
+    title: requiredText(raw.title, "title"),
+    state: requiredText(raw.state, "state"),
+    requestedAt: requiredText(raw.requestedAt, "requestedAt"),
+    updatedAt: requiredText(raw.updatedAt, "updatedAt"),
+    targetState:
+      raw.targetState === null
+        ? null
+        : requiredText(raw.targetState, "targetState"),
+  });
+}
+
+function toSharedWorkRequestView(raw) {
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+    throw new TypeError("shared work request row must be an object");
+  }
+
+  return Object.freeze({
+    title: requiredText(raw.title, "title"),
+    displayNameOrNickname: requiredText(
+      raw.displayNameOrNickname,
+      "displayNameOrNickname",
+    ),
+  });
+}
+
 export function createSecureDeliveryStudent08ReadService({
   apiClient,
 } = {}) {
@@ -93,6 +124,70 @@ export function createSecureDeliveryStudent08ReadService({
     }
 
     return item;
+  }
+
+  async function requestWork({
+    session,
+    title,
+  } = {}) {
+    requireSession(session);
+    const normalizedTitle = requiredText(
+      title,
+      "title",
+    );
+
+    if (
+      typeof apiClient.requestStudentWork !==
+      "function"
+    ) {
+      throw new TypeError(
+        "Secure Delivery work request API is unavailable",
+      );
+    }
+
+    const view = toStudentWorkRequestView(
+      await apiClient.requestStudentWork(
+        normalizedTitle,
+      ),
+    );
+
+    if (view.title !== normalizedTitle) {
+      throw new Error(
+        "student work request title mismatch",
+      );
+    }
+
+    return view;
+  }
+
+  async function listSharedWorkRequests({
+    session,
+  } = {}) {
+    requireSession(session);
+
+    if (
+      typeof apiClient
+        .listSharedPendingWorkRequests !==
+      "function"
+    ) {
+      throw new TypeError(
+        "Secure Delivery shared Havuz API is unavailable",
+      );
+    }
+
+    const raw =
+      await apiClient
+        .listSharedPendingWorkRequests();
+
+    if (!Array.isArray(raw)) {
+      throw new TypeError(
+        "shared work request response must be an array",
+      );
+    }
+
+    return Object.freeze(
+      raw.map(toSharedWorkRequestView),
+    );
   }
 
   async function normalizedAssignments(session) {
@@ -202,6 +297,8 @@ export function createSecureDeliveryStudent08ReadService({
   return Object.freeze({
     listPoolItems,
     getPoolItem,
+    requestWork,
+    listSharedWorkRequests,
 
     async listPieces({
       session,
