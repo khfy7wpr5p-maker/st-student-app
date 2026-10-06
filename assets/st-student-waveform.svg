@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 96" role="img" aria-hidden="true">
+  <defs>
+    <linearGradient id="wave" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#32DDF5"/>
+      <stop offset="0.5" stop-color="#69E7F6"/>
+      <stop offset="1" stop-color="#8B7CFF"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-80%" width="140%" height="260%">
+      <feGaussianBlur stdDeviation="4"/>
+    </filter>
+  </defs>
+  <path
+    d="M4 48 L14 48 L18 43 L22 56 L26 35 L30 63 L34 40 L38 58 L42 28 L46 69 L50 39 L54 57 L58 32 L62 64 L66 41 L70 54 L74 45 L78 51 L82 36 L86 61 L90 44 L94 53 L98 40 L102 58 L106 43 L110 50 L114 38 L118 60 L122 45 L126 52 L130 42 L134 55 L138 47 L142 50 L146 39 L150 59 L154 44 L158 53 L162 41 L166 57 L170 46 L174 50 L178 36 L182 61 L186 43 L190 55 L194 39 L198 58 L202 44 L206 52 L210 40 L214 56 L218 46 L222 50 L226 42 L230 54 L234 47 L238 51 L242 44 L246 52 L250 46 L254 50 L258 45 L262 51 L266 47 L270 50 L274 46 L278 50 L282 47 L286 49 L290 48 L316 48"
+    fill="none"
+    stroke="url(#wave)"
+    stroke-width="8"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    opacity="0.22"
+    filter="url(#glow)"
+  />
+  <path
+    d="M4 48 L14 48 L18 43 L22 56 L26 35 L30 63 L34 40 L38 58 L42 28 L46 69 L50 39 L54 57 L58 32 L62 64 L66 41 L70 54 L74 45 L78 51 L82 36 L86 61 L90 44 L94 53 L98 40 L102 58 L106 43 L110 50 L114 38 L118 60 L122 45 L126 52 L130 42 L134 55 L138 47 L142 50 L146 39 L150 59 L154 44 L158 53 L162 41 L166 57 L170 46 L174 50 L178 36 L182 61 L186 43 L190 55 L194 39 L198 58 L202 44 L206 52 L210 40 L214 56 L218 46 L222 50 L226 42 L230 54 L234 47 L238 51 L242 44 L246 52 L250 46 L254 50 L258 45 L262 51 L266 47 L270 50 L274 46 L278 50 L282 47 L286 49 L290 48 L316 48"
+    fill="none"
+    stroke="url(#wave)"
+    stroke-width="2.6"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>
