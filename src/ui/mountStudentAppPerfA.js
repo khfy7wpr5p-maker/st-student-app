@@ -1,0 +1,104 @@
+import { mountStudentApp } from "./mountStudentApp.js";
+
+const IMMEDIATE_NAVIGATION_ACTIONS = new Set([
+  "show-public-pool",
+  "show-my-work",
+  "show-work-folder",
+  "show-shared-request-pool",
+]);
+
+const LOADING_TEXT = "Yükleniyor…";
+
+export function mountStudentAppPerfA(options = {}) {
+  const { root, controller } = options;
+
+  if (
+    root === null ||
+    typeof root?.addEventListener !== "function" ||
+    typeof controller?.getState !== "function"
+  ) {
+    return mountStudentApp(options);
+  }
+
+  let mounted = null;
+  let destroyed = false;
+  let paintGeneration = 0;
+
+  const applyPendingStatus = () => {
+    if (
+      destroyed ||
+      controller.isNavigationPending?.() !== true
+    ) {
+      return;
+    }
+
+    const statusNode = root.querySelector?.(".app-status") ?? null;
+    if (statusNode !== null && statusNode.textContent !== LOADING_TEXT) {
+      statusNode.textContent = LOADING_TEXT;
+    }
+  };
+
+  const schedulePendingPaint = (event) => {
+    const actionNode = event?.target?.closest?.("[data-action]") ?? null;
+    if (actionNode === null || !root.contains(actionNode)) {
+      return;
+    }
+
+    if (!IMMEDIATE_NAVIGATION_ACTIONS.has(actionNode.dataset.action)) {
+      return;
+    }
+
+    const generation = paintGeneration + 1;
+    paintGeneration = generation;
+    const queue =
+      root.ownerDocument?.defaultView?.queueMicrotask ??
+      globalThis.queueMicrotask;
+
+    queue(() => {
+      if (
+        destroyed ||
+        mounted === null ||
+        generation !== paintGeneration ||
+        controller.isNavigationPending?.() !== true
+      ) {
+        return;
+      }
+
+      const renderResult = mounted.render();
+      applyPendingStatus();
+      Promise.resolve(renderResult).catch(() => {});
+    });
+  };
+
+  root.addEventListener("click", schedulePendingPaint, true);
+  mounted = mountStudentApp(options);
+
+  const MutationObserverCtor =
+    root.ownerDocument?.defaultView?.MutationObserver ??
+    globalThis.MutationObserver;
+  const observer =
+    typeof MutationObserverCtor === "function"
+      ? new MutationObserverCtor(applyPendingStatus)
+      : null;
+
+  observer?.observe?.(root, {
+    childList: true,
+    subtree: true,
+  });
+
+  return Object.freeze({
+    ...mounted,
+    async render() {
+      const result = mounted.render();
+      applyPendingStatus();
+      return result;
+    },
+    async destroy() {
+      destroyed = true;
+      paintGeneration += 1;
+      observer?.disconnect?.();
+      root.removeEventListener("click", schedulePendingPaint, true);
+      return mounted.destroy();
+    },
+  });
+}
