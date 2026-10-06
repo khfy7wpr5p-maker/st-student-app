@@ -24,17 +24,25 @@ export function mountStudentAppPerfA(options = {}) {
   let destroyed = false;
   let paintGeneration = 0;
 
-  const applyPendingStatus = () => {
-    if (
-      destroyed ||
-      controller.isNavigationPending?.() !== true
-    ) {
+  const synchronizePendingStatus = () => {
+    if (destroyed) {
       return;
     }
 
     const statusNode = root.querySelector?.(".app-status") ?? null;
-    if (statusNode !== null && statusNode.textContent !== LOADING_TEXT) {
-      statusNode.textContent = LOADING_TEXT;
+    if (statusNode === null) {
+      return;
+    }
+
+    if (controller.isNavigationPending?.() === true) {
+      if (statusNode.textContent !== LOADING_TEXT) {
+        statusNode.textContent = LOADING_TEXT;
+      }
+      return;
+    }
+
+    if (statusNode.textContent === LOADING_TEXT) {
+      statusNode.textContent = "";
     }
   };
 
@@ -65,7 +73,7 @@ export function mountStudentAppPerfA(options = {}) {
       }
 
       const renderResult = mounted.render();
-      applyPendingStatus();
+      synchronizePendingStatus();
       Promise.resolve(renderResult).catch(() => {});
     });
   };
@@ -78,7 +86,7 @@ export function mountStudentAppPerfA(options = {}) {
     globalThis.MutationObserver;
   const observer =
     typeof MutationObserverCtor === "function"
-      ? new MutationObserverCtor(applyPendingStatus)
+      ? new MutationObserverCtor(synchronizePendingStatus)
       : null;
 
   observer?.observe?.(root, {
@@ -89,8 +97,8 @@ export function mountStudentAppPerfA(options = {}) {
   return Object.freeze({
     ...mounted,
     async render() {
-      const result = mounted.render();
-      applyPendingStatus();
+      const result = await mounted.render();
+      synchronizePendingStatus();
       return result;
     },
     async destroy() {
