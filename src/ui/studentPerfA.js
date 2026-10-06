@@ -26,6 +26,13 @@ function sameStudentAndState(left, right) {
   );
 }
 
+function markPromiseHandled(result) {
+  if (result !== null && typeof result?.then === "function") {
+    Promise.resolve(result).catch(() => {});
+  }
+  return result;
+}
+
 export function createStudentPerfAReadService(readService) {
   if (readService === null || typeof readService !== "object") {
     return null;
@@ -232,16 +239,17 @@ export function createStudentPerfAReadService(readService) {
 
   const wrapped = {
     ...readService,
-    listPoolItems,
-    listAssignments,
+    listPoolItems: (...args) => markPromiseHandled(listPoolItems(...args)),
+    listAssignments: (...args) => markPromiseHandled(listAssignments(...args)),
     getAssignment,
   };
 
   if (typeof readService.listPieces === "function") {
-    wrapped.listPieces = listPieces;
+    wrapped.listPieces = (...args) => markPromiseHandled(listPieces(...args));
   }
   if (typeof readService.listSharedWorkRequests === "function") {
-    wrapped.listSharedWorkRequests = listSharedWorkRequests;
+    wrapped.listSharedWorkRequests = (...args) =>
+      markPromiseHandled(listSharedWorkRequests(...args));
   }
   if (typeof readService.getPiece === "function") {
     wrapped.getPiece = getPiece;
