@@ -13,7 +13,12 @@ import { createStudentPlaybackPort } from "../playback/studentPlaybackPort.js";
 import { createFirebaseBrowserRuntime } from "../providers/firebase/firebaseBrowserRuntime.js";
 import { createStudentAppController } from "./studentAppController.js";
 import { createStudent08Composition } from "./student08Composition.js";
-import { mountStudentApp } from "./mountStudentApp.js";
+import { mountStudentAppPerfA as mountStudentApp } from "./mountStudentAppPerfA.js";
+import {
+  createStudentPerfAController,
+  createStudentPerfAReadService,
+  createStudentPerfASharingService,
+} from "./studentPerfA.js";
 import { createViolinFingerboardPresentation } from "./violinFingerboard.js";
 
 const signInStylesheet = document.createElement("link");
@@ -111,6 +116,13 @@ const student08Composition =
       offlineInfrastructure.offlineRepository,
   });
 
+const perfASharingService = createStudentPerfASharingService(
+  offlineInfrastructure.sharingService,
+);
+const perfAReadService = createStudentPerfAReadService(
+  student08Composition.student08ReadService,
+);
+
 const syncCoordinator =
   secureDeliveryConfig.enabled &&
   offlineInfrastructure.offlineRepository !== null
@@ -124,14 +136,19 @@ const syncCoordinator =
       })
     : null;
 
-const controller = createStudentAppController({
-  sharingService: offlineInfrastructure.sharingService,
-  student08ReadService:
-    student08Composition.student08ReadService,
+const baseController = createStudentAppController({
+  sharingService: perfASharingService,
+  student08ReadService: perfAReadService,
   initialSession,
   notationAdapter,
   playbackPort,
   syncCoordinator,
+});
+
+const controller = createStudentPerfAController({
+  controller: baseController,
+  readService: perfAReadService,
+  sharingService: perfASharingService,
 });
 
 const mounted = mountStudentApp({
