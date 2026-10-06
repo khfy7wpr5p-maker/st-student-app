@@ -161,12 +161,12 @@ test("installed stale v20/v21 shells migrate atomically to v22 and reopen offlin
 
   for (const asset of [
     "src/ui/sign-in-fusion-lite.css",
-    "assets/st-student-logo.png",
-    "assets/st-student-waveform.svg",
-    "manifest.webmanifest",
-    "assets/st-student-icon-192.png",
-    "assets/st-student-icon-512.png",
-    "assets/st-student-apple-touch-icon.png",
+    "src/assets/st-student-logo.png",
+    "src/assets/st-student-waveform.svg",
+    "src/manifest.webmanifest",
+    "src/assets/st-student-icon-192.png",
+    "src/assets/st-student-icon-512.png",
+    "src/assets/st-student-apple-touch-icon.png",
   ]) {
     assert.equal(
       entriesFor("st-student-shell-v22").has(

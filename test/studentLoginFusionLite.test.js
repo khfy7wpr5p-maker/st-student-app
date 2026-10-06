@@ -29,8 +29,8 @@ test("Fusion Lite styles stay scoped to the sign-in screen and preserve keyboard
   assert.match(source, /input:focus-visible/);
   assert.match(source, /button\[data-action="request-sign-in"\]:focus-visible/);
   assert.match(source, /backdrop-filter: blur\(18px\)/);
-  assert.match(source, /st-student-logo\.png/);
-  assert.match(source, /st-student-waveform\.svg/);
+  assert.match(source, /\.\.\/assets\/st-student-logo\.png/);
+  assert.match(source, /\.\.\/assets\/st-student-waveform\.svg/);
 });
 
 test("Fusion Lite desktop composition stays compact and waveform remains visually subdued", async () => {
@@ -39,7 +39,7 @@ test("Fusion Lite desktop composition stays compact and waveform remains visuall
     "utf8",
   );
   const waveform = await readFile(
-    new URL("../assets/st-student-waveform.svg", import.meta.url),
+    new URL("../src/assets/st-student-waveform.svg", import.meta.url),
     "utf8",
   );
 
@@ -50,27 +50,28 @@ test("Fusion Lite desktop composition stays compact and waveform remains visuall
   assert.match(waveform, /opacity="0\.78"/);
 });
 
-test("installable app metadata exposes ST Student icons for home-screen installation", async () => {
+test("installable app metadata exposes ST Student icons from the Render-packaged src tree", async () => {
   const mainSource = await readFile(
     new URL("../src/ui/main.js", import.meta.url),
     "utf8",
   );
   const manifest = JSON.parse(
     await readFile(
-      new URL("../manifest.webmanifest", import.meta.url),
+      new URL("../src/manifest.webmanifest", import.meta.url),
       "utf8",
     ),
   );
 
-  assert.match(mainSource, /manifest\.webmanifest/);
-  assert.match(mainSource, /st-student-apple-touch-icon\.png/);
+  assert.match(mainSource, /src\/manifest\.webmanifest/);
+  assert.match(mainSource, /src\/assets\/st-student-apple-touch-icon\.png/);
   assert.match(mainSource, /theme-color/);
   assert.match(mainSource, /#eef9ff/i);
 
   assert.equal(manifest.name, "ST Student");
   assert.equal(manifest.short_name, "ST Student");
   assert.equal(manifest.display, "standalone");
-  assert.equal(manifest.start_url, "./");
+  assert.equal(manifest.start_url, "../");
+  assert.equal(manifest.scope, "../");
   assert.equal(manifest.theme_color, "#eef9ff");
   assert.deepEqual(
     manifest.icons.map(({ src, sizes, purpose }) => ({ src, sizes, purpose })),
