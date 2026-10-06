@@ -109,11 +109,11 @@ export function mountStudentAppPerfA(options = {}) {
     });
   };
 
-  root.addEventListener("click", schedulePendingPaint, true);
   mounted = mountStudentApp({
     ...options,
     controller: mountedController,
   });
+  root.addEventListener("click", schedulePendingPaint);
 
   const MutationObserverCtor =
     root.ownerDocument?.defaultView?.MutationObserver ??
@@ -139,7 +139,7 @@ export function mountStudentAppPerfA(options = {}) {
       destroyed = true;
       paintGeneration += 1;
       observer?.disconnect?.();
-      root.removeEventListener("click", schedulePendingPaint, true);
+      root.removeEventListener("click", schedulePendingPaint);
       return mounted.destroy();
     },
   });
