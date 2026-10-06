@@ -1,0 +1,233 @@
+/* STUDENT-UI-01: scoped Penpot Fusion Lite sign-in presentation. */
+
+body:has(.student-app input[data-sign-in-email]) {
+  background:
+    radial-gradient(circle at 72% 14%, rgb(79 223 247 / 24%), transparent 28rem),
+    radial-gradient(circle at 18% 38%, rgb(139 124 255 / 10%), transparent 24rem),
+    linear-gradient(180deg, #eef9ff 0%, #f4f8fc 100%);
+}
+
+#app:has(.student-app input[data-sign-in-email]) {
+  width: min(100%, 46rem);
+  min-height: 100vh;
+  padding: 1.5rem;
+  display: grid;
+  align-content: start;
+}
+
+.student-app:has(input[data-sign-in-email]) {
+  position: relative;
+  width: 100%;
+}
+
+.student-app:has(input[data-sign-in-email]) > .app-status {
+  position: absolute;
+  top: 1rem;
+  left: 1.5rem;
+  z-index: 2;
+  margin: 0;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid rgb(32 215 167 / 58%);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 58%);
+  color: #13a994;
+  box-shadow: 0 0.4rem 1.4rem rgb(79 223 247 / 10%);
+  backdrop-filter: blur(12px);
+  font-size: 0.78rem;
+  line-height: 1.2;
+}
+
+.student-app section:has(input[data-sign-in-email]) {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(16rem, 0.95fr);
+  grid-auto-rows: min-content;
+  column-gap: 1.5rem;
+  row-gap: 0.7rem;
+  width: 100%;
+  padding: 4.2rem 1.5rem 1.5rem;
+  overflow: hidden;
+  border: 1px solid rgb(116 223 247 / 56%);
+  border-radius: 1.75rem;
+  background: rgb(255 255 255 / 54%);
+  box-shadow:
+    0 1.25rem 2.75rem rgb(78 149 191 / 14%),
+    inset 0 1px 0 rgb(255 255 255 / 74%);
+  backdrop-filter: blur(18px) saturate(118%);
+}
+
+.student-app section:has(input[data-sign-in-email]) > h1,
+.student-app section:has(input[data-sign-in-email]) > p,
+.student-app section:has(input[data-sign-in-email]) > label,
+.student-app section:has(input[data-sign-in-email]) > button {
+  grid-column: 1;
+  min-width: 0;
+}
+
+.student-app section:has(input[data-sign-in-email]) > h1 {
+  position: relative;
+  min-height: 3.65rem;
+  margin: 0;
+  padding-left: 4.35rem;
+  display: flex;
+  align-items: center;
+  color: #16324f;
+  font-size: clamp(1.45rem, 3.3vw, 1.75rem);
+  font-weight: 750;
+  letter-spacing: -0.035em;
+}
+
+.student-app section:has(input[data-sign-in-email]) > h1::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 3.65rem;
+  height: 3.65rem;
+  background: url("../../assets/st-student-logo.png") center / contain no-repeat;
+  filter: drop-shadow(0 0.4rem 0.8rem rgb(79 223 247 / 20%));
+}
+
+@supports (-webkit-background-clip: text) or (background-clip: text) {
+  .student-app section:has(input[data-sign-in-email]) > h1 {
+    background: linear-gradient(90deg, #23c7e8 0 21%, #16283d 21% 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+  }
+}
+
+.student-app section:has(input[data-sign-in-email]) > p {
+  margin: -0.45rem 0 0.55rem 4.35rem;
+  color: #6e8297;
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.student-app section:has(input[data-sign-in-email]) > label {
+  display: grid;
+  gap: 0.35rem;
+  color: #6f8498;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.student-app section:has(input[data-sign-in-email]) input {
+  width: 100%;
+  min-height: 3rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgb(79 207 242 / 62%);
+  border-radius: 0.9rem;
+  background: rgb(255 255 255 / 72%);
+  color: #26384d;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 82%),
+    0 0.35rem 1rem rgb(70 175 220 / 8%);
+  font-size: 0.9rem;
+}
+
+.student-app section:has(input[data-sign-in-email]) input[data-sign-in-password] {
+  border-color: rgb(139 124 255 / 48%);
+}
+
+.student-app section:has(input[data-sign-in-email]) input:focus-visible {
+  outline: 0.18rem solid rgb(58 141 255 / 42%);
+  outline-offset: 0.12rem;
+  border-color: #4fdff7;
+}
+
+.student-app section:has(input[data-sign-in-email]) > button[data-action="request-sign-in"] {
+  width: 100%;
+  min-height: 3rem;
+  margin-top: 0.15rem;
+  border: 1px solid rgb(255 255 255 / 32%);
+  border-radius: 1rem;
+  background: linear-gradient(90deg, #a84bff 0%, #3a8dff 100%);
+  color: #ffffff;
+  box-shadow: 0 0.75rem 1.5rem rgb(139 124 255 / 20%);
+  font-weight: 750;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+.student-app section:has(input[data-sign-in-email]) > button[data-action="request-sign-in"]:hover:not(:disabled) {
+  background: linear-gradient(90deg, #9f42f5 0%, #347fe8 100%);
+}
+
+.student-app section:has(input[data-sign-in-email]) > button[data-action="request-sign-in"]:focus-visible {
+  outline: 0.2rem solid rgb(58 141 255 / 44%);
+  outline-offset: 0.15rem;
+}
+
+.student-app section:has(input[data-sign-in-email]) > button[data-action="request-sign-in"]:disabled {
+  opacity: 0.58;
+}
+
+.student-app section:has(input[data-sign-in-email])::after {
+  content: "";
+  grid-column: 2;
+  grid-row: 1 / span 5;
+  align-self: stretch;
+  min-height: 17rem;
+  border: 1px solid rgb(221 246 255 / 72%);
+  border-radius: 1.55rem;
+  background:
+    url("../../assets/st-student-waveform.svg") center / 78% auto no-repeat,
+    rgb(255 255 255 / 40%);
+  box-shadow:
+    0 0.9rem 2rem rgb(79 223 247 / 10%),
+    inset 0 1px 0 rgb(255 255 255 / 72%);
+  backdrop-filter: blur(14px);
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .student-app:has(input[data-sign-in-email]) > .app-status {
+    background: rgb(255 255 255 / 88%);
+  }
+
+  .student-app section:has(input[data-sign-in-email]) {
+    background: rgb(248 253 255 / 94%);
+  }
+
+  .student-app section:has(input[data-sign-in-email])::after {
+    background:
+      url("../../assets/st-student-waveform.svg") center / 78% auto no-repeat,
+      #f7fcff;
+  }
+}
+
+@media (max-width: 640px) {
+  #app:has(.student-app input[data-sign-in-email]) {
+    width: 100%;
+    min-height: 100dvh;
+    padding: 1rem;
+  }
+
+  .student-app:has(input[data-sign-in-email]) > .app-status {
+    top: 1rem;
+    left: 1rem;
+  }
+
+  .student-app section:has(input[data-sign-in-email]) {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 4.15rem 1rem 1rem;
+    border-radius: 1.5rem;
+  }
+
+  .student-app section:has(input[data-sign-in-email]) > h1 {
+    min-height: 3.25rem;
+    padding-left: 3.9rem;
+    font-size: 1.45rem;
+  }
+
+  .student-app section:has(input[data-sign-in-email]) > h1::before {
+    width: 3.25rem;
+    height: 3.25rem;
+  }
+
+  .student-app section:has(input[data-sign-in-email]) > p {
+    margin-left: 3.9rem;
+  }
+
+  .student-app section:has(input[data-sign-in-email])::after {
+    display: none;
+  }
+}
