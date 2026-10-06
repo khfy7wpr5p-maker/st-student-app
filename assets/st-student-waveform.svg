@@ -16,7 +16,7 @@
     stroke-width="8"
     stroke-linecap="round"
     stroke-linejoin="round"
-    opacity="0.22"
+    opacity="0.14"
     filter="url(#glow)"
   />
   <path
@@ -26,5 +26,6 @@
     stroke-width="2.6"
     stroke-linecap="round"
     stroke-linejoin="round"
+    opacity="0.78"
   />
 </svg>
