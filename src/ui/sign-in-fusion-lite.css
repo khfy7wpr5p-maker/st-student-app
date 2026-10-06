@@ -82,7 +82,7 @@ body:has(.student-app input[data-sign-in-email]) {
   left: 0;
   width: 3.65rem;
   height: 3.65rem;
-  background: url("../../assets/st-student-logo.png") center / contain no-repeat;
+  background: url("../assets/st-student-logo.png") center / contain no-repeat;
   filter: drop-shadow(0 0.4rem 0.8rem rgb(79 223 247 / 20%));
 }
 
@@ -170,7 +170,7 @@ body:has(.student-app input[data-sign-in-email]) {
   border: 1px solid rgb(221 246 255 / 72%);
   border-radius: 1.55rem;
   background:
-    url("../../assets/st-student-waveform.svg") center / 78% auto no-repeat,
+    url("../assets/st-student-waveform.svg") center / 78% auto no-repeat,
     rgb(255 255 255 / 40%);
   box-shadow:
     0 0.9rem 2rem rgb(79 223 247 / 10%),
@@ -189,7 +189,7 @@ body:has(.student-app input[data-sign-in-email]) {
 
   .student-app section:has(input[data-sign-in-email])::after {
     background:
-      url("../../assets/st-student-waveform.svg") center / 78% auto no-repeat,
+      url("../assets/st-student-waveform.svg") center / 78% auto no-repeat,
       #f7fcff;
   }
 }
