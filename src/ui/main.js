@@ -17,6 +17,7 @@ import { mountStudentAppPerfA as mountStudentApp } from "./mountStudentAppPerfA.
 import {
   createStudentPerfAController,
   createStudentPerfAReadService,
+  createStudentPerfASharingService,
 } from "./studentPerfA.js";
 import { createViolinFingerboardPresentation } from "./violinFingerboard.js";
 
@@ -115,6 +116,9 @@ const student08Composition =
       offlineInfrastructure.offlineRepository,
   });
 
+const perfASharingService = createStudentPerfASharingService(
+  offlineInfrastructure.sharingService,
+);
 const perfAReadService = createStudentPerfAReadService(
   student08Composition.student08ReadService,
 );
@@ -133,7 +137,7 @@ const syncCoordinator =
     : null;
 
 const baseController = createStudentAppController({
-  sharingService: offlineInfrastructure.sharingService,
+  sharingService: perfASharingService,
   student08ReadService: perfAReadService,
   initialSession,
   notationAdapter,
@@ -144,6 +148,7 @@ const baseController = createStudentAppController({
 const controller = createStudentPerfAController({
   controller: baseController,
   readService: perfAReadService,
+  sharingService: perfASharingService,
 });
 
 const mounted = mountStudentApp({
