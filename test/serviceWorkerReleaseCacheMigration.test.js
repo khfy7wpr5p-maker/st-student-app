@@ -22,7 +22,7 @@ function requestKey(request) {
   return request.url;
 }
 
-test("installed stale v20/v21 shells migrate atomically to v22 and reopen offline", async () => {
+test("installed stale v20/v21/v22 shells migrate atomically to v23 and reopen offline", async () => {
   const source = await readFile(
     new URL("../service-worker.js", import.meta.url),
     "utf8",
@@ -47,7 +47,7 @@ test("installed stale v20/v21 shells migrate atomically to v22 and reopen offlin
         for (const asset of assets) {
           const key = requestKey(asset);
           const body = key.endsWith("/index.html")
-            ? "student-ui-01-fusion-lite"
+            ? "student-static-icon-metadata"
             : `current:${key}`;
           entries.set(key, makeResponse(body));
         }
@@ -91,6 +91,10 @@ test("installed stale v20/v21 shells migrate atomically to v22 and reopen offlin
   entriesFor("st-student-shell-v21").set(
     "https://student.example/index.html",
     makeResponse("preview-fusion-lite-shell"),
+  );
+  entriesFor("st-student-shell-v22").set(
+    "https://student.example/index.html",
+    makeResponse("dynamic-icon-metadata-shell"),
   );
 
   const cachesObject = {
@@ -153,10 +157,10 @@ test("installed stale v20/v21 shells migrate atomically to v22 and reopen offlin
     "pre-student-ui-01-shell",
   );
   assert.equal(
-    entriesFor("st-student-shell-v22")
+    entriesFor("st-student-shell-v23")
       .get("https://student.example/index.html")
       .body,
-    "student-ui-01-fusion-lite",
+    "student-static-icon-metadata",
   );
 
   for (const asset of [
@@ -169,7 +173,7 @@ test("installed stale v20/v21 shells migrate atomically to v22 and reopen offlin
     "src/assets/st-student-apple-touch-icon.png",
   ]) {
     assert.equal(
-      entriesFor("st-student-shell-v22").has(
+      entriesFor("st-student-shell-v23").has(
         `https://student.example/${asset}`,
       ),
       true,
@@ -189,10 +193,12 @@ test("installed stale v20/v21 shells migrate atomically to v22 and reopen offlin
     "st-student-shell-v17",
     "st-student-shell-v20",
     "st-student-shell-v21",
+    "st-student-shell-v22",
   ]);
   assert.equal(claimCalls, 1);
   assert.equal(cacheEntries.has("st-student-shell-v20"), false);
   assert.equal(cacheEntries.has("st-student-shell-v21"), false);
+  assert.equal(cacheEntries.has("st-student-shell-v22"), false);
   assert.equal(
     entriesFor("st-student-shell-v18").has(
       "https://student.example/index.html",
@@ -219,5 +225,5 @@ test("installed stale v20/v21 shells migrate atomically to v22 and reopen offlin
   });
 
   const response = await responsePromise;
-  assert.equal(response.body, "student-ui-01-fusion-lite");
+  assert.equal(response.body, "student-static-icon-metadata");
 });

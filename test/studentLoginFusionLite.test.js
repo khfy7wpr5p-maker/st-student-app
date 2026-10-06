@@ -50,7 +50,11 @@ test("Fusion Lite desktop composition stays compact and waveform remains visuall
   assert.match(waveform, /opacity="0\.78"/);
 });
 
-test("installable app metadata exposes ST Student icons from the Render-packaged src tree", async () => {
+test("installable app metadata is declared statically in index head for desktop and iOS", async () => {
+  const indexSource = await readFile(
+    new URL("../index.html", import.meta.url),
+    "utf8",
+  );
   const mainSource = await readFile(
     new URL("../src/ui/main.js", import.meta.url),
     "utf8",
@@ -62,10 +66,21 @@ test("installable app metadata exposes ST Student icons from the Render-packaged
     ),
   );
 
-  assert.match(mainSource, /src\/manifest\.webmanifest/);
-  assert.match(mainSource, /src\/assets\/st-student-apple-touch-icon\.png/);
-  assert.match(mainSource, /theme-color/);
-  assert.match(mainSource, /#eef9ff/i);
+  assert.match(
+    indexSource,
+    /<link[^>]+rel=["']manifest["'][^>]+href=["']\.\/src\/manifest\.webmanifest["'][^>]*>/i,
+  );
+  assert.match(
+    indexSource,
+    /<link[^>]+rel=["']apple-touch-icon["'][^>]+href=["']\.\/src\/assets\/st-student-apple-touch-icon\.png["'][^>]*>/i,
+  );
+  assert.match(
+    indexSource,
+    /<link[^>]+rel=["']icon["'][^>]+href=["']\.\/src\/assets\/st-student-icon-192\.png["'][^>]*>/i,
+  );
+  assert.match(indexSource, /<meta[^>]+name=["']theme-color["'][^>]+content=["']#eef9ff["'][^>]*>/i);
+  assert.doesNotMatch(mainSource, /createElement\(["']link["']\)[\s\S]*manifest\.webmanifest/);
+  assert.doesNotMatch(mainSource, /apple-touch-icon/);
 
   assert.equal(manifest.name, "ST Student");
   assert.equal(manifest.short_name, "ST Student");

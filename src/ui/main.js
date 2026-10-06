@@ -26,22 +26,6 @@ signInStylesheet.rel = "stylesheet";
 signInStylesheet.href = "./src/ui/sign-in-fusion-lite.css";
 document.head.append(signInStylesheet);
 
-const manifestLink = document.createElement("link");
-manifestLink.rel = "manifest";
-manifestLink.href = "./src/manifest.webmanifest";
-document.head.append(manifestLink);
-
-const appleTouchIcon = document.createElement("link");
-appleTouchIcon.rel = "apple-touch-icon";
-appleTouchIcon.href = "./src/assets/st-student-apple-touch-icon.png";
-appleTouchIcon.sizes = "180x180";
-document.head.append(appleTouchIcon);
-
-const themeColor = document.createElement("meta");
-themeColor.name = "theme-color";
-themeColor.content = "#eef9ff";
-document.head.append(themeColor);
-
 const root = document.querySelector("#app");
 const notationRuntimeLoader = createNotationRuntimeLoader({
   bootstrapUrl: "./vendor/st-score-runtime/browser-bootstrap.mjs",
