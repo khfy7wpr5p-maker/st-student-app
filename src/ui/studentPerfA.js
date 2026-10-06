@@ -33,6 +33,74 @@ function markPromiseHandled(result) {
   return result;
 }
 
+function guardNavigationRead({ beginNavigation, isCurrent, operation }) {
+  const token = beginNavigation();
+  let result;
+  try {
+    result = operation();
+  } catch (error) {
+    throw error;
+  }
+
+  if (result === null || typeof result?.then !== "function") {
+    if (!isCurrent(token)) {
+      throw staleNavigationError();
+    }
+    return result;
+  }
+
+  return markPromiseHandled(
+    Promise.resolve(result).then((value) => {
+      if (!isCurrent(token)) {
+        throw staleNavigationError();
+      }
+      return value;
+    }),
+  );
+}
+
+export function createStudentPerfASharingService(sharingService) {
+  if (sharingService === null || typeof sharingService !== "object") {
+    return sharingService ?? null;
+  }
+
+  let navigationGeneration = 0;
+  const beginNavigation = () => {
+    navigationGeneration += 1;
+    return navigationGeneration;
+  };
+  const isCurrent = (token) => token === navigationGeneration;
+  const invalidateNavigation = () => {
+    navigationGeneration += 1;
+  };
+
+  const wrapped = { ...sharingService };
+
+  if (typeof sharingService.listPublicPool === "function") {
+    wrapped.listPublicPool = (...args) =>
+      guardNavigationRead({
+        beginNavigation,
+        isCurrent,
+        operation: () => sharingService.listPublicPool(...args),
+      });
+  }
+  if (typeof sharingService.listMyWork === "function") {
+    wrapped.listMyWork = (...args) =>
+      guardNavigationRead({
+        beginNavigation,
+        isCurrent,
+        operation: () => sharingService.listMyWork(...args),
+      });
+  }
+
+  Object.defineProperty(wrapped, "__studentPerfAInvalidateNavigation", {
+    value: invalidateNavigation,
+    enumerable: false,
+  });
+
+  return Object.freeze(wrapped);
+}
+
 export function createStudentPerfAReadService(readService) {
   if (readService === null || typeof readService !== "object") {
     return null;
@@ -317,6 +385,7 @@ function freezePendingState(current, screen, extra = {}) {
 export function createStudentPerfAController({
   controller,
   readService,
+  sharingService,
 } = {}) {
   if (controller === null || typeof controller?.getState !== "function") {
     throw new TypeError("student controller required");
@@ -331,6 +400,7 @@ export function createStudentPerfAController({
     uiGeneration += 1;
     pendingState = null;
     readService?.__studentPerfAInvalidateNavigation?.();
+    sharingService?.__studentPerfAInvalidateNavigation?.();
   }
 
   function clearPendingIfCurrent(generation) {
