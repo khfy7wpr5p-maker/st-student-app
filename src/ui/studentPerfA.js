@@ -44,9 +44,15 @@ export function createStudentPerfAReadService(readService) {
   let assignmentCache = new Map();
   let pieceOpen = null;
 
+  function clearListedAssignments() {
+    listedAssignmentRead = null;
+    assignmentCache = new Map();
+  }
+
   function invalidateNavigation() {
     navigationGeneration += 1;
     myWorkPair = null;
+    clearListedAssignments();
   }
 
   function beginNavigation() {
@@ -232,8 +238,7 @@ export function createStudentPerfAReadService(readService) {
   }
 
   function clearPresentationCache() {
-    assignmentCache = new Map();
-    listedAssignmentRead = null;
+    clearListedAssignments();
     pieceOpen = null;
   }
 
@@ -328,6 +333,12 @@ export function createStudentPerfAController({
     readService?.__studentPerfAInvalidateNavigation?.();
   }
 
+  function clearPendingIfCurrent(generation) {
+    if (generation === uiGeneration) {
+      pendingState = null;
+    }
+  }
+
   function navigate({ screen, extra, operation }) {
     const generation = uiGeneration + 1;
     uiGeneration = generation;
@@ -342,6 +353,7 @@ export function createStudentPerfAController({
     try {
       result = operation();
     } catch (error) {
+      clearPendingIfCurrent(generation);
       if (isStudentPerfAStaleNavigation(error)) {
         return Promise.resolve(getState());
       }
@@ -350,12 +362,11 @@ export function createStudentPerfAController({
 
     return Promise.resolve(result)
       .then(() => {
-        if (generation === uiGeneration) {
-          pendingState = null;
-        }
+        clearPendingIfCurrent(generation);
         return getState();
       })
       .catch((error) => {
+        clearPendingIfCurrent(generation);
         if (isStudentPerfAStaleNavigation(error)) {
           return getState();
         }
