@@ -24,6 +24,13 @@ export function mountStudentAppPerfA(options = {}) {
   let destroyed = false;
   let paintGeneration = 0;
 
+  const queueMicrotaskSafe = (callback) => {
+    const queue =
+      root.ownerDocument?.defaultView?.queueMicrotask ??
+      globalThis.queueMicrotask;
+    queue(callback);
+  };
+
   const synchronizePendingStatus = () => {
     if (destroyed) {
       return;
@@ -46,6 +53,33 @@ export function mountStudentAppPerfA(options = {}) {
     }
   };
 
+  const settleStatusAfter = (result) => {
+    if (result === null || typeof result?.then !== "function") {
+      queueMicrotaskSafe(synchronizePendingStatus);
+      return result;
+    }
+
+    Promise.resolve(result)
+      .finally(() => {
+        queueMicrotaskSafe(synchronizePendingStatus);
+      })
+      .catch(() => {});
+    return result;
+  };
+
+  const mountedController = Object.freeze({
+    ...controller,
+    showPublicPool(...args) {
+      return settleStatusAfter(controller.showPublicPool(...args));
+    },
+    showMyWork(...args) {
+      return settleStatusAfter(controller.showMyWork(...args));
+    },
+    showSharedRequestPool(...args) {
+      return settleStatusAfter(controller.showSharedRequestPool(...args));
+    },
+  });
+
   const schedulePendingPaint = (event) => {
     const actionNode = event?.target?.closest?.("[data-action]") ?? null;
     if (actionNode === null || !root.contains(actionNode)) {
@@ -58,11 +92,8 @@ export function mountStudentAppPerfA(options = {}) {
 
     const generation = paintGeneration + 1;
     paintGeneration = generation;
-    const queue =
-      root.ownerDocument?.defaultView?.queueMicrotask ??
-      globalThis.queueMicrotask;
 
-    queue(() => {
+    queueMicrotaskSafe(() => {
       if (
         destroyed ||
         mounted === null ||
@@ -79,7 +110,10 @@ export function mountStudentAppPerfA(options = {}) {
   };
 
   root.addEventListener("click", schedulePendingPaint, true);
-  mounted = mountStudentApp(options);
+  mounted = mountStudentApp({
+    ...options,
+    controller: mountedController,
+  });
 
   const MutationObserverCtor =
     root.ownerDocument?.defaultView?.MutationObserver ??
