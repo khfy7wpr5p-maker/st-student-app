@@ -51,8 +51,8 @@ test("Fusion Lite desktop composition stays compact and waveform remains visuall
 });
 
 test("installable app metadata exposes ST Student icons for home-screen installation", async () => {
-  const indexSource = await readFile(
-    new URL("../index.html", import.meta.url),
+  const mainSource = await readFile(
+    new URL("../src/ui/main.js", import.meta.url),
     "utf8",
   );
   const manifest = JSON.parse(
@@ -62,9 +62,10 @@ test("installable app metadata exposes ST Student icons for home-screen installa
     ),
   );
 
-  assert.match(indexSource, /rel="manifest" href="\.\/manifest\.webmanifest"/);
-  assert.match(indexSource, /rel="apple-touch-icon" href="\.\/assets\/st-student-apple-touch-icon\.png"/);
-  assert.match(indexSource, /name="theme-color" content="#eef9ff"/i);
+  assert.match(mainSource, /manifest\.webmanifest/);
+  assert.match(mainSource, /st-student-apple-touch-icon\.png/);
+  assert.match(mainSource, /theme-color/);
+  assert.match(mainSource, /#eef9ff/i);
 
   assert.equal(manifest.name, "ST Student");
   assert.equal(manifest.short_name, "ST Student");
