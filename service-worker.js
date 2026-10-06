@@ -1,5 +1,5 @@
 const CACHE_NAME = "st-student-shell-v18";
-const SHELL_CACHE_NAME = "st-student-shell-v22";
+const SHELL_CACHE_NAME = "st-student-shell-v23";
 const ACTIVE_CACHE_NAMES = new Set([
   CACHE_NAME,
   SHELL_CACHE_NAME,
@@ -244,7 +244,7 @@ self.addEventListener("fetch", (event) => {
           }
 
           return response;
-        });
+        }),
       }),
     ),
   );
