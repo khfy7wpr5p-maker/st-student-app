@@ -23,12 +23,12 @@ document.head.append(signInStylesheet);
 
 const manifestLink = document.createElement("link");
 manifestLink.rel = "manifest";
-manifestLink.href = "./manifest.webmanifest";
+manifestLink.href = "./src/manifest.webmanifest";
 document.head.append(manifestLink);
 
 const appleTouchIcon = document.createElement("link");
 appleTouchIcon.rel = "apple-touch-icon";
-appleTouchIcon.href = "./assets/st-student-apple-touch-icon.png";
+appleTouchIcon.href = "./src/assets/st-student-apple-touch-icon.png";
 appleTouchIcon.sizes = "180x180";
 document.head.append(appleTouchIcon);
 
