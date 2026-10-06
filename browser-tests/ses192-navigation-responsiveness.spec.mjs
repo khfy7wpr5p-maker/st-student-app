@@ -206,7 +206,7 @@ test(
       );
       await myWorkHeading.waitFor();
       await completedButton.waitFor();
-      assert.equal(await completedButton.getAttribute("aria-current"), "page");
+      assert.equal(await completedButton.getAttribute("aria-pressed"), "true");
 
       const notationRenderCalls = await page.evaluate(() =>
         globalThis.__ses192.metrics.notationRenderCalls,
