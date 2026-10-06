@@ -123,6 +123,12 @@ export function createStudentPerfAReadService(readService) {
     clearListedAssignments();
   }
 
+  function invalidateNavigationPreservingListedAssignments() {
+    navigationGeneration += 1;
+    myWorkPair = null;
+    listedAssignmentRead = null;
+  }
+
   function beginNavigation() {
     invalidateNavigation();
     return navigationGeneration;
@@ -339,6 +345,10 @@ export function createStudentPerfAReadService(readService) {
       value: invalidateNavigation,
       enumerable: false,
     },
+    __studentPerfAInvalidateNavigationPreservingListedAssignments: {
+      value: invalidateNavigationPreservingListedAssignments,
+      enumerable: false,
+    },
     __studentPerfAPrepareListedAssignmentRead: {
       value: prepareListedAssignmentRead,
       enumerable: false,
@@ -396,10 +406,19 @@ export function createStudentPerfAController({
 
   const getState = () => pendingState ?? controller.getState();
 
-  function invalidatePending() {
+  function invalidatePending({ preserveListedAssignments = false } = {}) {
     uiGeneration += 1;
     pendingState = null;
-    readService?.__studentPerfAInvalidateNavigation?.();
+    if (
+      preserveListedAssignments &&
+      typeof readService
+        ?.__studentPerfAInvalidateNavigationPreservingListedAssignments ===
+        "function"
+    ) {
+      readService.__studentPerfAInvalidateNavigationPreservingListedAssignments();
+    } else {
+      readService?.__studentPerfAInvalidateNavigation?.();
+    }
     sharingService?.__studentPerfAInvalidateNavigation?.();
   }
 
@@ -495,7 +514,7 @@ export function createStudentPerfAController({
 
     openAssignment(assignmentId) {
       const session = getState().session;
-      invalidatePending();
+      invalidatePending({ preserveListedAssignments: true });
       readService?.__studentPerfAPrepareListedAssignmentRead?.({
         session,
         assignmentId,
