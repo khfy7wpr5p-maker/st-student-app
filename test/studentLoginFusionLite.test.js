@@ -32,3 +32,58 @@ test("Fusion Lite styles stay scoped to the sign-in screen and preserve keyboard
   assert.match(source, /st-student-logo\.png/);
   assert.match(source, /st-student-waveform\.svg/);
 });
+
+test("Fusion Lite desktop composition stays compact and waveform remains visually subdued", async () => {
+  const css = await readFile(
+    new URL("../src/ui/sign-in-fusion-lite.css", import.meta.url),
+    "utf8",
+  );
+  const waveform = await readFile(
+    new URL("../assets/st-student-waveform.svg", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(css, /width:\s*min\(100%,\s*46rem\)/);
+  assert.match(css, /min-height:\s*17rem/);
+  assert.match(css, /center\s*\/\s*78%\s+auto\s+no-repeat/);
+  assert.match(waveform, /opacity="0\.14"/);
+  assert.match(waveform, /opacity="0\.78"/);
+});
+
+test("installable app metadata exposes ST Student icons for home-screen installation", async () => {
+  const indexSource = await readFile(
+    new URL("../index.html", import.meta.url),
+    "utf8",
+  );
+  const manifest = JSON.parse(
+    await readFile(
+      new URL("../manifest.webmanifest", import.meta.url),
+      "utf8",
+    ),
+  );
+
+  assert.match(indexSource, /rel="manifest" href="\.\/manifest\.webmanifest"/);
+  assert.match(indexSource, /rel="apple-touch-icon" href="\.\/assets\/st-student-apple-touch-icon\.png"/);
+  assert.match(indexSource, /name="theme-color" content="#eef9ff"/i);
+
+  assert.equal(manifest.name, "ST Student");
+  assert.equal(manifest.short_name, "ST Student");
+  assert.equal(manifest.display, "standalone");
+  assert.equal(manifest.start_url, "./");
+  assert.equal(manifest.theme_color, "#eef9ff");
+  assert.deepEqual(
+    manifest.icons.map(({ src, sizes, purpose }) => ({ src, sizes, purpose })),
+    [
+      {
+        src: "./assets/st-student-icon-192.png",
+        sizes: "192x192",
+        purpose: "any maskable",
+      },
+      {
+        src: "./assets/st-student-icon-512.png",
+        sizes: "512x512",
+        purpose: "any maskable",
+      },
+    ],
+  );
+});
