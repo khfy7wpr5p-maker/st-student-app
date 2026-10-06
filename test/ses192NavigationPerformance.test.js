@@ -10,7 +10,11 @@ import {
   STUDENT_APP_SCREENS,
   createStudentAppController,
 } from "../src/ui/studentAppController.js";
-import { mountStudentApp } from "../src/ui/mountStudentApp.js";
+import { mountStudentAppPerfA } from "../src/ui/mountStudentAppPerfA.js";
+import {
+  createStudentPerfAController,
+  createStudentPerfAReadService,
+} from "../src/ui/studentPerfA.js";
 
 const student = createStudentSession({
   studentId: "student-a",
@@ -50,6 +54,21 @@ function assignment(
   };
 }
 
+function createPerfAController(service, options = {}) {
+  const readService = createStudentPerfAReadService(service);
+  const baseController = createStudentAppController({
+    sharingService: {},
+    student08ReadService: readService,
+    initialSession: student,
+    ...options,
+  });
+
+  return createStudentPerfAController({
+    controller: baseController,
+    readService,
+  });
+}
+
 function makeOrderingService() {
   const reads = new Map();
 
@@ -82,11 +101,7 @@ function resolveFolder(reads, state, items = []) {
 
 test("SES-192 ACTIVE -> REPERTOIRE -> HAVUZ keeps the newest same-session navigation", async () => {
   const { reads, service } = makeOrderingService();
-  const controller = createStudentAppController({
-    sharingService: {},
-    student08ReadService: service,
-    initialSession: student,
-  });
+  const controller = createPerfAController(service);
 
   const active = controller.showMyWork(ASSIGNMENT_STATES.ACTIVE);
   assert.equal(controller.getState().screen, STUDENT_APP_SCREENS.MY_WORK);
@@ -123,11 +138,7 @@ test("SES-192 ACTIVE -> REPERTOIRE -> HAVUZ keeps the newest same-session naviga
 
 test("SES-192 HAVUZ -> ACTIVE -> COMPLETED keeps the newest same-session navigation", async () => {
   const { reads, service } = makeOrderingService();
-  const controller = createStudentAppController({
-    sharingService: {},
-    student08ReadService: service,
-    initialSession: student,
-  });
+  const controller = createPerfAController(service);
 
   const pool = controller.showPublicPool();
   const active = controller.showMyWork(ASSIGNMENT_STATES.ACTIVE);
@@ -181,11 +192,7 @@ test("SES-192 opening a listed assignment does not refetch assignment metadata",
       return Promise.reject(new Error("stop after exact practice read"));
     },
   };
-  const controller = createStudentAppController({
-    sharingService: {},
-    student08ReadService: service,
-    initialSession: student,
-  });
+  const controller = createPerfAController(service);
 
   await controller.showMyWork(ASSIGNMENT_STATES.ACTIVE);
   await assert.rejects(
@@ -235,11 +242,7 @@ test("SES-192 Piece open reuses the already validated Piece identity", async () 
       return Promise.reject(new Error("chord unavailable"));
     },
   };
-  const controller = createStudentAppController({
-    sharingService: {},
-    student08ReadService: service,
-    initialSession: student,
-  });
+  const controller = createPerfAController(service);
 
   await assert.rejects(
     controller.openPiece("piece-1", {
@@ -256,13 +259,17 @@ test("SES-192 Piece open reuses the already validated Piece identity", async () 
 
 function makeMountRoot() {
   let markup = "";
-  let clickHandler = null;
+  const captureClickHandlers = [];
+  const bubbleClickHandlers = [];
+  const statusNode = { textContent: "" };
+
   const root = {
     ownerDocument: {
       activeElement: null,
       defaultView: {
         innerWidth: 390,
         scrollY: 0,
+        queueMicrotask,
       },
     },
     get innerHTML() {
@@ -270,18 +277,28 @@ function makeMountRoot() {
     },
     set innerHTML(value) {
       markup = value;
+      statusNode.textContent = "";
     },
-    addEventListener(type, handler) {
+    addEventListener(type, handler, capture = false) {
       if (type === "click") {
-        clickHandler = handler;
+        (capture ? captureClickHandlers : bubbleClickHandlers).push(handler);
       }
     },
-    removeEventListener() {},
+    removeEventListener(type, handler, capture = false) {
+      if (type !== "click") {
+        return;
+      }
+      const handlers = capture ? captureClickHandlers : bubbleClickHandlers;
+      const index = handlers.indexOf(handler);
+      if (index >= 0) {
+        handlers.splice(index, 1);
+      }
+    },
     contains() {
       return true;
     },
-    querySelector() {
-      return null;
+    querySelector(selector) {
+      return selector === ".app-status" ? statusNode : null;
     },
     querySelectorAll() {
       return [];
@@ -290,6 +307,9 @@ function makeMountRoot() {
 
   return {
     root,
+    statusText() {
+      return statusNode.textContent;
+    },
     click(action, dataset = {}) {
       const target = {
         dataset: { action, ...dataset },
@@ -297,7 +317,12 @@ function makeMountRoot() {
           return selector === "[data-action]" ? this : null;
         },
       };
-      return clickHandler({ target });
+      const event = { target };
+      for (const handler of [...captureClickHandlers]) {
+        handler(event);
+      }
+      const results = bubbleClickHandlers.map((handler) => handler(event));
+      return Promise.all(results);
     },
   };
 }
@@ -305,9 +330,8 @@ function makeMountRoot() {
 test("SES-192 folder destination paints before its async list read completes", async () => {
   const assignments = deferred();
   let notationRenderCalls = 0;
-  const controller = createStudentAppController({
-    sharingService: {},
-    student08ReadService: {
+  const controller = createPerfAController(
+    {
       listPieces() {
         return [];
       },
@@ -315,10 +339,16 @@ test("SES-192 folder destination paints before its async list read completes", a
         return assignments.promise;
       },
     },
-    initialSession: student,
-  });
+    {
+      notationAdapter: {
+        isAvailable() {
+          return true;
+        },
+      },
+    },
+  );
   const fixture = makeMountRoot();
-  const mounted = mountStudentApp({
+  const mounted = mountStudentAppPerfA({
     root: fixture.root,
     controller,
     notationAdapter: {
@@ -336,15 +366,16 @@ test("SES-192 folder destination paints before its async list read completes", a
   const action = fixture.click("show-work-folder", {
     assignmentState: ASSIGNMENT_STATES.ACTIVE,
   });
+  await Promise.resolve();
 
   assert.match(fixture.root.innerHTML, /Benim Çalışmalarım/);
-  assert.match(fixture.root.innerHTML, /Yükleniyor/);
+  assert.equal(fixture.statusText(), "Yükleniyor…");
   assert.equal(notationRenderCalls, 0);
 
   assignments.resolve([]);
   await action;
 
-  assert.doesNotMatch(fixture.root.innerHTML, /Yükleniyor/);
+  assert.equal(fixture.statusText(), "");
   assert.equal(notationRenderCalls, 0);
   await mounted.destroy();
 });
