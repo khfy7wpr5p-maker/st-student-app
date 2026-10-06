@@ -13,7 +13,7 @@ import { createStudentPlaybackPort } from "../playback/studentPlaybackPort.js";
 import { createFirebaseBrowserRuntime } from "../providers/firebase/firebaseBrowserRuntime.js";
 import { createStudentAppController } from "./studentAppController.js";
 import { createStudent08Composition } from "./student08Composition.js";
-import { mountStudentAppPerfA } from "./mountStudentAppPerfA.js";
+import { mountStudentAppPerfA as mountStudentApp } from "./mountStudentAppPerfA.js";
 import {
   createStudentPerfAController,
   createStudentPerfAReadService,
@@ -146,7 +146,7 @@ const controller = createStudentPerfAController({
   readService: perfAReadService,
 });
 
-const mounted = mountStudentAppPerfA({
+const mounted = mountStudentApp({
   root,
   controller,
   notationAdapter,
