@@ -16,6 +16,11 @@ import { createStudent08Composition } from "./student08Composition.js";
 import { mountStudentApp } from "./mountStudentApp.js";
 import { createViolinFingerboardPresentation } from "./violinFingerboard.js";
 
+const signInStylesheet = document.createElement("link");
+signInStylesheet.rel = "stylesheet";
+signInStylesheet.href = "./src/ui/sign-in-fusion-lite.css";
+document.head.append(signInStylesheet);
+
 const root = document.querySelector("#app");
 const notationRuntimeLoader = createNotationRuntimeLoader({
   bootstrapUrl: "./vendor/st-score-runtime/browser-bootstrap.mjs",
