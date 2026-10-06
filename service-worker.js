@@ -1,5 +1,5 @@
 const CACHE_NAME = "st-student-shell-v18";
-const SHELL_CACHE_NAME = "st-student-shell-v20";
+const SHELL_CACHE_NAME = "st-student-shell-v21";
 const ACTIVE_CACHE_NAMES = new Set([
   CACHE_NAME,
   SHELL_CACHE_NAME,
@@ -17,6 +17,9 @@ const SHELL_ASSETS = Object.freeze([
   "./",
   "./index.html",
   "./src/ui/main.js",
+  "./src/ui/sign-in-fusion-lite.css",
+  "./assets/st-student-logo.png",
+  "./assets/st-student-waveform.svg",
   "./src/config/firebaseConfig.js",
   "./src/providers/firebase/firebaseBrowserRuntime.js",
   "./src/providers/firebase/firebaseAuthAdapter.js",
