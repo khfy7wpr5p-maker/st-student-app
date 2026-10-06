@@ -8,7 +8,7 @@ body:has(.student-app input[data-sign-in-email]) {
 }
 
 #app:has(.student-app input[data-sign-in-email]) {
-  width: min(100%, 52rem);
+  width: min(100%, 46rem);
   min-height: 100vh;
   padding: 1.5rem;
   display: grid;
@@ -166,11 +166,11 @@ body:has(.student-app input[data-sign-in-email]) {
   grid-column: 2;
   grid-row: 1 / span 5;
   align-self: stretch;
-  min-height: 18rem;
+  min-height: 17rem;
   border: 1px solid rgb(221 246 255 / 72%);
   border-radius: 1.55rem;
   background:
-    url("../../assets/st-student-waveform.svg") center / 84% auto no-repeat,
+    url("../../assets/st-student-waveform.svg") center / 78% auto no-repeat,
     rgb(255 255 255 / 40%);
   box-shadow:
     0 0.9rem 2rem rgb(79 223 247 / 10%),
@@ -189,7 +189,7 @@ body:has(.student-app input[data-sign-in-email]) {
 
   .student-app section:has(input[data-sign-in-email])::after {
     background:
-      url("../../assets/st-student-waveform.svg") center / 84% auto no-repeat,
+      url("../../assets/st-student-waveform.svg") center / 78% auto no-repeat,
       #f7fcff;
   }
 }
