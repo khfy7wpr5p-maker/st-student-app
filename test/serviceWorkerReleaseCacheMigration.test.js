@@ -22,7 +22,7 @@ function requestKey(request) {
   return request.url;
 }
 
-test("installed v20 stale shell migrates atomically to v21 and reopens offline", async () => {
+test("installed stale v20/v21 shells migrate atomically to v22 and reopen offline", async () => {
   const source = await readFile(
     new URL("../service-worker.js", import.meta.url),
     "utf8",
@@ -88,6 +88,10 @@ test("installed v20 stale shell migrates atomically to v21 and reopens offline",
     "https://student.example/src/ui/main.js",
     makeResponse("pre-student-ui-01-main"),
   );
+  entriesFor("st-student-shell-v21").set(
+    "https://student.example/index.html",
+    makeResponse("preview-fusion-lite-shell"),
+  );
 
   const cachesObject = {
     async open(name) {
@@ -149,29 +153,29 @@ test("installed v20 stale shell migrates atomically to v21 and reopens offline",
     "pre-student-ui-01-shell",
   );
   assert.equal(
-    entriesFor("st-student-shell-v21")
+    entriesFor("st-student-shell-v22")
       .get("https://student.example/index.html")
       .body,
     "student-ui-01-fusion-lite",
   );
-  assert.equal(
-    entriesFor("st-student-shell-v21").has(
-      "https://student.example/src/ui/sign-in-fusion-lite.css",
-    ),
-    true,
-  );
-  assert.equal(
-    entriesFor("st-student-shell-v21").has(
-      "https://student.example/assets/st-student-logo.png",
-    ),
-    true,
-  );
-  assert.equal(
-    entriesFor("st-student-shell-v21").has(
-      "https://student.example/assets/st-student-waveform.svg",
-    ),
-    true,
-  );
+
+  for (const asset of [
+    "src/ui/sign-in-fusion-lite.css",
+    "assets/st-student-logo.png",
+    "assets/st-student-waveform.svg",
+    "manifest.webmanifest",
+    "assets/st-student-icon-192.png",
+    "assets/st-student-icon-512.png",
+    "assets/st-student-apple-touch-icon.png",
+  ]) {
+    assert.equal(
+      entriesFor("st-student-shell-v22").has(
+        `https://student.example/${asset}`,
+      ),
+      true,
+      asset,
+    );
+  }
 
   let activatePromise;
   listeners.get("activate")({
@@ -184,9 +188,11 @@ test("installed v20 stale shell migrates atomically to v21 and reopens offline",
   assert.deepEqual(deletedCacheNames, [
     "st-student-shell-v17",
     "st-student-shell-v20",
+    "st-student-shell-v21",
   ]);
   assert.equal(claimCalls, 1);
   assert.equal(cacheEntries.has("st-student-shell-v20"), false);
+  assert.equal(cacheEntries.has("st-student-shell-v21"), false);
   assert.equal(
     entriesFor("st-student-shell-v18").has(
       "https://student.example/index.html",
