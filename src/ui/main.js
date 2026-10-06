@@ -8,6 +8,8 @@ import { createViolinFollowCoordinator } from "../practice/violinFollowCoordinat
 import { createNotationRuntimeLoader } from "../practice/notationRuntimeLoader.js";
 import { createPlaybackPlanResolver } from "../playback/playbackPlanResolver.js";
 import { createPianoSampleBank } from "../playback/pianoSampleBank.js";
+import { createScoreAudioRuntimeLoader } from "../playback/scoreAudioRuntimeLoader.js";
+import { createStudentAudioSession } from "../playback/studentAudioSession.js";
 import { createWebAudioPianoEngine } from "../playback/webAudioPianoEngine.js";
 import { createStudentPlaybackPort } from "../playback/studentPlaybackPort.js";
 import { createFirebaseBrowserRuntime } from "../providers/firebase/firebaseBrowserRuntime.js";
@@ -50,17 +52,19 @@ const sampleBank = createPianoSampleBank({
 
 await sampleBank.initialize().catch(() => false);
 
-const audioContextSupported =
-  typeof (globalThis.AudioContext ?? globalThis.webkitAudioContext) === "function";
+const AudioContextCtor =
+  globalThis.AudioContext ?? globalThis.webkitAudioContext;
+const audioSession = createStudentAudioSession({ AudioContextCtor });
+const audioContextSupported = audioSession.isSupported();
+const audioContextFactory = audioSession.audioContextFactory;
 
-const audioContextFactory = () => {
-  const AudioContextCtor =
-    globalThis.AudioContext ?? globalThis.webkitAudioContext;
-
-  return typeof AudioContextCtor === "function"
-    ? new AudioContextCtor()
-    : null;
-};
+const scoreAudioRuntimeLoader = createScoreAudioRuntimeLoader({
+  manifestUrl: "./vendor/st-score-audio/runtime-manifest.json",
+  runtimeUrl: "./vendor/st-score-audio/st-score-audio-engine.js",
+  expectedSourceRevision: "298ddd61ba3854231ff7e59a88c22c4a01530a41",
+  expectedRuntimeVersion: "0.2.0",
+  expectedContractVersion: "0.2.0",
+});
 
 const playbackEngine = createWebAudioPianoEngine({
   audioContextFactory,
@@ -84,6 +88,9 @@ const violinFollowCoordinator =
     presentationPort: violinFingerboardPresentation,
   });
 const firebaseRuntime = createFirebaseBrowserRuntime();
+
+// Task 4 configures the trusted runtime boundary only. Violin audio routing starts later.
+void scoreAudioRuntimeLoader;
 
 let initialSession = null;
 

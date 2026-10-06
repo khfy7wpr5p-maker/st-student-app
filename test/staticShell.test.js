@@ -111,7 +111,7 @@ test("static shell declares the pinned local renderer import map without eager r
 });
 
 
-test("default bootstrap wires lazy local playback runtime", async () => {
+test("default bootstrap wires lazy local playback runtime through one shared audio session", async () => {
   const source = await readFile(
     new URL("../src/ui/main.js", import.meta.url),
     "utf8",
@@ -120,6 +120,8 @@ test("default bootstrap wires lazy local playback runtime", async () => {
   for (const symbol of [
     "createPlaybackPlanResolver",
     "createPianoSampleBank",
+    "createStudentAudioSession",
+    "createScoreAudioRuntimeLoader",
     "createWebAudioPianoEngine",
     "createStudentPlaybackPort",
   ]) {
@@ -131,11 +133,19 @@ test("default bootstrap wires lazy local playback runtime", async () => {
     /manifestUrl:\s*["']\.\/vendor\/st-piano\/runtime-manifest\.json["']/,
   );
   assert.match(source, /await\s+sampleBank\.initialize\(\)/);
-  assert.match(source, /const\s+audioContextFactory\s*=\s*\(\)\s*=>/);
   assert.match(
     source,
-    /globalThis\.AudioContext\s*\?\?\s*globalThis\.webkitAudioContext/,
+    /const\s+AudioContextCtor\s*=\s*globalThis\.AudioContext\s*\?\?\s*globalThis\.webkitAudioContext/,
   );
+  assert.match(
+    source,
+    /const\s+audioSession\s*=\s*createStudentAudioSession\(\{\s*AudioContextCtor\s*\}\)/,
+  );
+  assert.match(
+    source,
+    /const\s+audioContextFactory\s*=\s*audioSession\.audioContextFactory/,
+  );
+  assert.doesNotMatch(source, /new\s+AudioContextCtor|new\s+(?:globalThis\.)?AudioContext/);
   assert.match(
     source,
     /createStudentAppController\(\{[\s\S]*?playbackPort[\s\S]*?\}\)/,
@@ -147,7 +157,7 @@ test("default bootstrap wires lazy local playback runtime", async () => {
 });
 
 
-test("browser bootstrap passes Web Audio constructor availability without instantiating context", async () => {
+test("browser bootstrap passes shared Web Audio availability without instantiating context", async () => {
   const source = await readFile(
     new URL("../src/ui/main.js", import.meta.url),
     "utf8",
@@ -155,12 +165,46 @@ test("browser bootstrap passes Web Audio constructor availability without instan
 
   assert.match(
     source,
-    /const\s+audioContextSupported\s*=\s*typeof\s*\(globalThis\.AudioContext\s*\?\?\s*globalThis\.webkitAudioContext\)\s*===\s*["']function["']/,
+    /const\s+audioContextSupported\s*=\s*audioSession\.isSupported\(\)/,
   );
   assert.match(
     source,
     /createWebAudioPianoEngine\(\{[\s\S]*?audioContextFactory,[\s\S]*?audioContextSupported,[\s\S]*?sampleBank/,
   );
+});
+
+test("browser bootstrap pins the local score audio runtime without activating violin routing", async () => {
+  const source = await readFile(
+    new URL("../src/ui/main.js", import.meta.url),
+    "utf8",
+  );
+  const manifest = JSON.parse(
+    await readFile(
+      new URL("../vendor/st-score-audio/runtime-manifest.json", import.meta.url),
+      "utf8",
+    ),
+  );
+
+  assert.match(
+    source,
+    /manifestUrl:\s*["']\.\/vendor\/st-score-audio\/runtime-manifest\.json["']/,
+  );
+  assert.match(
+    source,
+    /runtimeUrl:\s*["']\.\/vendor\/st-score-audio\/st-score-audio-engine\.js["']/,
+  );
+  assert.match(source, /expectedSourceRevision:\s*["']298ddd61ba3854231ff7e59a88c22c4a01530a41["']/);
+  assert.match(source, /expectedRuntimeVersion:\s*["']0\.2\.0["']/);
+  assert.match(source, /expectedContractVersion:\s*["']0\.2\.0["']/);
+  assert.doesNotMatch(source, /scoreAudioRuntimeLoader\.load\s*\(/);
+
+  assert.equal(manifest.runtimeTarget, "student-static");
+  assert.equal(
+    manifest.audioEngineSourceRevision,
+    "298ddd61ba3854231ff7e59a88c22c4a01530a41",
+  );
+  assert.equal(manifest.browserRuntimeVersion, "0.2.0");
+  assert.equal(manifest.publicContractVersion, "0.2.0");
 });
 
 test("browser bootstrap wires violin follow presentation without creating a second audio clock", async () => {
