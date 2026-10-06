@@ -13,7 +13,11 @@ import { createStudentPlaybackPort } from "../playback/studentPlaybackPort.js";
 import { createFirebaseBrowserRuntime } from "../providers/firebase/firebaseBrowserRuntime.js";
 import { createStudentAppController } from "./studentAppController.js";
 import { createStudent08Composition } from "./student08Composition.js";
-import { mountStudentApp } from "./mountStudentApp.js";
+import { mountStudentAppPerfA } from "./mountStudentAppPerfA.js";
+import {
+  createStudentPerfAController,
+  createStudentPerfAReadService,
+} from "./studentPerfA.js";
 import { createViolinFingerboardPresentation } from "./violinFingerboard.js";
 
 const signInStylesheet = document.createElement("link");
@@ -111,6 +115,10 @@ const student08Composition =
       offlineInfrastructure.offlineRepository,
   });
 
+const perfAReadService = createStudentPerfAReadService(
+  student08Composition.student08ReadService,
+);
+
 const syncCoordinator =
   secureDeliveryConfig.enabled &&
   offlineInfrastructure.offlineRepository !== null
@@ -124,17 +132,21 @@ const syncCoordinator =
       })
     : null;
 
-const controller = createStudentAppController({
+const baseController = createStudentAppController({
   sharingService: offlineInfrastructure.sharingService,
-  student08ReadService:
-    student08Composition.student08ReadService,
+  student08ReadService: perfAReadService,
   initialSession,
   notationAdapter,
   playbackPort,
   syncCoordinator,
 });
 
-const mounted = mountStudentApp({
+const controller = createStudentPerfAController({
+  controller: baseController,
+  readService: perfAReadService,
+});
+
+const mounted = mountStudentAppPerfA({
   root,
   controller,
   notationAdapter,
