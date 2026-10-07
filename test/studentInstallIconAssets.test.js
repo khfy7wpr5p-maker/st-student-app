@@ -16,7 +16,7 @@ const iconCases = [
     path: "../src/assets/st-student-icon-512.png",
     width: 512,
     height: 512,
-    sha256: "566f5095c448dab90e32a5b3c531a26ac9844aeec8df3ac90a0d6fb690a2a81e",
+    sha256: "12d95b8bbdc7e2dadeac9808a79407b03bcd1efff7ea4b9fec3b63ee329ec5b6",
   },
   {
     path: "../src/assets/st-student-apple-touch-icon.png",
