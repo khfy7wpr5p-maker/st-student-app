@@ -94,12 +94,12 @@ test("installable app metadata is declared statically in index head for desktop 
       {
         src: "./assets/st-student-icon-192.png",
         sizes: "192x192",
-        purpose: "any maskable",
+        purpose: "any",
       },
       {
         src: "./assets/st-student-icon-512.png",
         sizes: "512x512",
-        purpose: "any maskable",
+        purpose: "any",
       },
     ],
   );
