@@ -16,15 +16,26 @@ import {
   getDocs,
   getFirestore,
 } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+import {
+  getDatabase,
+  onDisconnect,
+  onValue,
+  ref,
+  remove,
+  serverTimestamp,
+  set,
+} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js";
 
 import { firebaseConfig } from "../../config/firebaseConfig.js";
 import { createFirebaseAuthAdapter } from "./firebaseAuthAdapter.js";
+import { createFirebasePresenceWriter } from "./firebasePresenceWriter.js";
 import { createFirestoreSharingAdapter } from "./firestoreSharingAdapter.js";
 
 export function createFirebaseBrowserRuntime() {
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
-  const db = getFirestore(app);
+  const firestoreDb = getFirestore(app);
+  const realtimeDb = getDatabase(app);
 
   const authAdapter = createFirebaseAuthAdapter({
     auth,
@@ -40,7 +51,7 @@ export function createFirebaseBrowserRuntime() {
   });
 
   const sharingService = createFirestoreSharingAdapter({
-    db,
+    db: firestoreDb,
     sdk: {
       collection,
       doc,
@@ -49,8 +60,21 @@ export function createFirebaseBrowserRuntime() {
     },
   });
 
+  const presenceWriter = createFirebasePresenceWriter({
+    db: realtimeDb,
+    sdk: {
+      ref,
+      onValue,
+      onDisconnect,
+      set,
+      remove,
+      serverTimestamp,
+    },
+  });
+
   return Object.freeze({
     authAdapter,
     sharingService,
+    presenceWriter,
   });
 }

@@ -33,6 +33,17 @@ function defaultConnectionIdFactory() {
   return `connection-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
 }
 
+async function bestEffortCancel(disconnect) {
+  if (disconnect === null || typeof disconnect?.cancel !== "function") {
+    return;
+  }
+  try {
+    await disconnect.cancel();
+  } catch {
+    // Best effort only.
+  }
+}
+
 export function createFirebasePresenceWriter({
   db,
   sdk,
@@ -62,15 +73,8 @@ export function createFirebasePresenceWriter({
       // Presence cleanup must never block the Student App.
     }
 
-    for (const disconnect of [current.connectionDisconnect, current.lastOnlineDisconnect]) {
-      if (disconnect !== null && typeof disconnect?.cancel === "function") {
-        try {
-          await disconnect.cancel();
-        } catch {
-          // Best effort only.
-        }
-      }
-    }
+    await bestEffortCancel(current.connectionDisconnect);
+    await bestEffortCancel(current.lastOnlineDisconnect);
 
     try {
       await sdk.remove(current.connectionRef);
@@ -82,6 +86,20 @@ export function createFirebasePresenceWriter({
       await sdk.set(current.lastOnlineRef, sdk.serverTimestamp());
     } catch {
       // Best effort only.
+    }
+  }
+
+  function dispose() {
+    const current = active;
+    active = null;
+    if (current === null) {
+      return;
+    }
+
+    try {
+      current.unsubscribe?.();
+    } catch {
+      // Leave server-side onDisconnect operations armed for page teardown.
     }
   }
 
@@ -125,8 +143,8 @@ export function createFirebasePresenceWriter({
           await lastOnlineDisconnect.set(sdk.serverTimestamp());
 
           if (active !== state) {
-            await connectionDisconnect.cancel?.().catch?.(() => {});
-            await lastOnlineDisconnect.cancel?.().catch?.(() => {});
+            await bestEffortCancel(connectionDisconnect);
+            await bestEffortCancel(lastOnlineDisconnect);
             return;
           }
 
@@ -145,5 +163,5 @@ export function createFirebasePresenceWriter({
     }
   }
 
-  return Object.freeze({ start, stop });
+  return Object.freeze({ start, stop, dispose });
 }

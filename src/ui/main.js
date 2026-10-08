@@ -1,3 +1,6 @@
+import { createAccountLifecycleCoordinator } from "../account/accountLifecycleCoordinator.js";
+import { createAccountUsageSessionReporter } from "../account/accountUsageSessionReporter.js";
+import { createAccountServiceConfig } from "../config/accountServiceConfig.js";
 import { createSecureDeliveryConfig } from "../config/secureDeliveryConfig.js";
 import { createDefaultOfflineInfrastructure } from "../offline/defaultOfflineInfrastructure.js";
 import { createForegroundSyncCoordinator } from "../offline/syncCoordinator.js";
@@ -10,6 +13,7 @@ import { createPlaybackPlanResolver } from "../playback/playbackPlanResolver.js"
 import { createPianoSampleBank } from "../playback/pianoSampleBank.js";
 import { createWebAudioPianoEngine } from "../playback/webAudioPianoEngine.js";
 import { createStudentPlaybackPort } from "../playback/studentPlaybackPort.js";
+import { createAccountServiceApiClient } from "../providers/accountService/accountServiceApiClient.js";
 import { createFirebaseBrowserRuntime } from "../providers/firebase/firebaseBrowserRuntime.js";
 import { createStudentAppController } from "./studentAppController.js";
 import { createStudent08Composition } from "./student08Composition.js";
@@ -90,6 +94,31 @@ async function startStandardStudentApp() {
     initialSession = null;
   }
 
+  const accountServiceConfig = createAccountServiceConfig();
+  const accountUsageReporter = accountServiceConfig.enabled
+    ? createAccountUsageSessionReporter({
+        apiClient: createAccountServiceApiClient({
+          baseUrl: accountServiceConfig.baseUrl,
+          getIdToken: () => firebaseRuntime.authAdapter.getIdToken(),
+          fetchImpl: globalThis.fetch,
+        }),
+      })
+    : null;
+  const accountLifecycle = createAccountLifecycleCoordinator({
+    authAdapter: firebaseRuntime.authAdapter,
+    presenceWriter: firebaseRuntime.presenceWriter,
+    usageReporter: accountUsageReporter,
+  });
+
+  void accountLifecycle.handleSession(initialSession);
+  globalThis.addEventListener?.(
+    "pagehide",
+    () => {
+      accountLifecycle.dispose();
+    },
+    { once: true },
+  );
+
   const offlineInfrastructure = createDefaultOfflineInfrastructure({
     onlineSharingService: firebaseRuntime.sharingService,
   });
@@ -153,6 +182,7 @@ async function startStandardStudentApp() {
   });
 
   firebaseRuntime.authAdapter.subscribe((session) => {
+    void accountLifecycle.handleSession(session);
     const currentSession = controller.getState().session;
 
     if (session === null) {
