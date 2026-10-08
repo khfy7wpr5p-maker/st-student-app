@@ -1,5 +1,7 @@
 const API_BASE_URL_KEY = "VITE_ACCOUNT_SERVICE_API_BASE_URL";
 const CANONICAL_ACCOUNT_SERVICE_PATH = "/api/student-accounts/v1";
+const ST_STUDENT_PRODUCTION_ORIGIN = "https://st-student-app.onrender.com";
+const ST_STUDENT_PRODUCTION_ACCOUNT_SERVICE = "https://st-student-account-api.onrender.com";
 
 function disabledConfig() {
   return Object.freeze({
@@ -19,9 +21,15 @@ function defaultEnvironment() {
     return viteEnv;
   }
 
+  const runtimeBaseUrl =
+    globalThis.__ST_STUDENT_APP_CONFIG__?.accountServiceApiBaseUrl;
+  const productionBaseUrl =
+    globalThis.location?.origin === ST_STUDENT_PRODUCTION_ORIGIN
+      ? ST_STUDENT_PRODUCTION_ACCOUNT_SERVICE
+      : undefined;
+
   return {
-    [API_BASE_URL_KEY]:
-      globalThis.__ST_STUDENT_APP_CONFIG__?.accountServiceApiBaseUrl,
+    [API_BASE_URL_KEY]: runtimeBaseUrl ?? productionBaseUrl,
   };
 }
 

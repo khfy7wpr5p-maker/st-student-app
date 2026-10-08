@@ -45,3 +45,26 @@ test("account service config rejects embedded credentials and URL metadata", () 
     );
   }
 });
+
+test("account service config enables the production account API on the ST Student Render origin", () => {
+  const previousLocation = Object.getOwnPropertyDescriptor(globalThis, "location");
+  Object.defineProperty(globalThis, "location", {
+    configurable: true,
+    value: {
+      origin: "https://st-student-app.onrender.com",
+    },
+  });
+
+  try {
+    assert.deepEqual(createAccountServiceConfig(), {
+      enabled: true,
+      baseUrl: "https://st-student-account-api.onrender.com/api/student-accounts/v1",
+    });
+  } finally {
+    if (previousLocation === undefined) {
+      delete globalThis.location;
+    } else {
+      Object.defineProperty(globalThis, "location", previousLocation);
+    }
+  }
+});
