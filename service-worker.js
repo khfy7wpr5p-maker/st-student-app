@@ -1,5 +1,5 @@
 const CACHE_NAME = "st-student-shell-v18";
-const SHELL_CACHE_NAME = "st-student-shell-v24";
+const SHELL_CACHE_NAME = "st-student-shell-v25";
 const ACTIVE_CACHE_NAMES = new Set([
   CACHE_NAME,
   SHELL_CACHE_NAME,
@@ -18,6 +18,8 @@ const SHELL_ASSETS = Object.freeze([
   "./index.html",
   "./src/manifest.webmanifest",
   "./src/ui/main.js",
+  "./src/ui/inviteBootstrap.js",
+  "./src/ui/mountInviteActivation.js",
   "./src/ui/sign-in-fusion-lite.css",
   "./src/assets/st-student-logo.png",
   "./src/assets/st-student-waveform.svg",
@@ -25,10 +27,12 @@ const SHELL_ASSETS = Object.freeze([
   "./src/assets/st-student-icon-512.png",
   "./src/assets/st-student-apple-touch-icon.png",
   "./src/config/firebaseConfig.js",
+  "./src/config/accountServiceConfig.js",
   "./src/providers/firebase/firebaseBrowserRuntime.js",
   "./src/providers/firebase/firebaseAuthAdapter.js",
   "./src/providers/firebase/firestoreSharingAdapter.js",
   "./src/providers/firebase/firestorePackageTransport.js",
+  "./src/providers/accountService/accountServiceApiClient.js",
   "./src/ui/studentAppController.js",
   "./src/ui/studentPerfA.js",
   "./src/ui/mountStudentApp.js",
@@ -68,6 +72,8 @@ const SHELL_ASSETS = Object.freeze([
   "./src/practice/practiceCapabilities.js",
   "./src/practice/practiceWorkspace.js",
   "./src/auth/session.js",
+  "./src/auth/inviteFragment.js",
+  "./src/auth/inviteActivationFlow.js",
   "./src/contracts/practicePackage.js",
   "./src/sharing/deliveryItem.js",
   "./src/sharing/accessPolicy.js",

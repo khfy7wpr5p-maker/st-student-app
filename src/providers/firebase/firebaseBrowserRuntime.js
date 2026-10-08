@@ -1,6 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
 import {
   browserLocalPersistence,
+  createUserWithEmailAndPassword,
   getAuth,
   getIdToken,
   onAuthStateChanged,
@@ -32,6 +33,7 @@ export function createFirebaseBrowserRuntime() {
       setPersistence,
       onAuthStateChanged,
       getIdToken,
+      createUserWithEmailAndPassword,
       signInWithEmailAndPassword,
       signOut,
     },
