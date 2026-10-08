@@ -29,3 +29,19 @@ test("account service config permits loopback http for local integration only", 
     false,
   );
 });
+
+test("account service config rejects embedded credentials and URL metadata", () => {
+  for (const value of [
+    "https://user:secret@accounts.example.test",
+    "https://accounts.example.test?debug=1",
+    "https://accounts.example.test#fragment",
+  ]) {
+    assert.equal(
+      createAccountServiceConfig({
+        VITE_ACCOUNT_SERVICE_API_BASE_URL: value,
+      }).enabled,
+      false,
+      value,
+    );
+  }
+});
