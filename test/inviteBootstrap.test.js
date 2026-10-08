@@ -51,3 +51,34 @@ test("invite fragment is stripped before disabled integration renders a bounded 
   assert.match(root.innerHTML, /Davet servisi şu anda kullanılamıyor/);
   assert.equal(root.innerHTML.includes("RAW_SECRET_TOKEN"), false);
 });
+
+test("invite flow does not contact the account service when the fragment cannot be removed", async () => {
+  let fetchCalls = 0;
+  const root = { innerHTML: "" };
+  const handled = await runInviteActivationIfPresent({
+    root,
+    authAdapter: {
+      async getIdToken() {
+        return "must-not-be-used";
+      },
+    },
+    fetchImpl: async () => {
+      fetchCalls += 1;
+      throw new Error("must not fetch");
+    },
+    locationObject: {
+      pathname: "/student/",
+      search: "",
+      hash: "#/invite/RAW_SECRET_TOKEN",
+    },
+    historyObject: {},
+    environment: {
+      VITE_ACCOUNT_SERVICE_API_BASE_URL: "https://accounts.example.test",
+    },
+  });
+
+  assert.equal(handled, true);
+  assert.equal(fetchCalls, 0);
+  assert.match(root.innerHTML, /Davet servisi şu anda kullanılamıyor/);
+  assert.equal(root.innerHTML.includes("RAW_SECRET_TOKEN"), false);
+});
