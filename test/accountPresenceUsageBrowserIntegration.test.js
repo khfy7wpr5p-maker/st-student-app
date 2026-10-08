@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-test("browser runtime wires Firebase Realtime Database presence without exposing it as assignment authority", async () => {
+test("browser runtime wires bounded Firebase Realtime Database presence without exposing it as assignment authority", async () => {
   const source = await readFile(
     new URL("../src/providers/firebase/firebaseBrowserRuntime.js", import.meta.url),
     "utf8",
@@ -17,11 +17,16 @@ test("browser runtime wires Firebase Realtime Database presence without exposing
     "set",
     "remove",
     "serverTimestamp",
+    "createFirebaseDatabaseConfig",
     "createFirebasePresenceWriter",
+    "createDisabledPresenceWriter",
     "presenceWriter",
   ]) {
     assert.match(source, new RegExp(symbol));
   }
+  assert.match(source, /databaseConfig\.enabled/);
+  assert.match(source, /getDatabase\(app, databaseConfig\.url\)/);
+  assert.doesNotMatch(source, /const\s+realtimeDb\s*=\s*getDatabase\(app\)/);
   assert.doesNotMatch(source, /teacherId|accountStudentId|grantActive|assignment/i);
 });
 
