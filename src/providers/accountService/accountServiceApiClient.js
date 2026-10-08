@@ -11,6 +11,14 @@ function requiredText(value, name, maxLength = 2048) {
   return normalized;
 }
 
+function requiredClientSessionId(value) {
+  const sessionId = requiredText(value, "clientSessionId", 160);
+  if (!/^[A-Za-z0-9._:-]+$/u.test(sessionId)) {
+    throw new TypeError("clientSessionId must be path-safe");
+  }
+  return sessionId;
+}
+
 const PUBLIC_ERROR_CODES = new Set([
   "INVALID_REQUEST",
   "UNAUTHORIZED",
@@ -124,6 +132,15 @@ export function createAccountServiceApiClient({
         authenticated: true,
         body: {
           inviteToken: requiredText(inviteToken, "inviteToken"),
+        },
+      });
+    },
+
+    recordUsageSession(clientSessionId) {
+      return request("student/sessions", {
+        authenticated: true,
+        body: {
+          clientSessionId: requiredClientSessionId(clientSessionId),
         },
       });
     },

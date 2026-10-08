@@ -22,7 +22,7 @@ function requestKey(request) {
   return request.url;
 }
 
-test("installed stale v20/v21/v22/v23/v24 shells migrate atomically to v25 and reopen offline", async () => {
+test("installed stale v20/v21/v22/v23/v24/v25 shells migrate atomically to v26 and reopen offline", async () => {
   const source = await readFile(
     new URL("../service-worker.js", import.meta.url),
     "utf8",
@@ -47,7 +47,7 @@ test("installed stale v20/v21/v22/v23/v24 shells migrate atomically to v25 and r
         for (const asset of assets) {
           const key = requestKey(asset);
           const body = key.endsWith("/index.html")
-            ? "account-invite-shell"
+            ? "account-presence-usage-shell"
             : `current:${key}`;
           entries.set(key, makeResponse(body));
         }
@@ -104,6 +104,10 @@ test("installed stale v20/v21/v22/v23/v24 shells migrate atomically to v25 and r
     "https://student.example/index.html",
     makeResponse("icon-v2-shell-without-account-invite"),
   );
+  entriesFor("st-student-shell-v25").set(
+    "https://student.example/index.html",
+    makeResponse("account-invite-shell-without-presence-usage"),
+  );
 
   const cachesObject = {
     async open(name) {
@@ -159,16 +163,16 @@ test("installed stale v20/v21/v22/v23/v24 shells migrate atomically to v25 and r
 
   assert.equal(skipWaitingCalls, 1);
   assert.equal(
-    entriesFor("st-student-shell-v24")
-      .get("https://student.example/index.html")
-      .body,
-    "icon-v2-shell-without-account-invite",
-  );
-  assert.equal(
     entriesFor("st-student-shell-v25")
       .get("https://student.example/index.html")
       .body,
-    "account-invite-shell",
+    "account-invite-shell-without-presence-usage",
+  );
+  assert.equal(
+    entriesFor("st-student-shell-v26")
+      .get("https://student.example/index.html")
+      .body,
+    "account-presence-usage-shell",
   );
 
   for (const asset of [
@@ -185,9 +189,12 @@ test("installed stale v20/v21/v22/v23/v24 shells migrate atomically to v25 and r
     "src/providers/accountService/accountServiceApiClient.js",
     "src/ui/inviteBootstrap.js",
     "src/ui/mountInviteActivation.js",
+    "src/providers/firebase/firebasePresenceWriter.js",
+    "src/account/accountUsageSessionReporter.js",
+    "src/account/accountLifecycleCoordinator.js",
   ]) {
     assert.equal(
-      entriesFor("st-student-shell-v25").has(
+      entriesFor("st-student-shell-v26").has(
         `https://student.example/${asset}`,
       ),
       true,
@@ -210,6 +217,7 @@ test("installed stale v20/v21/v22/v23/v24 shells migrate atomically to v25 and r
     "st-student-shell-v22",
     "st-student-shell-v23",
     "st-student-shell-v24",
+    "st-student-shell-v25",
   ]);
   assert.equal(claimCalls, 1);
   assert.equal(cacheEntries.has("st-student-shell-v20"), false);
@@ -217,6 +225,7 @@ test("installed stale v20/v21/v22/v23/v24 shells migrate atomically to v25 and r
   assert.equal(cacheEntries.has("st-student-shell-v22"), false);
   assert.equal(cacheEntries.has("st-student-shell-v23"), false);
   assert.equal(cacheEntries.has("st-student-shell-v24"), false);
+  assert.equal(cacheEntries.has("st-student-shell-v25"), false);
   assert.equal(
     entriesFor("st-student-shell-v18").has(
       "https://student.example/index.html",
@@ -243,5 +252,5 @@ test("installed stale v20/v21/v22/v23/v24 shells migrate atomically to v25 and r
   });
 
   const response = await responsePromise;
-  assert.equal(response.body, "account-invite-shell");
+  assert.equal(response.body, "account-presence-usage-shell");
 });

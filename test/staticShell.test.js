@@ -13,7 +13,7 @@ test("static entry is a minimal Turkish module shell", async () => {
   assert.doesNotMatch(html, /studentId|password|token|api[_-]?key/i);
 });
 
-test("default browser bootstrap contains no management or fake auth behavior", async () => {
+test("default browser bootstrap contains no management, fake auth, or embedded credential behavior", async () => {
   const source = await readFile(
     new URL("../src/ui/main.js", import.meta.url),
     "utf8",
@@ -21,7 +21,11 @@ test("default browser bootstrap contains no management or fake auth behavior", a
 
   assert.doesNotMatch(
     source,
-    /createSharingManagementService|publish\(|revoke\(|password|token|api[_-]?key/i,
+    /createSharingManagementService|publish\(|revoke\(|password|api[_-]?key/i,
+  );
+  assert.doesNotMatch(
+    source,
+    /accessToken|refreshToken|Bearer\s+[A-Za-z0-9._-]{8,}/i,
   );
   assert.match(source, /mountStudentApp/);
   assert.match(source, /createStudentAppController/);
