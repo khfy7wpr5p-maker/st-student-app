@@ -37,9 +37,10 @@ test("project-wide Firebase config preserves ST Student Firestore rules and adds
     "teacherStudentGrants",
     "secureDeliveryProvisioningAudit",
   ]) {
-    assert.doesNotMatch(
-      firestoreRules,
-      new RegExp(`allow\\s+(read|write).*${privateCollection}`),
+    assert.equal(
+      firestoreRules.includes(privateCollection),
+      false,
+      `${privateCollection} must not be exposed by browser rules`,
     );
   }
 
@@ -58,7 +59,7 @@ test("production Firestore index manifest adds no speculative composite indexes"
   assert.deepEqual(indexes.fieldOverrides, []);
 });
 
-test("Gate 5 runbook pins TTL to account-service usage sessions only", async () => {
+test("Gate 5 runbook pins TTL and explicit RTDB runtime configuration", async () => {
   const runbook = await readFile(
     new URL("../docs/production/account-service-firebase-gate.md", import.meta.url),
     "utf8",
@@ -67,6 +68,9 @@ test("Gate 5 runbook pins TTL to account-service usage sessions only", async () 
   assert.match(runbook, /collection-group=sessions/);
   assert.match(runbook, /expiresAt/);
   assert.match(runbook, /--enable-ttl/);
+  assert.match(runbook, /VITE_FIREBASE_DATABASE_URL/);
+  assert.match(runbook, /firebaseDatabaseUrl/);
+  assert.match(runbook, /must be confirmed from Firebase rather than inferred/);
   assert.match(runbook, /firebase deploy --project st-student-app-85cde --only firestore:rules,firestore:indexes,database/);
   assert.match(runbook, /demo-st-student-account/);
 });
