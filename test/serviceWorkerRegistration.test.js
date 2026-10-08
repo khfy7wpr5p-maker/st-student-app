@@ -77,7 +77,7 @@ test("service worker caches explicit app-shell and playback assets plus pinned F
   );
 
   assert.match(source, /st-student-shell-v18/);
-  assert.match(source, /st-student-shell-v24/);
+  assert.match(source, /st-student-shell-v25/);
   assert.match(source, /self\.skipWaiting\(\)/);
   assert.match(source, /self\.clients\.claim\(\)/);
   assert.match(source, /index\.html/);
@@ -114,7 +114,7 @@ test("service worker fetch handler uses a static allowlist before Cache Storage"
   assert.doesNotMatch(source, /caches\.match\(event\.request\)[\s\S]*without/i);
 });
 
-test("Student shell is installed atomically into v24 and stale prior shell caches are removed", async () => {
+test("Student shell is installed atomically into v25 and stale prior shell caches are removed", async () => {
   const source = await readFile(
     new URL("../service-worker.js", import.meta.url),
     "utf8",
@@ -122,7 +122,7 @@ test("Student shell is installed atomically into v24 and stale prior shell cache
 
   assert.match(
     source,
-    /const SHELL_CACHE_NAME = "st-student-shell-v24"/,
+    /const SHELL_CACHE_NAME = "st-student-shell-v25"/,
   );
   assert.match(
     source,
