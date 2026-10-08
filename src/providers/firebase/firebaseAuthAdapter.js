@@ -47,6 +47,24 @@ export function createFirebaseAuthAdapter({ auth, sdk }) {
       return token;
     },
 
+    async createAccount({ email, password } = {}) {
+      if (!hasText(email) || !hasText(password)) {
+        throw new TypeError("email and password are required");
+      }
+
+      if (typeof sdk?.createUserWithEmailAndPassword !== "function") {
+        throw new TypeError("Firebase email/password account creation is unavailable");
+      }
+
+      const credential = await sdk.createUserWithEmailAndPassword(
+        auth,
+        email.trim(),
+        password,
+      );
+
+      return studentSessionFromFirebaseUser(credential?.user);
+    },
+
     async signIn({ email, password } = {}) {
       if (!hasText(email) || !hasText(password)) {
         throw new TypeError("email and password are required");
