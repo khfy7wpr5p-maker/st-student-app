@@ -53,7 +53,12 @@ export function createAccountServiceConfig(env = defaultEnvironment()) {
     return disabledConfig();
   }
 
-  if (url.search !== "" || url.hash !== "") {
+  if (
+    url.username !== "" ||
+    url.password !== "" ||
+    url.search !== "" ||
+    url.hash !== ""
+  ) {
     return disabledConfig();
   }
 
