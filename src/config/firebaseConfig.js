@@ -4,6 +4,8 @@ export const firebaseConfig = Object.freeze({
   apiKey: "AIzaSyAObqpCI5hQlv8hruTWKy8o-6EbAccJOA8",
   authDomain: "st-student-app-85cde.firebaseapp.com",
   projectId: "st-student-app-85cde",
+  databaseURL:
+    "https://st-student-app-85cde-default-rtdb.europe-west1.firebasedatabase.app",
   appId: "1:70651615398:web:7bdd779be70e72fed03c67",
 });
 
@@ -11,19 +13,28 @@ function disabledDatabaseConfig() {
   return Object.freeze({ enabled: false, url: null });
 }
 
+function hasText(value) {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
 function defaultDatabaseEnvironment() {
   const viteEnv = import.meta.env;
   if (
     viteEnv !== undefined &&
     viteEnv !== null &&
-    Object.prototype.hasOwnProperty.call(viteEnv, DATABASE_URL_KEY)
+    Object.prototype.hasOwnProperty.call(viteEnv, DATABASE_URL_KEY) &&
+    hasText(viteEnv[DATABASE_URL_KEY])
   ) {
     return viteEnv;
   }
 
+  const runtimeUrl =
+    globalThis.__ST_STUDENT_APP_CONFIG__?.firebaseDatabaseUrl;
+
   return {
-    [DATABASE_URL_KEY]:
-      globalThis.__ST_STUDENT_APP_CONFIG__?.firebaseDatabaseUrl,
+    [DATABASE_URL_KEY]: hasText(runtimeUrl)
+      ? runtimeUrl
+      : firebaseConfig.databaseURL,
   };
 }
 
