@@ -1,5 +1,5 @@
 const CACHE_NAME = "st-student-shell-v18";
-const SHELL_CACHE_NAME = "st-student-shell-v25";
+const SHELL_CACHE_NAME = "st-student-shell-v26";
 const ACTIVE_CACHE_NAMES = new Set([
   CACHE_NAME,
   SHELL_CACHE_NAME,
@@ -9,6 +9,7 @@ const FIREBASE_RUNTIME_ASSETS = Object.freeze([
   "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js",
   "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js",
   "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js",
+  "https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js",
 ]);
 
 const FIREBASE_RUNTIME_URLS = new Set(FIREBASE_RUNTIME_ASSETS);
@@ -28,8 +29,11 @@ const SHELL_ASSETS = Object.freeze([
   "./src/assets/st-student-apple-touch-icon.png",
   "./src/config/firebaseConfig.js",
   "./src/config/accountServiceConfig.js",
+  "./src/account/accountUsageSessionReporter.js",
+  "./src/account/accountLifecycleCoordinator.js",
   "./src/providers/firebase/firebaseBrowserRuntime.js",
   "./src/providers/firebase/firebaseAuthAdapter.js",
+  "./src/providers/firebase/firebasePresenceWriter.js",
   "./src/providers/firebase/firestoreSharingAdapter.js",
   "./src/providers/firebase/firestorePackageTransport.js",
   "./src/providers/accountService/accountServiceApiClient.js",
