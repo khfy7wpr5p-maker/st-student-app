@@ -8,6 +8,8 @@ Confirmed production Realtime Database URL:
 https://st-student-app-85cde-default-rtdb.europe-west1.firebasedatabase.app
 ```
 
+This value was confirmed from Firebase and was not inferred from the project ID. Any future replacement URL must be confirmed from Firebase rather than inferred.
+
 The emulator-only project `demo-st-student-account` must never be used for production deployment.
 
 ## Ownership decision
