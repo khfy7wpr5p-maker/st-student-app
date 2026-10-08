@@ -15,8 +15,9 @@ Account Service and Secure Delivery server-side writes use trusted Admin SDK bou
 1. Confirm the current branch is the reviewed Gate 5 revision.
 2. Confirm Firebase CLI authentication is supplied by the deployment environment; do not commit service-account JSON, access tokens, or credentials.
 3. Confirm the selected project is exactly `st-student-app-85cde`.
-4. Run the full repository test suite before any production command.
-5. Review `firebase/firestore.rules`, `firebase/database.rules.json`, and `firebase/firestore.indexes.json` as one change set.
+4. Confirm the actual production Realtime Database URL from the Firebase console or authenticated project metadata. Do not guess it from the project ID.
+5. Run the full repository test suite before any production command.
+6. Review `firebase/firestore.rules`, `firebase/database.rules.json`, and `firebase/firestore.indexes.json` as one change set.
 
 ## Firestore rules and indexes
 
@@ -46,6 +47,20 @@ auth != null && auth.uid === $uid
 
 Presence remains informational and never grants assignment authority.
 
+The Firebase Web SDK requires the actual Realtime Database URL. Supply it at runtime as either:
+
+```text
+VITE_FIREBASE_DATABASE_URL
+```
+
+or the native runtime configuration field:
+
+```text
+globalThis.__ST_STUDENT_APP_CONFIG__.firebaseDatabaseUrl
+```
+
+The URL must be the HTTPS default RTDB instance for `st-student-app-85cde` and must be confirmed from Firebase rather than inferred. If the URL is absent or invalid, Student App disables only presence; Firebase Authentication and Firestore remain available.
+
 ## Firestore TTL
 
 Account Service writes one idempotency record per app boot at:
@@ -73,6 +88,7 @@ TTL deletion is asynchronous. Do not treat TTL enablement as immediate deletion 
 - Confirm Account Service private collections cannot be read or written directly from a browser client.
 - Confirm an authenticated Student App client can write only its own Realtime Database presence path.
 - Confirm a different UID cannot write another user's presence path.
+- Confirm the configured runtime RTDB URL is the actual default database for `st-student-app-85cde`.
 - Confirm the Firestore TTL policy for `sessions.expiresAt` is enabled in `st-student-app-85cde`.
 - Confirm no composite indexes were added unless a production query explicitly requires one.
 
