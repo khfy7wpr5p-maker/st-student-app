@@ -17,7 +17,13 @@ export async function runInviteActivationIfPresent({
     return false;
   }
 
-  stripInviteFragment({ historyObject, locationObject });
+  const fragmentRemoved = stripInviteFragment({ historyObject, locationObject });
+  if (!fragmentRemoved) {
+    if (root !== null && typeof root === "object") {
+      root.innerHTML = renderInviteUnavailable();
+    }
+    return true;
+  }
 
   const config = createAccountServiceConfig(environment);
   if (config.enabled !== true) {
