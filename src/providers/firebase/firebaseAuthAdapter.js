@@ -29,6 +29,11 @@ export function createFirebaseAuthAdapter({ auth, sdk }) {
   }
 
   return Object.freeze({
+    getFirebaseUid() {
+      const uid = auth?.currentUser?.uid;
+      return hasText(uid) ? uid.trim() : null;
+    },
+
     async getIdToken() {
       const user = auth?.currentUser;
       if (
