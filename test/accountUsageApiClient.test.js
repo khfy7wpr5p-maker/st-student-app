@@ -42,7 +42,7 @@ test("usage session posts only clientSessionId with a fresh Firebase bearer toke
   assert.equal(result.totalSessions, 4);
 });
 
-test("usage session rejects identifiers outside the backend path-safe contract before fetch", async () => {
+test("usage session rejects identifiers outside the backend path-safe contract before fetch", () => {
   let fetchCalls = 0;
   const client = createAccountServiceApiClient({
     baseUrl: "https://accounts.example.test/api/student-accounts/v1",
@@ -53,7 +53,7 @@ test("usage session rejects identifiers outside the backend path-safe contract b
     },
   });
 
-  await assert.rejects(() => client.recordUsageSession("bad session id"), TypeError);
-  await assert.rejects(() => client.recordUsageSession("x".repeat(161)), TypeError);
+  assert.throws(() => client.recordUsageSession("bad session id"), TypeError);
+  assert.throws(() => client.recordUsageSession("x".repeat(161)), TypeError);
   assert.equal(fetchCalls, 0);
 });
