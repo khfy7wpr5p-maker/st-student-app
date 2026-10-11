@@ -25,12 +25,21 @@ function normalizeConnectionId(value) {
   return id;
 }
 
+function secureRandomHex() {
+  if (typeof globalThis.crypto?.getRandomValues !== "function") {
+    throw new Error("secure random generator is unavailable");
+  }
+  const bytes = new Uint8Array(16);
+  globalThis.crypto.getRandomValues(bytes);
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
 function defaultConnectionIdFactory() {
   const uuid = globalThis.crypto?.randomUUID?.();
   if (hasText(uuid)) {
     return `connection-${uuid}`;
   }
-  return `connection-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+  return `connection-${secureRandomHex()}`;
 }
 
 async function bestEffortCancel(disconnect) {
