@@ -138,6 +138,18 @@ function restoreFocusedAction(root, identity) {
   }
 }
 
+function synchronizeNotationRootSemantics(currentRoot, replacementRoot) {
+  for (const name of ["role", "aria-label"]) {
+    const value = replacementRoot.getAttribute?.(name);
+
+    if (value === null) {
+      currentRoot.removeAttribute?.(name);
+    } else if (value !== undefined) {
+      currentRoot.setAttribute?.(name, value);
+    }
+  }
+}
+
 export function mountStudentApp({
   root,
   controller,
@@ -223,6 +235,11 @@ export function mountStudentApp({
         if (persistentNotationRoot === null) {
           persistentNotationRoot = replacementNotationRoot;
         } else if (replacementNotationRoot !== persistentNotationRoot) {
+          synchronizeNotationRootSemantics(
+            persistentNotationRoot,
+            replacementNotationRoot,
+          );
+
           if (typeof replacementNotationRoot.replaceWith === "function") {
             replacementNotationRoot.replaceWith(persistentNotationRoot);
           } else if (typeof replacementNotationRoot.parentNode?.replaceChild === "function") {

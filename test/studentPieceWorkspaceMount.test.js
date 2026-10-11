@@ -55,7 +55,11 @@ function makeRoot() {
   let markup = "";
   let notationRoot = null;
 
-  function makeNotationRoot() {
+  function makeNotationRoot({ ariaLabel, role }) {
+    const attributes = new Map([
+      ["aria-label", ariaLabel],
+      ["role", role],
+    ]);
     const node = {
       childNodes: [{}],
       parentNode: {
@@ -74,6 +78,15 @@ function makeRoot() {
         if (notationRoot === node) {
           notationRoot = next;
         }
+      },
+      getAttribute(name) {
+        return attributes.get(name) ?? null;
+      },
+      setAttribute(name, value) {
+        attributes.set(name, String(value));
+      },
+      removeAttribute(name) {
+        attributes.delete(name);
       },
     };
 
@@ -104,7 +117,14 @@ function makeRoot() {
     set innerHTML(value) {
       markup = value;
       notationRoot = value.includes('id="st-score-root"')
-        ? makeNotationRoot()
+        ? makeNotationRoot({
+            ariaLabel: value.match(
+              /id="st-score-root"[^>]*aria-label="([^"]+)"/,
+            )?.[1] ?? null,
+            role: value.match(
+              /id="st-score-root"[^>]*role="([^"]+)"/,
+            )?.[1] ?? null,
+          })
         : null;
     },
   };
@@ -403,6 +423,8 @@ test("Piece SCORE -> TAB -> CHORDS -> TAB preserves the exact notation root and 
   await mounted.render();
   const firstRoot = root.querySelector("#st-score-root");
   assert.notEqual(firstRoot, null);
+  assert.equal(firstRoot.getAttribute("role"), "region");
+  assert.equal(firstRoot.getAttribute("aria-label"), "Nota");
   assert.deepEqual(rendered, [
     "<score-partwise>SCORE</score-partwise>",
   ]);
@@ -413,6 +435,8 @@ test("Piece SCORE -> TAB -> CHORDS -> TAB preserves the exact notation root and 
   };
   await mounted.render();
   assert.equal(root.querySelector("#st-score-root"), firstRoot);
+  assert.equal(firstRoot.getAttribute("role"), "region");
+  assert.equal(firstRoot.getAttribute("aria-label"), "TAB");
   assert.deepEqual(rendered, [
     "<score-partwise>SCORE</score-partwise>",
     "<score-partwise>TAB</score-partwise>",
@@ -441,6 +465,8 @@ test("Piece SCORE -> TAB -> CHORDS -> TAB preserves the exact notation root and 
   };
   await mounted.render();
   assert.equal(root.querySelector("#st-score-root"), firstRoot);
+  assert.equal(firstRoot.getAttribute("role"), "region");
+  assert.equal(firstRoot.getAttribute("aria-label"), "Nota");
   assert.equal(rendered.length, 3);
   assert.equal(disposeCalls, 0);
 
