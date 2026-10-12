@@ -25,7 +25,7 @@ function postFixExport(historicalMusicXml) {
   return historicalMusicXml.replace(
     /<note>[\s\S]*?<\/note>/g,
     (note) => note.includes("<staff>2</staff>")
-      ? note.replace("<voice>1</voice>", "<voice>2</voice>")
+      ? note.replace("<voice>1</voice>", "<voice>5</voice>")
       : note,
   );
 }
@@ -69,7 +69,7 @@ for (const fixture of CASES) {
     const tabVoices = voicesForStaff(musicxml, 2);
 
     assert.deepEqual([...notationVoices], ["1"]);
-    assert.deepEqual([...tabVoices], ["2"]);
+    assert.deepEqual([...tabVoices], ["5"]);
     assert.deepEqual(
       [...new Set(technicalFrets(musicxml))].sort((left, right) => Number(left) - Number(right)),
       fixture.expectedFrets,
