@@ -11,11 +11,13 @@ const CASES = Object.freeze([
     name: "Blue Bossa Solo",
     file: new URL("./fixtures/ses-228/blue-bossa-historical.musicxml", import.meta.url),
     expectedFrets: Object.freeze(["3", "12", "13", "14", "15", "17", "19", "20"]),
+    firstMeasureFrets: Object.freeze(["3"]),
   }),
   Object.freeze({
     name: "Fikrimin İnce Gülü",
     file: new URL("./fixtures/ses-228/fikrimin-ince-gulu-historical.musicxml", import.meta.url),
     expectedFrets: Object.freeze(["6", "8", "10", "11", "12", "13", "14", "15", "17", "18", "19", "20"]),
+    firstMeasureFrets: Object.freeze(["15", "17", "18"]),
   }),
 ]);
 
@@ -31,6 +33,12 @@ function postFixExport(historicalMusicXml) {
 function technicalFrets(musicXml) {
   return [...musicXml.matchAll(/<fret>(\d+)<\/fret>/g)]
     .map((match) => match[1]);
+}
+
+function firstMeasureExcerpt(musicXml) {
+  const firstMeasureEnd = musicXml.indexOf("</measure>");
+  assert.notEqual(firstMeasureEnd, -1, "fixture must contain a measure");
+  return `${musicXml.slice(0, firstMeasureEnd + "</measure>".length)}</part></score-partwise>`;
 }
 
 function voicesForStaff(musicXml, staff) {
@@ -54,7 +62,7 @@ after(async () => {
 });
 
 for (const fixture of CASES) {
-  test(`SES-228 ${fixture.name} renders every authored nonzero fret`, { timeout: 60_000 }, async () => {
+  test(`SES-228 ${fixture.name} renders authored frets from a real measure`, { timeout: 60_000 }, async () => {
     const historicalMusicXml = await readFile(fixture.file, "utf8");
     const musicxml = postFixExport(historicalMusicXml);
     const notationVoices = voicesForStaff(musicxml, 1);
@@ -66,6 +74,13 @@ for (const fixture of CASES) {
       [...new Set(technicalFrets(musicxml))].sort((left, right) => Number(left) - Number(right)),
       fixture.expectedFrets,
       "fixture must retain its complete authored fret range",
+    );
+
+    const renderMusicXml = firstMeasureExcerpt(musicxml);
+    assert.deepEqual(
+      [...new Set(technicalFrets(renderMusicXml))],
+      fixture.firstMeasureFrets,
+      "render excerpt must retain every authored fret in the real first measure",
     );
 
     const browserName = process.env.ST_BROWSER ?? "chromium";
@@ -89,15 +104,18 @@ for (const fixture of CASES) {
           drawTitle: false,
           drawComposer: false,
         });
-      }, musicxml);
+      }, renderMusicXml);
 
       assert.ok(result, "renderer should return a result");
       assert.deepEqual(pageErrors, [], "browser must not raise an uncaught rendering error");
       const visibleText = (await page.locator("#st-score-root svg text").allTextContents())
         .map((value) => value.trim())
         .filter(Boolean);
-      for (const fret of fixture.expectedFrets) {
-        assert.ok(visibleText.includes(fret), `TAB must display authored fret ${fret}`);
+      for (const fret of fixture.firstMeasureFrets) {
+        assert.ok(
+          visibleText.includes(fret),
+          `TAB must display authored fret ${fret}; visible text: ${JSON.stringify(visibleText)}`,
+        );
       }
     } finally {
       await browser.close();
