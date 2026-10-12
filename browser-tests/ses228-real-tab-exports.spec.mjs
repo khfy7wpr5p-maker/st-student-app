@@ -83,7 +83,7 @@ for (const fixture of CASES) {
         return globalThis.__ST_SCORE_RENDER_HOST__.renderMusicXml({
           contractVersion: "0.2.0",
           musicxml: source,
-          ticket: "ses-228",
+          ticket: "1",
           pageMode: "continuous",
           autoResize: true,
           drawTitle: false,
