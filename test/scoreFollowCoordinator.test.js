@@ -141,6 +141,40 @@ test("fresh current measure HIT forwards coordinates unchanged and replays exact
   assert.equal(created[0].sourceId, "pkg-a");
 });
 
+test("TAB presentation binds its exact render source to the package playback timeline", () => {
+  const adapter = makeAdapter();
+  const playbackPort = makePlaybackPort();
+  const created = [];
+  const coordinator = createScoreFollowCoordinator({
+    notationAdapter: adapter,
+    playbackPort,
+    createIndex(args) {
+      created.push(args);
+      return measureIndex();
+    },
+  });
+  const work = pkg();
+
+  assert.equal(
+    coordinator.bind({
+      pkg: work,
+      sourceId: "pkg-a:guitar-tab",
+      musicXml: "<score-partwise><part id=\"P1\"/></score-partwise>",
+      renderEvidence: {
+        sourceId: "pkg-a:guitar-tab",
+        renderEpoch: "render-tab-1",
+      },
+    }),
+    true,
+  );
+  assert.equal(created[0].packageId, "pkg-a");
+  assert.equal(created[0].sourceId, "pkg-a:guitar-tab");
+  assert.deepEqual(
+    playbackPort.calls.filter(([name]) => name === "subscribe"),
+    [["subscribe", "pkg-a"]],
+  );
+});
+
 test("MISS unknown measure and stale renderer evidence never replay", async () => {
   const adapter = makeAdapter();
   const playbackPort = makePlaybackPort();

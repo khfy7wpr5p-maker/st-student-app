@@ -540,11 +540,17 @@ export function createStudentAppController({
       } else if (
         state.screen ===
           STUDENT_APP_SCREENS.PIECE_WORKSPACE &&
-        state.pieceWorkspace?.selectedView ===
-          PIECE_WORKSPACE_VIEWS.SCORE
+        (
+          state.pieceWorkspace?.selectedView ===
+            PIECE_WORKSPACE_VIEWS.SCORE ||
+          state.pieceWorkspace?.selectedView ===
+            PIECE_WORKSPACE_VIEWS.TAB
+        )
       ) {
-        renderSource =
-          activePracticeRenderSource;
+        renderSource = state.pieceWorkspace.selectedView ===
+          PIECE_WORKSPACE_VIEWS.TAB
+          ? activePracticeTabRenderSource
+          : activePracticeRenderSource;
       }
 
       if (
@@ -552,8 +558,12 @@ export function createStudentAppController({
         renderSource === null ||
         renderSource?.kind !== "musicxml" ||
         typeof renderSource.musicXml !== "string" ||
-        renderSource.sourceId !==
-          activePracticePackage.packageId
+        (
+          renderSource.sourceId !==
+            activePracticePackage.packageId &&
+          renderSource.sourceId !==
+            `${activePracticePackage.packageId}:guitar-tab`
+        )
       ) {
         return null;
       }

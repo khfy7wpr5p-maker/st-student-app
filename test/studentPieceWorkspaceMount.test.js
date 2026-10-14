@@ -659,7 +659,7 @@ test("Piece TAB rerenders the same source when playback repaint leaves the persi
 });
 
 
-test("Piece SCORE binds follow only from current render evidence and routes notation taps unchanged", async () => {
+test("Piece SCORE and TAB bind follow only from their current render evidence", async () => {
   let state = {
     student08: true,
     screen: STUDENT_APP_SCREENS.PIECE_WORKSPACE,
@@ -753,12 +753,21 @@ test("Piece SCORE binds follow only from current render evidence and routes nota
       return null;
     },
     getScoreFollowSource() {
-      if (state.pieceWorkspace.selectedView !== "SCORE") return null;
-      return {
-        pkg: { packageId: "pkg-score-a" },
-        sourceId: "pkg-score-a",
-        musicXml: "<score-partwise>SCORE</score-partwise>",
-      };
+      if (state.pieceWorkspace.selectedView === "SCORE") {
+        return {
+          pkg: { packageId: "pkg-score-a" },
+          sourceId: "pkg-score-a",
+          musicXml: "<score-partwise>SCORE</score-partwise>",
+        };
+      }
+      if (state.pieceWorkspace.selectedView === "TAB") {
+        return {
+          pkg: { packageId: "pkg-score-a" },
+          sourceId: "pkg-score-a:guitar-tab",
+          musicXml: "<score-partwise>TAB</score-partwise>",
+        };
+      }
+      return null;
     },
     setNotationCapability() {},
     disposeActivePractice() {},
@@ -847,11 +856,12 @@ test("Piece SCORE binds follow only from current render evidence and routes nota
 
   assert.equal(
     followCalls.filter(([name]) => name === "bind").length,
-    1,
+    2,
   );
   assert.equal(
-    followCalls.some(([name]) => name === "clear"),
-    true,
+    followCalls.filter(([name]) => name === "bind")[1][1]
+      .renderEvidence.sourceId,
+    "pkg-score-a:guitar-tab",
   );
 
   state = {
@@ -865,7 +875,7 @@ test("Piece SCORE binds follow only from current render evidence and routes nota
 
   assert.equal(
     followCalls.filter(([name]) => name === "bind").length,
-    2,
+    3,
   );
 
   await mounted.destroy();
