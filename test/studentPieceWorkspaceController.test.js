@@ -508,8 +508,8 @@ test("Piece TAB view uses the exact package TAB MusicXML and preserves playback 
 });
 
 
-test("score follow source exists only for the current SCORE presentation", async () => {
-  const tabXml = "<score-partwise>TAB FOLLOW MUST NOT USE</score-partwise>";
+test("score follow source tracks the current SCORE or TAB presentation", async () => {
+  const tabXml = "<score-partwise>TAB FOLLOW SOURCE</score-partwise>";
   const packageWithTab = makeApprovedPracticePackage({
     packageId: "pkg-score-a",
     scope: "student_private",
@@ -548,7 +548,12 @@ test("score follow source exists only for the current SCORE presentation", async
   assert.equal(followSource.musicXml, scoreRenderSource.musicXml);
 
   controller.selectPieceView("TAB");
-  assert.equal(controller.getScoreFollowSource(), null);
+  assert.equal(
+    controller.getScoreFollowSource().sourceId,
+    "pkg-score-a:guitar-tab",
+  );
+  assert.equal(controller.getScoreFollowSource().musicXml, tabXml);
+  assert.equal(controller.getScoreFollowSource().pkg, packageWithTab);
 
   controller.selectPieceView("CHORDS");
   assert.equal(controller.getScoreFollowSource(), null);

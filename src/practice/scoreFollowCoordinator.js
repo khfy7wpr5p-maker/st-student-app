@@ -267,9 +267,16 @@ export function createScoreFollowCoordinator({
       invalidate();
 
       const packageId = packageIdOf(pkg);
+      const expectedTabSourceId =
+        packageId === null
+          ? null
+          : `${packageId}:guitar-tab`;
       if (
         packageId === null ||
-        sourceId !== packageId ||
+        (
+          sourceId !== packageId &&
+          sourceId !== expectedTabSourceId
+        ) ||
         !validIdentity(sourceId) ||
         typeof musicXml !== "string" ||
         musicXml.length === 0 ||
