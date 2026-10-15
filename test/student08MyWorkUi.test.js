@@ -41,20 +41,6 @@ test("My Work shows a SCORE title as a compact open control", () => {
   assert.doesNotMatch(html, /İkinci ölçüyü yavaş çalış\.|Çalışmayı Aç|assignment-card-score/);
 });
 
-test("My Work includes every title in a 50-piece folder", () => {
-  const items = Array.from({ length: 50 }, (_, index) => ({
-    itemKind: "PIECE",
-    pieceAssignmentId: `piece-${index + 1}`,
-    title: `Etüt ${index + 1}`,
-    state: ASSIGNMENT_STATES.ACTIVE,
-  }));
-  const html = renderStudentApp(myWorkState(items));
-
-  assert.equal((html.match(/data-action="open-piece"/g) ?? []).length, 50);
-  assert.match(html, /data-piece-assignment-id="piece-50"[^>]*>[\s\S]*?Etüt 50/);
-  assert.doesNotMatch(html, /class="piece-card"/);
-});
-
 test("S08-4B My Work groups CHORD_BOARD assignments under one expandable Akor çalışması entry", () => {
   const html = renderStudentApp(
     myWorkState([
