@@ -228,7 +228,7 @@ test("selected violin uses the shared transport clock through the score-audio vo
   assert.equal(notes[1][1].startTimeSeconds, 1);
 });
 
-test("explicit grand piano preserves the local sample-bank lane", async () => {
+test("explicit grand piano uses the score-audio voice lane", async () => {
   const context = makeAudioContext();
   const sampleBank = makeSampleBank();
   const scoreAudioCalls = [];
@@ -250,9 +250,13 @@ test("explicit grand piano preserves the local sample-bank lane", async () => {
     playbackInstrument: "GRAND_PIANO",
   });
 
-  assert.equal(sampleBank.loadCount, 1);
-  assert.equal(context.sources.length, 1);
-  assert.deepEqual(scoreAudioCalls, []);
+  assert.equal(sampleBank.loadCount, 0);
+  assert.equal(context.sources.length, 0);
+  assert.deepEqual(scoreAudioCalls[0], {
+    instrumentId: "GRAND_PIANO",
+    pitches: [60, 62, 64, 65],
+  });
+  assert.equal(scoreAudioCalls[1].instrumentId, "GRAND_PIANO");
 });
 
 test("selected tempo scales timing without changing sample playbackRate", async () => {
