@@ -97,6 +97,21 @@ test("playback static cache is best-effort and fetch handling is allowlisted", a
   );
 });
 
+test("qualified external instrument samples use a pinned bounded runtime cache", async () => {
+  const source = await readFile(
+    new URL("../service-worker.js", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /const SAMPLE_CACHE_NAME = "st-student-samples-v1"/);
+  assert.match(source, /const SAMPLE_CACHE_LIMIT = 96/);
+  assert.match(source, /raw\.githubusercontent\.com/);
+  assert.match(source, /Tonejs\/audio\/efd8296360f9526e379bfbe5c1698ff54d6a1d34\/salamander/);
+  assert.match(source, /isPinnedExternalSampleUrl\(url\)/);
+  assert.match(source, /requests\.slice\(0, overflow\)/);
+  assert.match(source, /caches\.open\(SAMPLE_CACHE_NAME\)/);
+});
+
 
 test("required shell caching completes before best-effort piano caching", async () => {
   const source = await readFile(

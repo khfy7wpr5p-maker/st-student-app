@@ -65,6 +65,9 @@ test("installed stale v20/v21/v22/v23/v24/v25/v26/v27 shells migrate atomically 
       async delete(request) {
         return entries.delete(requestKey(request));
       },
+      async keys() {
+        return [...entries.keys()].map((url) => ({ url }));
+      },
     };
   }
 
@@ -130,8 +133,23 @@ test("installed stale v20/v21/v22/v23/v24/v25/v26/v27 shells migrate atomically 
     },
   };
 
-  const fetchFunction = async () =>
-    makeResponse("firebase-runtime", { ok: false });
+  let sampleNetworkOnline = true;
+  let sampleNetworkCalls = 0;
+  const fetchFunction = async (request) => {
+    const key = requestKey(request);
+    if (
+      key.startsWith(
+        "https://raw.githubusercontent.com/Tonejs/audio/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/",
+      )
+    ) {
+      sampleNetworkCalls += 1;
+      if (!sampleNetworkOnline) {
+        throw new Error("offline");
+      }
+      return makeResponse(`sample:${key}`);
+    }
+    return makeResponse("firebase-runtime", { ok: false });
+  };
 
   const selfObject = {
     registration: {
@@ -265,4 +283,35 @@ test("installed stale v20/v21/v22/v23/v24/v25/v26/v27 shells migrate atomically 
 
   const response = await responsePromise;
   assert.equal(response.body, "account-presence-usage-shell");
+
+  const pianoSampleRequest = {
+    method: "GET",
+    url: "https://raw.githubusercontent.com/Tonejs/audio/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/C4.mp3",
+  };
+  listeners.get("fetch")({
+    request: pianoSampleRequest,
+    respondWith(promise) {
+      responsePromise = promise;
+    },
+  });
+
+  const onlineSampleResponse = await responsePromise;
+  assert.equal(onlineSampleResponse.body, `sample:${pianoSampleRequest.url}`);
+  assert.equal(sampleNetworkCalls, 1);
+  assert.equal(
+    entriesFor("st-student-samples-v1").has(pianoSampleRequest.url),
+    true,
+  );
+
+  sampleNetworkOnline = false;
+  listeners.get("fetch")({
+    request: pianoSampleRequest,
+    respondWith(promise) {
+      responsePromise = promise;
+    },
+  });
+
+  const offlineSampleResponse = await responsePromise;
+  assert.equal(offlineSampleResponse.body, `sample:${pianoSampleRequest.url}`);
+  assert.equal(sampleNetworkCalls, 1);
 });
