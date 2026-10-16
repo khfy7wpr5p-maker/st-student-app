@@ -1,5 +1,5 @@
 const CACHE_NAME = "st-student-shell-v18";
-const SHELL_CACHE_NAME = "st-student-shell-v26";
+const SHELL_CACHE_NAME = "st-student-shell-v27";
 const ACTIVE_CACHE_NAMES = new Set([
   CACHE_NAME,
   SHELL_CACHE_NAME,
@@ -62,7 +62,10 @@ const SHELL_ASSETS = Object.freeze([
   "./src/playback/playbackPlanResolver.js",
   "./src/playback/pianoSampleBank.js",
   "./src/playback/webAudioPianoEngine.js",
+  "./src/playback/scoreAudioVoiceAdapter.js",
   "./src/playback/studentPlaybackPort.js",
+  "./vendor/st-score-audio/st-score-audio-engine.js",
+  "./vendor/st-score-audio/runtime-manifest.json",
   "./vendor/st-score-runtime/browser-bootstrap.mjs",
   "./vendor/st-score-runtime/runtime-manifest.json",
   "./vendor/st-score-runtime/THIRD_PARTY_NOTICES.md",

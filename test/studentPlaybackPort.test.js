@@ -44,6 +44,14 @@ function pkg(packageId = "pkg-a", practice = {}) {
   });
 }
 
+function instrumentPkg(instrument) {
+  return Object.freeze({
+    ...pkg(),
+    playbackInstrument: instrument,
+    approvedRevision: Object.freeze({ revisionId: "rev-a" }),
+  });
+}
+
 function makeEngine({ supported = true } = {}) {
   const calls = [];
   const positionListeners = new Set();
@@ -167,6 +175,26 @@ test("tempo selection is bounded and applied when playback starts", async () => 
   const playCall = engine.calls.find(([name]) => name === "play");
   assert.equal(playCall[1].tempoBpm, 80);
   assert.equal(playCall[1].plan.packageId, "pkg-a");
+});
+
+test("port passes typed instrument metadata and revision while legacy packages keep the old lane", async () => {
+  const engine = makeEngine();
+  const port = createStudentPlaybackPort({
+    playbackPlanResolver: { resolvePackage: () => plan() },
+    engine,
+  });
+
+  await port.playPackage(instrumentPkg("VIOLIN"));
+  const selected = engine.calls.find(([name]) => name === "play")[1];
+  assert.equal(selected.playbackInstrument, "VIOLIN");
+  assert.equal(selected.sourceRevisionId, "rev-a");
+
+  engine.calls.length = 0;
+  port.disposePackage(instrumentPkg("VIOLIN"));
+  await port.playPackage(pkg());
+  const legacy = engine.calls.find(([name]) => name === "play")[1];
+  assert.equal(legacy.playbackInstrument, null);
+  assert.equal(legacy.sourceRevisionId, "pkg-a");
 });
 
 test("repeat may be selected before play and is applied after engine ownership", async () => {
@@ -464,6 +492,8 @@ test("one-measure replay uses the selected tempo and validated global beat range
     tempoBpm: 84,
     startBeat: 0,
     endBeat: 4,
+    playbackInstrument: null,
+    sourceRevisionId: "pkg-range",
   });
 });
 

@@ -176,6 +176,85 @@ test("tempo map schedules beat 0/2/4/6 at 0/1/2/4 seconds", async () => {
   assert.equal(context.sources[3].starts[0][0], 4);
 });
 
+test("selected violin uses the shared transport clock through the score-audio voice lane", async () => {
+  const context = makeAudioContext();
+  const clock = makeClock();
+  const calls = [];
+  const scoreAudioVoice = {
+    isSupported(value) {
+      return value === "VIOLIN";
+    },
+    async prepare(value) {
+      calls.push(["prepare", value]);
+      return true;
+    },
+    scheduleNote(value) {
+      calls.push(["note", value]);
+    },
+    stopAll() {
+      calls.push(["stopAll"]);
+    },
+  };
+  const sampleBank = makeSampleBank();
+  const engine = createWebAudioPianoEngine({
+    audioContextFactory: () => context,
+    sampleBank,
+    scoreAudioVoice,
+    clock,
+  });
+
+  assert.equal(engine.isSupported("VIOLIN"), true);
+  await engine.play({
+    plan: makePlan(),
+    tempoBpm: 120,
+    playbackInstrument: "VIOLIN",
+    sourceRevisionId: "rev-a",
+  });
+
+  assert.equal(sampleBank.loadCount, 0);
+  assert.equal(context.sources.length, 0);
+  assert.deepEqual(calls[0], ["prepare", {
+    instrumentId: "VIOLIN",
+    pitches: [60, 62, 64, 65],
+  }]);
+  const first = calls.find(([name]) => name === "note")[1];
+  assert.equal(first.startTimeSeconds, 0.02);
+  assert.equal(first.instrumentId, "VIOLIN");
+  assert.equal(first.sourceRevisionId, "rev-a");
+
+  context.currentTime = 0.8;
+  clock.tick();
+  const notes = calls.filter(([name]) => name === "note");
+  assert.equal(notes[1][1].startTimeSeconds, 1);
+});
+
+test("explicit grand piano preserves the local sample-bank lane", async () => {
+  const context = makeAudioContext();
+  const sampleBank = makeSampleBank();
+  const scoreAudioCalls = [];
+  const engine = createWebAudioPianoEngine({
+    audioContextFactory: () => context,
+    sampleBank,
+    scoreAudioVoice: {
+      isSupported() { return true; },
+      async prepare(value) { scoreAudioCalls.push(value); },
+      scheduleNote(value) { scoreAudioCalls.push(value); },
+      stopAll() {},
+    },
+    clock: makeClock(),
+  });
+
+  await engine.play({
+    plan: makePlan(),
+    tempoBpm: 120,
+    playbackInstrument: "GRAND_PIANO",
+  });
+
+  assert.equal(sampleBank.loadCount, 1);
+  assert.equal(context.sources.length, 1);
+  assert.deepEqual(scoreAudioCalls, []);
+});
+
 test("selected tempo scales timing without changing sample playbackRate", async () => {
   const context = makeAudioContext();
   const clock = makeClock();

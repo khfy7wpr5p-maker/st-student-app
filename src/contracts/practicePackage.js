@@ -5,6 +5,12 @@ export const PRACTICE_PACKAGE_SCOPES = Object.freeze({
   STUDENT_PRIVATE: "student_private",
 });
 
+export const PLAYBACK_INSTRUMENTS = Object.freeze({
+  GRAND_PIANO: "GRAND_PIANO",
+  CLASSICAL_GUITAR: "CLASSICAL_GUITAR",
+  VIOLIN: "VIOLIN",
+});
+
 const ALLOWED_TOP_LEVEL_KEYS = new Set([
   "schemaVersion",
   "packageId",
@@ -14,6 +20,7 @@ const ALLOWED_TOP_LEVEL_KEYS = new Set([
   "publication",
   "content",
   "practice",
+  "playbackInstrument",
 ]);
 
 const isRecord = (value) =>
@@ -118,6 +125,17 @@ export function validatePracticePackage(value) {
     if (!Array.isArray(content.canonicalEvents)) {
       errors.push("content.canonicalEvents must be an array");
     }
+  }
+
+  if (
+    value.playbackInstrument !== undefined &&
+    !Object.values(PLAYBACK_INSTRUMENTS).includes(
+      value.playbackInstrument,
+    )
+  ) {
+    errors.push(
+      "playbackInstrument must be GRAND_PIANO, CLASSICAL_GUITAR or VIOLIN",
+    );
   }
 
   return { ok: errors.length === 0, errors };
