@@ -32,6 +32,8 @@ test("installed stale v20/v21/v22/v23/v24/v25/v26/v27 shells migrate atomically 
   const deletedCacheNames = [];
   let claimCalls = 0;
   let skipWaitingCalls = 0;
+  let sampleCacheWriteFails = false;
+  let sampleCacheOpenFails = false;
 
   function entriesFor(name) {
     if (!cacheEntries.has(name)) {
@@ -57,6 +59,9 @@ test("installed stale v20/v21/v22/v23/v24/v25/v26/v27 shells migrate atomically 
         entries.set(key, makeResponse(`runtime:${key}`));
       },
       async put(request, response) {
+        if (name === "st-student-samples-v1" && sampleCacheWriteFails) {
+          throw new Error("QuotaExceededError");
+        }
         entries.set(requestKey(request), response);
       },
       async match(request) {
@@ -122,6 +127,9 @@ test("installed stale v20/v21/v22/v23/v24/v25/v26/v27 shells migrate atomically 
 
   const cachesObject = {
     async open(name) {
+      if (name === "st-student-samples-v1" && sampleCacheOpenFails) {
+        throw new Error("CacheStorage unavailable");
+      }
       return cacheFor(name);
     },
     async keys() {
@@ -314,4 +322,48 @@ test("installed stale v20/v21/v22/v23/v24/v25/v26/v27 shells migrate atomically 
   const offlineSampleResponse = await responsePromise;
   assert.equal(offlineSampleResponse.body, `sample:${pianoSampleRequest.url}`);
   assert.equal(sampleNetworkCalls, 1);
+
+  sampleNetworkOnline = true;
+  sampleCacheWriteFails = true;
+  const uncachedPianoSampleRequest = {
+    method: "GET",
+    url: "https://raw.githubusercontent.com/Tonejs/audio/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/Ds4.mp3",
+  };
+  listeners.get("fetch")({
+    request: uncachedPianoSampleRequest,
+    respondWith(promise) {
+      responsePromise = promise;
+    },
+  });
+
+  const quotaLimitedResponse = await responsePromise;
+  assert.equal(
+    quotaLimitedResponse.body,
+    `sample:${uncachedPianoSampleRequest.url}`,
+  );
+  assert.equal(sampleNetworkCalls, 2);
+  assert.equal(
+    entriesFor("st-student-samples-v1").has(uncachedPianoSampleRequest.url),
+    false,
+  );
+
+  sampleCacheWriteFails = false;
+  sampleCacheOpenFails = true;
+  const unavailableCacheRequest = {
+    method: "GET",
+    url: "https://raw.githubusercontent.com/Tonejs/audio/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/Fs4.mp3",
+  };
+  listeners.get("fetch")({
+    request: unavailableCacheRequest,
+    respondWith(promise) {
+      responsePromise = promise;
+    },
+  });
+
+  const cacheUnavailableResponse = await responsePromise;
+  assert.equal(
+    cacheUnavailableResponse.body,
+    `sample:${unavailableCacheRequest.url}`,
+  );
+  assert.equal(sampleNetworkCalls, 3);
 });

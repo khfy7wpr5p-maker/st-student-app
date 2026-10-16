@@ -281,22 +281,32 @@ self.addEventListener("fetch", (event) => {
 
   if (externalSampleRequest) {
     event.respondWith(
-      caches.open(SAMPLE_CACHE_NAME).then((cache) =>
-        cache.match(event.request).then((cached) => {
+      (async () => {
+        let cache;
+        try {
+          cache = await caches.open(SAMPLE_CACHE_NAME);
+          const cached = await cache.match(event.request);
           if (cached !== undefined) {
             return cached;
           }
+        } catch {
+          // Cache Storage is best-effort. Network playback must remain usable
+          // when private browsing or storage quota blocks persistence.
+        }
 
-          return fetch(event.request).then(async (response) => {
-            if (response?.ok === true) {
+        const response = await fetch(event.request);
+        if (response?.ok === true && cache !== undefined) {
+          try {
               await cache.put(event.request, response.clone());
               await trimSampleCache(cache);
-            }
+          } catch {
+            // A successful sample response must not fail playback because the
+            // best-effort offline cache is unavailable or full.
+          }
+        }
 
-            return response;
-          });
-        }),
-      ),
+        return response;
+      })(),
     );
     return;
   }
