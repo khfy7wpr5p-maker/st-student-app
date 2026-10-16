@@ -23,6 +23,19 @@ function bounded(message) {
   return new Error(message);
 }
 
+function playbackInstrumentOf(pkg) {
+  return typeof pkg?.playbackInstrument === "string"
+    ? pkg.playbackInstrument
+    : null;
+}
+
+function sourceRevisionIdOf(pkg) {
+  return typeof pkg?.approvedRevision?.revisionId === "string" &&
+    pkg.approvedRevision.revisionId.length > 0
+    ? pkg.approvedRevision.revisionId
+    : packageIdOf(pkg);
+}
+
 export function createStudentPlaybackPort({
   playbackPlanResolver,
   engine,
@@ -96,9 +109,11 @@ export function createStudentPlaybackPort({
     return resolveContext(pkg)?.plan ?? null;
   }
 
-  function engineSupported() {
+  function engineSupported(pkg) {
     try {
-      return engine?.isSupported?.() === true;
+      return engine?.isSupported?.(
+        playbackInstrumentOf(pkg),
+      ) === true;
     } catch {
       return false;
     }
@@ -106,7 +121,7 @@ export function createStudentPlaybackPort({
 
   function playablePlan(pkg) {
     const plan = resolve(pkg);
-    return plan !== null && engineSupported() ? plan : null;
+    return plan !== null && engineSupported(pkg) ? plan : null;
   }
 
   function requirePlayable(pkg) {
@@ -213,8 +228,11 @@ export function createStudentPlaybackPort({
       }
 
       try {
-        const prepared =
-          await engine.prepare();
+        const prepared = await engine.prepare({
+          plan: resolve(pkg),
+          playbackInstrument: playbackInstrumentOf(pkg),
+          sourceRevisionId: sourceRevisionIdOf(pkg),
+        });
         return (
           prepared === true &&
           playablePlan(pkg) !== null
@@ -284,6 +302,8 @@ export function createStudentPlaybackPort({
           tempoBpm: tempo,
           startBeat,
           endBeat,
+          playbackInstrument: playbackInstrumentOf(pkg),
+          sourceRevisionId: sourceRevisionIdOf(pkg),
         });
       } catch {
         if (activePackageId === packageId) {
@@ -371,7 +391,12 @@ export function createStudentPlaybackPort({
       activePackageId = packageId;
 
       try {
-        await engine.play({ plan, tempoBpm: tempo });
+        await engine.play({
+          plan,
+          tempoBpm: tempo,
+          playbackInstrument: playbackInstrumentOf(pkg),
+          sourceRevisionId: sourceRevisionIdOf(pkg),
+        });
 
         if (repeatEnabled.get(packageId) === true) {
           engine.setMeasureRepeatEnabled(true);

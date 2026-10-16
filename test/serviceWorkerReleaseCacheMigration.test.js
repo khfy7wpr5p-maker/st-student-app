@@ -22,7 +22,7 @@ function requestKey(request) {
   return request.url;
 }
 
-test("installed stale v20/v21/v22/v23/v24/v25 shells migrate atomically to v26 and reopen offline", async () => {
+test("installed stale v20/v21/v22/v23/v24/v25/v26 shells migrate atomically to v27 and reopen offline", async () => {
   const source = await readFile(
     new URL("../service-worker.js", import.meta.url),
     "utf8",
@@ -108,6 +108,10 @@ test("installed stale v20/v21/v22/v23/v24/v25 shells migrate atomically to v26 a
     "https://student.example/index.html",
     makeResponse("account-invite-shell-without-presence-usage"),
   );
+  entriesFor("st-student-shell-v26").set(
+    "https://student.example/index.html",
+    makeResponse("presence-usage-shell-without-score-audio"),
+  );
 
   const cachesObject = {
     async open(name) {
@@ -169,7 +173,7 @@ test("installed stale v20/v21/v22/v23/v24/v25 shells migrate atomically to v26 a
     "account-invite-shell-without-presence-usage",
   );
   assert.equal(
-    entriesFor("st-student-shell-v26")
+    entriesFor("st-student-shell-v27")
       .get("https://student.example/index.html")
       .body,
     "account-presence-usage-shell",
@@ -194,7 +198,7 @@ test("installed stale v20/v21/v22/v23/v24/v25 shells migrate atomically to v26 a
     "src/account/accountLifecycleCoordinator.js",
   ]) {
     assert.equal(
-      entriesFor("st-student-shell-v26").has(
+      entriesFor("st-student-shell-v27").has(
         `https://student.example/${asset}`,
       ),
       true,
@@ -218,6 +222,7 @@ test("installed stale v20/v21/v22/v23/v24/v25 shells migrate atomically to v26 a
     "st-student-shell-v23",
     "st-student-shell-v24",
     "st-student-shell-v25",
+    "st-student-shell-v26",
   ]);
   assert.equal(claimCalls, 1);
   assert.equal(cacheEntries.has("st-student-shell-v20"), false);
@@ -226,6 +231,7 @@ test("installed stale v20/v21/v22/v23/v24/v25 shells migrate atomically to v26 a
   assert.equal(cacheEntries.has("st-student-shell-v23"), false);
   assert.equal(cacheEntries.has("st-student-shell-v24"), false);
   assert.equal(cacheEntries.has("st-student-shell-v25"), false);
+  assert.equal(cacheEntries.has("st-student-shell-v26"), false);
   assert.equal(
     entriesFor("st-student-shell-v18").has(
       "https://student.example/index.html",

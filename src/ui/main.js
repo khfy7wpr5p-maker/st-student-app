@@ -13,6 +13,7 @@ import { createPlaybackPlanResolver } from "../playback/playbackPlanResolver.js"
 import { createPianoSampleBank } from "../playback/pianoSampleBank.js";
 import { createWebAudioPianoEngine } from "../playback/webAudioPianoEngine.js";
 import { createStudentPlaybackPort } from "../playback/studentPlaybackPort.js";
+import { createScoreAudioVoiceAdapter } from "../playback/scoreAudioVoiceAdapter.js";
 import { createAccountServiceApiClient } from "../providers/accountService/accountServiceApiClient.js";
 import { createFirebaseBrowserRuntime } from "../providers/firebase/firebaseBrowserRuntime.js";
 import { createStudentAppController } from "./studentAppController.js";
@@ -55,19 +56,27 @@ async function startStandardStudentApp() {
   const audioContextSupported =
     typeof (globalThis.AudioContext ?? globalThis.webkitAudioContext) === "function";
 
+  let sharedAudioContext = null;
   const audioContextFactory = () => {
     const AudioContextCtor =
       globalThis.AudioContext ?? globalThis.webkitAudioContext;
 
-    return typeof AudioContextCtor === "function"
-      ? new AudioContextCtor()
-      : null;
+    if (sharedAudioContext === null && typeof AudioContextCtor === "function") {
+      sharedAudioContext = new AudioContextCtor();
+    }
+    return sharedAudioContext;
   };
+
+  const scoreAudioVoice = createScoreAudioVoiceAdapter({
+    runtime: globalThis.STScoreAudioEngine ?? null,
+    audioContextFactory,
+  });
 
   const playbackEngine = createWebAudioPianoEngine({
     audioContextFactory,
     audioContextSupported,
     sampleBank,
+    scoreAudioVoice,
   });
   const playbackPort = createStudentPlaybackPort({
     playbackPlanResolver,
