@@ -22,7 +22,7 @@ function requestKey(request) {
   return request.url;
 }
 
-test("installed stale v20/v21/v22/v23/v24/v25/v26 shells migrate atomically to v27 and reopen offline", async () => {
+test("installed stale v20/v21/v22/v23/v24/v25/v26/v27 shells migrate atomically to v28 and reopen offline", async () => {
   const source = await readFile(
     new URL("../service-worker.js", import.meta.url),
     "utf8",
@@ -32,6 +32,8 @@ test("installed stale v20/v21/v22/v23/v24/v25/v26 shells migrate atomically to v
   const deletedCacheNames = [];
   let claimCalls = 0;
   let skipWaitingCalls = 0;
+  let sampleCacheWriteFails = false;
+  let sampleCacheOpenFails = false;
 
   function entriesFor(name) {
     if (!cacheEntries.has(name)) {
@@ -57,6 +59,9 @@ test("installed stale v20/v21/v22/v23/v24/v25/v26 shells migrate atomically to v
         entries.set(key, makeResponse(`runtime:${key}`));
       },
       async put(request, response) {
+        if (name === "st-student-samples-v1" && sampleCacheWriteFails) {
+          throw new Error("QuotaExceededError");
+        }
         entries.set(requestKey(request), response);
       },
       async match(request) {
@@ -64,6 +69,9 @@ test("installed stale v20/v21/v22/v23/v24/v25/v26 shells migrate atomically to v
       },
       async delete(request) {
         return entries.delete(requestKey(request));
+      },
+      async keys() {
+        return [...entries.keys()].map((url) => ({ url }));
       },
     };
   }
@@ -112,9 +120,16 @@ test("installed stale v20/v21/v22/v23/v24/v25/v26 shells migrate atomically to v
     "https://student.example/index.html",
     makeResponse("presence-usage-shell-without-score-audio"),
   );
+  entriesFor("st-student-shell-v27").set(
+    "https://student.example/index.html",
+    makeResponse("score-audio-shell-before-playback-fixes"),
+  );
 
   const cachesObject = {
     async open(name) {
+      if (name === "st-student-samples-v1" && sampleCacheOpenFails) {
+        throw new Error("CacheStorage unavailable");
+      }
       return cacheFor(name);
     },
     async keys() {
@@ -126,8 +141,23 @@ test("installed stale v20/v21/v22/v23/v24/v25/v26 shells migrate atomically to v
     },
   };
 
-  const fetchFunction = async () =>
-    makeResponse("firebase-runtime", { ok: false });
+  let sampleNetworkOnline = true;
+  let sampleNetworkCalls = 0;
+  const fetchFunction = async (request) => {
+    const key = requestKey(request);
+    if (
+      key.startsWith(
+        "https://raw.githubusercontent.com/Tonejs/audio/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/",
+      )
+    ) {
+      sampleNetworkCalls += 1;
+      if (!sampleNetworkOnline) {
+        throw new Error("offline");
+      }
+      return makeResponse(`sample:${key}`);
+    }
+    return makeResponse("firebase-runtime", { ok: false });
+  };
 
   const selfObject = {
     registration: {
@@ -173,7 +203,7 @@ test("installed stale v20/v21/v22/v23/v24/v25/v26 shells migrate atomically to v
     "account-invite-shell-without-presence-usage",
   );
   assert.equal(
-    entriesFor("st-student-shell-v27")
+    entriesFor("st-student-shell-v28")
       .get("https://student.example/index.html")
       .body,
     "account-presence-usage-shell",
@@ -198,7 +228,7 @@ test("installed stale v20/v21/v22/v23/v24/v25/v26 shells migrate atomically to v
     "src/account/accountLifecycleCoordinator.js",
   ]) {
     assert.equal(
-      entriesFor("st-student-shell-v27").has(
+      entriesFor("st-student-shell-v28").has(
         `https://student.example/${asset}`,
       ),
       true,
@@ -223,6 +253,7 @@ test("installed stale v20/v21/v22/v23/v24/v25/v26 shells migrate atomically to v
     "st-student-shell-v24",
     "st-student-shell-v25",
     "st-student-shell-v26",
+    "st-student-shell-v27",
   ]);
   assert.equal(claimCalls, 1);
   assert.equal(cacheEntries.has("st-student-shell-v20"), false);
@@ -232,6 +263,7 @@ test("installed stale v20/v21/v22/v23/v24/v25/v26 shells migrate atomically to v
   assert.equal(cacheEntries.has("st-student-shell-v24"), false);
   assert.equal(cacheEntries.has("st-student-shell-v25"), false);
   assert.equal(cacheEntries.has("st-student-shell-v26"), false);
+  assert.equal(cacheEntries.has("st-student-shell-v27"), false);
   assert.equal(
     entriesFor("st-student-shell-v18").has(
       "https://student.example/index.html",
@@ -259,4 +291,79 @@ test("installed stale v20/v21/v22/v23/v24/v25/v26 shells migrate atomically to v
 
   const response = await responsePromise;
   assert.equal(response.body, "account-presence-usage-shell");
+
+  const pianoSampleRequest = {
+    method: "GET",
+    url: "https://raw.githubusercontent.com/Tonejs/audio/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/C4.mp3",
+  };
+  listeners.get("fetch")({
+    request: pianoSampleRequest,
+    respondWith(promise) {
+      responsePromise = promise;
+    },
+  });
+
+  const onlineSampleResponse = await responsePromise;
+  assert.equal(onlineSampleResponse.body, `sample:${pianoSampleRequest.url}`);
+  assert.equal(sampleNetworkCalls, 1);
+  assert.equal(
+    entriesFor("st-student-samples-v1").has(pianoSampleRequest.url),
+    true,
+  );
+
+  sampleNetworkOnline = false;
+  listeners.get("fetch")({
+    request: pianoSampleRequest,
+    respondWith(promise) {
+      responsePromise = promise;
+    },
+  });
+
+  const offlineSampleResponse = await responsePromise;
+  assert.equal(offlineSampleResponse.body, `sample:${pianoSampleRequest.url}`);
+  assert.equal(sampleNetworkCalls, 1);
+
+  sampleNetworkOnline = true;
+  sampleCacheWriteFails = true;
+  const uncachedPianoSampleRequest = {
+    method: "GET",
+    url: "https://raw.githubusercontent.com/Tonejs/audio/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/Ds4.mp3",
+  };
+  listeners.get("fetch")({
+    request: uncachedPianoSampleRequest,
+    respondWith(promise) {
+      responsePromise = promise;
+    },
+  });
+
+  const quotaLimitedResponse = await responsePromise;
+  assert.equal(
+    quotaLimitedResponse.body,
+    `sample:${uncachedPianoSampleRequest.url}`,
+  );
+  assert.equal(sampleNetworkCalls, 2);
+  assert.equal(
+    entriesFor("st-student-samples-v1").has(uncachedPianoSampleRequest.url),
+    false,
+  );
+
+  sampleCacheWriteFails = false;
+  sampleCacheOpenFails = true;
+  const unavailableCacheRequest = {
+    method: "GET",
+    url: "https://raw.githubusercontent.com/Tonejs/audio/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/Fs4.mp3",
+  };
+  listeners.get("fetch")({
+    request: unavailableCacheRequest,
+    respondWith(promise) {
+      responsePromise = promise;
+    },
+  });
+
+  const cacheUnavailableResponse = await responsePromise;
+  assert.equal(
+    cacheUnavailableResponse.body,
+    `sample:${unavailableCacheRequest.url}`,
+  );
+  assert.equal(sampleNetworkCalls, 3);
 });

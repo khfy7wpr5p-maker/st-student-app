@@ -1,8 +1,17 @@
 const CACHE_NAME = "st-student-shell-v18";
-const SHELL_CACHE_NAME = "st-student-shell-v27";
+const SHELL_CACHE_NAME = "st-student-shell-v28";
+const SAMPLE_CACHE_NAME = "st-student-samples-v1";
+const SAMPLE_CACHE_LIMIT = 96;
 const ACTIVE_CACHE_NAMES = new Set([
   CACHE_NAME,
   SHELL_CACHE_NAME,
+  SAMPLE_CACHE_NAME,
+]);
+
+const EXTERNAL_SAMPLE_PATH_PREFIXES = Object.freeze([
+  "/Tonejs/audio/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/",
+  "/freepats/spanish-classical-guitar/6f4eb1b092acc88f5448cea1a0001bd07b971af8/samples/",
+  "/sgossner/VSCO-2-CE/1.1.0/Strings/Solo%20Violin/Arco%20Vib/",
 ]);
 
 const FIREBASE_RUNTIME_ASSETS = Object.freeze([
@@ -144,6 +153,25 @@ const PLAYBACK_ASSET_PATHS = new Set(
   ),
 );
 
+function isPinnedExternalSampleUrl(url) {
+  return url.origin === "https://raw.githubusercontent.com" &&
+    EXTERNAL_SAMPLE_PATH_PREFIXES.some((prefix) =>
+      url.pathname.startsWith(prefix),
+    );
+}
+
+async function trimSampleCache(cache) {
+  const requests = await cache.keys();
+  const overflow = requests.length - SAMPLE_CACHE_LIMIT;
+  if (overflow <= 0) {
+    return;
+  }
+
+  await Promise.all(
+    requests.slice(0, overflow).map((request) => cache.delete(request)),
+  );
+}
+
 self.addEventListener("install", (event) => {
   event.waitUntil(
     (async () => {
@@ -188,7 +216,8 @@ self.addEventListener("activate", (event) => {
         names
           .filter(
             (name) =>
-              name.startsWith("st-student-shell-") &&
+              (name.startsWith("st-student-shell-") ||
+                name.startsWith("st-student-samples-")) &&
               !ACTIVE_CACHE_NAMES.has(name),
           )
           .map((name) => caches.delete(name)),
@@ -218,8 +247,14 @@ self.addEventListener("fetch", (event) => {
   const playbackStaticRequest =
     url.origin === self.location.origin &&
     PLAYBACK_ASSET_PATHS.has(url.pathname);
+  const externalSampleRequest = isPinnedExternalSampleUrl(url);
 
-  if (!shellRequest && !playbackStaticRequest && !firebaseRuntimeRequest) {
+  if (
+    !shellRequest &&
+    !playbackStaticRequest &&
+    !firebaseRuntimeRequest &&
+    !externalSampleRequest
+  ) {
     return;
   }
 
@@ -240,6 +275,38 @@ self.addEventListener("fetch", (event) => {
           });
         }),
       ),
+    );
+    return;
+  }
+
+  if (externalSampleRequest) {
+    event.respondWith(
+      (async () => {
+        let cache;
+        try {
+          cache = await caches.open(SAMPLE_CACHE_NAME);
+          const cached = await cache.match(event.request);
+          if (cached !== undefined) {
+            return cached;
+          }
+        } catch {
+          // Cache Storage is best-effort. Network playback must remain usable
+          // when private browsing or storage quota blocks persistence.
+        }
+
+        const response = await fetch(event.request);
+        if (response?.ok === true && cache !== undefined) {
+          try {
+              await cache.put(event.request, response.clone());
+              await trimSampleCache(cache);
+          } catch {
+            // A successful sample response must not fail playback because the
+            // best-effort offline cache is unavailable or full.
+          }
+        }
+
+        return response;
+      })(),
     );
     return;
   }

@@ -153,6 +153,7 @@ export function createWebAudioPianoEngine({
 
   function usesScoreAudioVoice(instrumentId) {
     return (
+      instrumentId === "GRAND_PIANO" ||
       instrumentId === "VIOLIN" ||
       instrumentId === "CLASSICAL_GUITAR"
     );

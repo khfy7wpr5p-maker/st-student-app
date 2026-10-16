@@ -3,8 +3,9 @@ import assert from "node:assert/strict";
 
 import { createScoreAudioVoiceAdapter } from "../src/playback/scoreAudioVoiceAdapter.js";
 
-function harness({ version = "0.2.0" } = {}) {
+function harness({ version = "0.2.0", withSampleProvider = false } = {}) {
   const calls = [];
+  const fetched = [];
   const context = { currentTime: 12 };
   const engine = {
     async setInstrument(value) { calls.push(["instrument", value]); },
@@ -30,12 +31,27 @@ function harness({ version = "0.2.0" } = {}) {
       return engine;
     },
   };
+  if (withSampleProvider) {
+    runtime.ManifestSampleProvider = class {
+      constructor(manifests, options) {
+        calls.push(["provider", manifests, options]);
+      }
+    };
+    runtime.SALAMANDER_GRAND_PIANO_MANIFEST = { id: "piano" };
+    runtime.FREEPATS_CLASSICAL_GUITAR_MANIFEST = { id: "guitar" };
+    runtime.VSCO2CE_SOLO_VIOLIN_ARCO_VIB_MANIFEST = { id: "violin" };
+  }
   return {
     calls,
     context,
+    fetched,
     adapter: createScoreAudioVoiceAdapter({
       runtime,
       audioContextFactory: () => context,
+      fetchImpl: async (url) => {
+        fetched.push(url);
+        return { ok: true };
+      },
     }),
   };
 }
@@ -85,6 +101,18 @@ test("adapter forwards absolute schedule time and bounded duration", async () =>
       durationMs: 500,
     },
   );
+});
+
+test("adapter percent-encodes sharp sample filenames at the runtime fetch boundary", async () => {
+  const { adapter, calls, fetched } = harness({ withSampleProvider: true });
+
+  await adapter.prepare({ instrumentId: "CLASSICAL_GUITAR", pitches: [66] });
+
+  const providerOptions = calls.find(([name]) => name === "provider")[2];
+  await providerOptions.fetcher("https://example.invalid/samples/F#4.flac");
+  assert.deepEqual(fetched, ["https://example.invalid/samples/F%234.flac"]);
+  const engineOptions = calls.find(([name]) => name === "create")[1];
+  assert.ok(engineOptions.sampleProvider);
 });
 
 test("adapter fails closed for an unpinned runtime or unsupported instrument", () => {

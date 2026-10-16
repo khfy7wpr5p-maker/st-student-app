@@ -12,6 +12,7 @@ function unavailable() {
 export function createScoreAudioVoiceAdapter({
   runtime,
   audioContextFactory,
+  fetchImpl = globalThis.fetch,
 } = {}) {
   let engine = null;
   let activeInstrument = null;
@@ -26,10 +27,29 @@ export function createScoreAudioVoiceAdapter({
 
   function getEngine() {
     if (!runtimeReady()) throw unavailable();
-    engine ??= runtime.createAudioEngine({
+    if (engine !== null) return engine;
+    const options = {
       audioContextFactory,
       audioContextOwnership: "external",
-    });
+    };
+    const manifests = [
+      runtime?.SALAMANDER_GRAND_PIANO_MANIFEST,
+      runtime?.FREEPATS_CLASSICAL_GUITAR_MANIFEST,
+      runtime?.VSCO2CE_SOLO_VIOLIN_ARCO_VIB_MANIFEST,
+    ];
+    if (
+      typeof runtime?.ManifestSampleProvider === "function" &&
+      manifests.every((manifest) => manifest !== undefined) &&
+      typeof fetchImpl === "function"
+    ) {
+      options.sampleProvider = new runtime.ManifestSampleProvider(
+        manifests,
+        {
+          fetcher: (url) => fetchImpl(url.replace(/#/g, "%23")),
+        },
+      );
+    }
+    engine = runtime.createAudioEngine(options);
     return engine;
   }
 
