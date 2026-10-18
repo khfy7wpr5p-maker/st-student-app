@@ -233,7 +233,7 @@ function buildMeasureIndex(parts, planMeasures) {
   });
 }
 
-function updateMeasureAttributes(attributes, state) {
+function updateMeasureAttributes(attributes, state, { maximumStaff = 1 } = {}) {
   const divisionsNode = firstChildNamed(attributes, "divisions");
   if (divisionsNode !== null) {
     const divisions = numberText(divisionsNode);
@@ -246,7 +246,11 @@ function updateMeasureAttributes(attributes, state) {
   const stavesNode = firstChildNamed(attributes, "staves");
   if (stavesNode !== null) {
     const staves = numberText(stavesNode);
-    if (!Number.isSafeInteger(staves) || staves !== 1) {
+    if (
+      !Number.isSafeInteger(staves) ||
+      staves < 1 ||
+      staves > maximumStaff
+    ) {
       return false;
     }
   }
@@ -278,17 +282,7 @@ function updateMeasureAttributes(attributes, state) {
   return true;
 }
 
-function buildExactEvents({ parts, measureIndex, musicXml, playbackContext }) {
-  const provenance = playbackContext?.timingProvenance;
-  if (
-    provenance === null ||
-    typeof provenance !== "object" ||
-    provenance.kind !== "EXACT_SCORE_SOURCE" ||
-    provenance.musicXml !== musicXml
-  ) {
-    return null;
-  }
-
+function collectExactEvents({ parts, measureIndex, maximumStaff = 1 }) {
   const events = [];
 
   for (const part of parts) {
@@ -316,7 +310,7 @@ function buildExactEvents({ parts, measureIndex, musicXml, playbackContext }) {
         const name = localNameOf(child);
 
         if (name === "attributes") {
-          if (!updateMeasureAttributes(child, state)) {
+          if (!updateMeasureAttributes(child, state, { maximumStaff })) {
             return null;
           }
           continue;
@@ -349,7 +343,12 @@ function buildExactEvents({ parts, measureIndex, musicXml, playbackContext }) {
         const voice = explicitVoice(child);
         const staff = explicitStaff(child);
 
-        if (duration === null || voice === null || staff !== 1) {
+        if (
+          duration === null ||
+          voice === null ||
+          staff === null ||
+          staff > maximumStaff
+        ) {
           return null;
         }
 
@@ -400,6 +399,10 @@ function buildExactEvents({ parts, measureIndex, musicXml, playbackContext }) {
               endBeat,
               measureIndex: currentMeasureIndex,
               ref,
+              refs: Object.freeze([ref]),
+              staff,
+              voice,
+              noteIndex,
               eventId:
                 `${part.partId}:${currentMeasureIndex}:${voice}:${noteIndex}`,
               partId: part.partId,
@@ -424,6 +427,182 @@ function buildExactEvents({ parts, measureIndex, musicXml, playbackContext }) {
   }
 
   return Object.freeze(events);
+}
+
+function exactRenderKey(event) {
+  return [
+    event.partId,
+    event.measureIndex,
+    event.startBeat,
+    event.endBeat,
+    event.midi,
+    event.pitch.step,
+    event.pitch.alter,
+    event.pitch.octave,
+    event.transpositionSemitones ?? 0,
+    event.voice,
+    event.noteIndex,
+  ].join("\u001f");
+}
+
+function musicalEventKey(event) {
+  return [
+    event.partId,
+    event.measureIndex,
+    event.startBeat,
+    event.endBeat,
+    event.midi,
+    event.pitch.step,
+    event.pitch.alter,
+    event.pitch.octave,
+    event.transpositionSemitones ?? 0,
+  ].join("\u001f");
+}
+
+function queueBy(events, keyOf) {
+  const queues = new Map();
+  for (const event of events) {
+    const key = keyOf(event);
+    const queue = queues.get(key) ?? [];
+    queue.push(event);
+    queues.set(key, queue);
+  }
+  return queues;
+}
+
+function takeOnly(queues, key) {
+  const queue = queues.get(key);
+  if (!Array.isArray(queue) || queue.length === 0) return null;
+  const event = queue.shift();
+  if (queue.length === 0) queues.delete(key);
+  return event;
+}
+
+function sameMeasureMembership(left, right) {
+  if (left.measures.size !== right.measures.size) return false;
+  for (const [measureIndex, leftMeasure] of left.measures) {
+    const rightMeasure = right.measures.get(measureIndex);
+    if (
+      rightMeasure === undefined ||
+      leftMeasure.startBeat !== rightMeasure.startBeat ||
+      leftMeasure.endBeat !== rightMeasure.endBeat ||
+      leftMeasure.partIds.length !== rightMeasure.partIds.length ||
+      leftMeasure.partIds.some(
+        (partId, index) => partId !== rightMeasure.partIds[index],
+      )
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function mapGeneratedTabEvents({ trustedEvents, renderedEvents }) {
+  const notationEvents = renderedEvents.filter((event) => event.staff === 1);
+  const tabEvents = renderedEvents.filter((event) => event.staff === 2);
+  const tabPartIds = new Set(tabEvents.map((event) => event.partId));
+  const tabEligibleEvents = trustedEvents.filter(
+    (event) => tabPartIds.has(event.partId),
+  );
+  if (
+    notationEvents.length !== trustedEvents.length ||
+    tabEvents.length === 0 ||
+    tabEvents.length !== tabEligibleEvents.length ||
+    renderedEvents.length !== notationEvents.length + tabEvents.length
+  ) {
+    return null;
+  }
+
+  const notationByExactKey = queueBy(notationEvents, exactRenderKey);
+  const tabByMusicalKey = queueBy(tabEvents, musicalEventKey);
+  const mapped = [];
+
+  for (const trustedEvent of trustedEvents) {
+    const notationEvent = takeOnly(
+      notationByExactKey,
+      exactRenderKey(trustedEvent),
+    );
+    const tabEvent = takeOnly(
+      tabByMusicalKey,
+      musicalEventKey(trustedEvent),
+    );
+    const expectsTab = tabPartIds.has(trustedEvent.partId);
+    if (
+      notationEvent === null ||
+      (expectsTab && tabEvent === null) ||
+      (!expectsTab && tabEvent !== null)
+    ) return null;
+
+    mapped.push(Object.freeze({
+      ...trustedEvent,
+      refs: Object.freeze(
+        tabEvent === null
+          ? [notationEvent.ref]
+          : [notationEvent.ref, tabEvent.ref],
+      ),
+    }));
+  }
+
+  return notationByExactKey.size === 0 && tabByMusicalKey.size === 0
+    ? Object.freeze(mapped)
+    : null;
+}
+
+function buildExactEvents({
+  parts,
+  measureIndex,
+  musicXml,
+  playbackContext,
+  packageId,
+  sourceId,
+  parser,
+}) {
+  const provenance = playbackContext?.timingProvenance;
+  if (
+    provenance === null ||
+    typeof provenance !== "object" ||
+    provenance.kind !== "EXACT_SCORE_SOURCE" ||
+    typeof provenance.musicXml !== "string" ||
+    provenance.musicXml.length === 0
+  ) {
+    return null;
+  }
+
+  if (provenance.musicXml === musicXml) {
+    return collectExactEvents({ parts, measureIndex });
+  }
+
+  if (sourceId !== `${packageId}:guitar-tab`) return null;
+
+  const trustedParts = parseSource({
+    musicXml: provenance.musicXml,
+    parser,
+  });
+  if (trustedParts === null) return null;
+
+  const trustedMeasureIndex = buildMeasureIndex(
+    trustedParts,
+    playbackContext.plan.measures,
+  );
+  if (
+    trustedMeasureIndex === null ||
+    !sameMeasureMembership(trustedMeasureIndex, measureIndex)
+  ) {
+    return null;
+  }
+
+  const trustedEvents = collectExactEvents({
+    parts: trustedParts,
+    measureIndex: trustedMeasureIndex,
+  });
+  const renderedEvents = collectExactEvents({
+    parts,
+    measureIndex,
+    maximumStaff: 2,
+  });
+  if (trustedEvents === null || renderedEvents === null) return null;
+
+  return mapGeneratedTabEvents({ trustedEvents, renderedEvents });
 }
 
 function sameRef(left, right) {
@@ -475,6 +654,9 @@ export function createScoreFollowIndex({
     measureIndex: indexedMeasures,
     musicXml,
     playbackContext,
+    packageId,
+    sourceId,
+    parser,
   });
   const eventMapping = exactEvents === null ? "UNAVAILABLE" : "EXACT";
 
@@ -540,8 +722,10 @@ export function createScoreFollowIndex({
         beat + EPSILON >= event.startBeat &&
         beat < event.endBeat - EPSILON
       ) {
-        if (!highlightRefs.some((candidate) => sameRef(candidate, event.ref))) {
-          highlightRefs.push(event.ref);
+        for (const ref of event.refs) {
+          if (!highlightRefs.some((candidate) => sameRef(candidate, ref))) {
+            highlightRefs.push(ref);
+          }
         }
         activeEvents.push(
           Object.freeze({

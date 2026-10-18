@@ -249,6 +249,67 @@ test("multi-staff traversal keeps measure mapping but disables exact event mappi
   });
 });
 
+test("generated two-staff guitar TAB maps one playback event to notation and TAB refs", () => {
+  const scoreXml = `<score-partwise version="4.0">
+    <part-list><score-part id="P1"><part-name>Guitar</part-name></score-part></part-list>
+    <part id="P1"><measure number="1">
+      <attributes><divisions>1</divisions></attributes>
+      <note><pitch><step>C</step><octave>4</octave></pitch><duration>2</duration><voice>1</voice></note>
+      <note><chord/><pitch><step>E</step><octave>4</octave></pitch><duration>2</duration><voice>1</voice></note>
+      <note><pitch><step>G</step><octave>4</octave></pitch><duration>2</duration><voice>1</voice></note>
+    </measure></part>
+  </score-partwise>`;
+  const tabXml = `<score-partwise version="4.0">
+    <part-list><score-part id="P1"><part-name>Guitar</part-name></score-part></part-list>
+    <part id="P1"><measure number="1">
+      <attributes><divisions>1</divisions><staves>2</staves></attributes>
+      <note><pitch><step>C</step><octave>4</octave></pitch><duration>2</duration><voice>1</voice><staff>1</staff></note>
+      <note><chord/><pitch><step>E</step><octave>4</octave></pitch><duration>2</duration><voice>1</voice><staff>1</staff></note>
+      <note><pitch><step>G</step><octave>4</octave></pitch><duration>2</duration><voice>1</voice><staff>1</staff></note>
+      <backup><duration>4</duration></backup>
+      <note><pitch><step>C</step><octave>4</octave></pitch><duration>2</duration><voice>5</voice><staff>2</staff></note>
+      <note><chord/><pitch><step>E</step><octave>4</octave></pitch><duration>2</duration><voice>5</voice><staff>2</staff></note>
+      <note><pitch><step>G</step><octave>4</octave></pitch><duration>2</duration><voice>5</voice><staff>2</staff></note>
+    </measure></part>
+  </score-partwise>`;
+  const playbackContext = context({
+    musicXml: scoreXml,
+    notes: [
+      { startBeat: 0, durationBeats: 2, midi: 60, measureIndex: 0, partId: "P1", voice: "1" },
+      { startBeat: 0, durationBeats: 2, midi: 64, measureIndex: 0, partId: "P1", voice: "1" },
+      { startBeat: 2, durationBeats: 2, midi: 67, measureIndex: 0, partId: "P1", voice: "1" },
+    ],
+  });
+  const index = createScoreFollowIndex({
+    packageId: "pkg-a",
+    sourceId: "pkg-a:guitar-tab",
+    musicXml: tabXml,
+    playbackContext,
+    parser,
+  });
+
+  assert.equal(index.eventMapping, "EXACT");
+  assert.deepEqual(index.resolveBeat(0).highlightRefs, [
+    { partId: "P1", measureIndex: 0, noteIndex: 0, voice: 1 },
+    { partId: "P1", measureIndex: 0, noteIndex: 0, voice: 5 },
+    { partId: "P1", measureIndex: 0, noteIndex: 1, voice: 1 },
+    { partId: "P1", measureIndex: 0, noteIndex: 1, voice: 5 },
+  ]);
+  assert.deepEqual(index.resolveBeat(0).activeEvents.map((event) => event.midi), [60, 64]);
+
+  const pitchDrift = createScoreFollowIndex({
+    packageId: "pkg-a",
+    sourceId: "pkg-a:guitar-tab",
+    musicXml: tabXml.replace(
+      '<pitch><step>G</step><octave>4</octave></pitch><duration>2</duration><voice>5</voice>',
+      '<pitch><step>F</step><octave>4</octave></pitch><duration>2</duration><voice>5</voice>',
+    ),
+    playbackContext,
+    parser,
+  });
+  assert.equal(pitchDrift.eventMapping, "UNAVAILABLE");
+});
+
 test("FULL playback without exact timing provenance disables highlight only", () => {
   const playbackContext = context({
     musicXml: twoPartRestXml,
