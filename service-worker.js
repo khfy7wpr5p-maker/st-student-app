@@ -1,5 +1,5 @@
 const CACHE_NAME = "st-student-shell-v18";
-const SHELL_CACHE_NAME = "st-student-shell-v33";
+const SHELL_CACHE_NAME = "st-student-shell-v34";
 const SAMPLE_CACHE_NAME = "st-student-samples-v1";
 const SAMPLE_CACHE_LIMIT = 96;
 const ACTIVE_CACHE_NAMES = new Set([
@@ -51,6 +51,13 @@ const SHELL_ASSETS = Object.freeze([
   "./src/ui/mountStudentApp.js",
   "./src/ui/mountStudentAppPerfA.js",
   "./src/ui/renderStudentApp.js",
+  "./src/ui/renderStudentHome.js",
+  "./src/ui/student-home-fusion.css",
+  "./src/assets/home-fusion-pool.svg",
+  "./src/assets/home-fusion-work.svg",
+  "./src/assets/fonts/knewave.woff",
+  "./src/assets/fonts/outfit-semibold.woff",
+  "./src/assets/fonts/outfit-bold.woff",
   "./src/ui/renderPracticeWorkspace.js",
   "./src/ui/shellActions.js",
   "./src/ui/escapeHtml.js",
