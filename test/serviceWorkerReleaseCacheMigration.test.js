@@ -22,7 +22,7 @@ function requestKey(request) {
   return request.url;
 }
 
-test("installed stale v20/v21/v22/v23/v24/v25/v26/v27/v28/v29/v30 shells migrate atomically to v31 and reopen offline", async () => {
+test("installed stale v20/v21/v22/v23/v24/v25/v26/v27/v28/v29/v30/v31 shells migrate atomically to v32 and reopen offline", async () => {
   const source = await readFile(
     new URL("../service-worker.js", import.meta.url),
     "utf8",
@@ -138,6 +138,13 @@ test("installed stale v20/v21/v22/v23/v24/v25/v26/v27/v28/v29/v30 shells migrate
     makeResponse("score-follow-before-embedded-tab-highlights"),
   );
 
+  for (const module of ["scoreFollowCoordinator.js", "notationAdapter.js"]) {
+    entriesFor("st-student-shell-v31").set(
+      `https://student.example/src/practice/${module}`,
+      makeResponse("before-follow-startup-recovery"),
+    );
+  }
+
   const cachesObject = {
     async open(name) {
       if (name === "st-student-samples-v1" && sampleCacheOpenFails) {
@@ -209,13 +216,20 @@ test("installed stale v20/v21/v22/v23/v24/v25/v26/v27/v28/v29/v30 shells migrate
   await installPromise;
 
   assert.equal(skipWaitingCalls, 1);
+  for (const module of ["scoreFollowCoordinator.js", "notationAdapter.js"]) {
+    const url = `https://student.example/src/practice/${module}`;
+    assert.equal(entriesFor("st-student-shell-v31").get(url)?.body,
+      "before-follow-startup-recovery", "installation preserves the active v31 modules");
+    assert.equal(entriesFor("st-student-shell-v32").get(url)?.body,
+      `current:${url}`, "new shell contains recovery modules");
+  }
   assert.equal(
     entriesFor("st-student-shell-v30").get("https://student.example/src/practice/scoreFollowIndex.js").body,
     "score-follow-before-embedded-tab-highlights",
     "install must not overwrite bytes still used by the previous worker",
   );
   assert.equal(
-    entriesFor("st-student-shell-v31").get("https://student.example/src/practice/scoreFollowIndex.js").body,
+    entriesFor("st-student-shell-v32").get("https://student.example/src/practice/scoreFollowIndex.js").body,
     "current:https://student.example/src/practice/scoreFollowIndex.js",
   );
   assert.equal(
@@ -225,7 +239,7 @@ test("installed stale v20/v21/v22/v23/v24/v25/v26/v27/v28/v29/v30 shells migrate
     "account-invite-shell-without-presence-usage",
   );
   assert.equal(
-    entriesFor("st-student-shell-v31")
+    entriesFor("st-student-shell-v32")
       .get("https://student.example/index.html")
       .body,
     "account-presence-usage-shell",
@@ -250,7 +264,7 @@ test("installed stale v20/v21/v22/v23/v24/v25/v26/v27/v28/v29/v30 shells migrate
     "src/account/accountLifecycleCoordinator.js",
   ]) {
     assert.equal(
-      entriesFor("st-student-shell-v31").has(
+      entriesFor("st-student-shell-v32").has(
         `https://student.example/${asset}`,
       ),
       true,
@@ -279,6 +293,7 @@ test("installed stale v20/v21/v22/v23/v24/v25/v26/v27/v28/v29/v30 shells migrate
     "st-student-shell-v28",
     "st-student-shell-v29",
     "st-student-shell-v30",
+    "st-student-shell-v31",
   ]);
   assert.equal(claimCalls, 1);
   assert.equal(cacheEntries.has("st-student-shell-v20"), false);
@@ -292,6 +307,7 @@ test("installed stale v20/v21/v22/v23/v24/v25/v26/v27/v28/v29/v30 shells migrate
   assert.equal(cacheEntries.has("st-student-shell-v28"), false);
   assert.equal(cacheEntries.has("st-student-shell-v29"), false);
   assert.equal(cacheEntries.has("st-student-shell-v30"), false);
+  assert.equal(cacheEntries.has("st-student-shell-v31"), false);
   assert.equal(
     entriesFor("st-student-shell-v18").has(
       "https://student.example/index.html",

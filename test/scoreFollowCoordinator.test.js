@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
+import { createStNotationAdapter } from "../src/practice/notationAdapter.js";
+
 import { createScoreFollowCoordinator } from "../src/practice/scoreFollowCoordinator.js";
 
 function pkg(packageId = "pkg-a") {
@@ -447,4 +449,68 @@ test("clear and dispose unsubscribe current position and clear follow presentati
 
   await coordinator.dispose();
   assert.equal(await coordinator.handlePoint({ clientX: 1, clientY: 2 }), false);
+});
+
+for (const failure of ["throw", "false"]) {
+  test(`cursor retries within the same measure after ${failure}`, async () => {
+    const adapter = makeAdapter();
+    const playbackPort = makePlaybackPort();
+    let visible = false;
+    let attempts = 0;
+    adapter.moveCursor = async () => {
+      attempts += 1;
+      if (attempts === 1) {
+        if (failure === "throw") throw new Error("not ready");
+        return false;
+      }
+      visible = true;
+      return true;
+    };
+    const coordinator = createScoreFollowCoordinator({
+      notationAdapter: adapter, playbackPort, createIndex: () => measureIndex(),
+    });
+    coordinator.bind({ pkg: pkg(), sourceId: "pkg-a", musicXml: "<score-partwise/>",
+      renderEvidence: { sourceId: "pkg-a", renderEpoch: "render-1" } });
+    const position = playbackPort.callbacks[0].listener;
+    position({ beat: 0 });
+    await flush();
+    assert.equal(visible, false);
+    position({ beat: 0.5 });
+    await flush();
+    assert.equal(visible, true, "cursor must recover before the next measure");
+    position({ beat: 1 });
+    await flush();
+    assert.equal(attempts, 2, "successful target stays deduplicated");
+    await coordinator.dispose();
+  });
+}
+
+test("real notation adapter retries a rejected orange highlight on the next tick", async () => {
+  let orange = false;
+  let attempts = 0;
+  const adapter = createStNotationAdapter({ getRuntime: () => ({
+    async renderMusicXml() { return { sourceId: "runtime-a", renderEpoch: "render-1" }; },
+    async dispose() {},
+    async moveCursor() {},
+    async clearHighlights() { orange = false; },
+    async highlight() {
+      attempts += 1;
+      if (attempts === 1) return false;
+      orange = true;
+    },
+  }) });
+  const render = await adapter.render({ sourceId: "pkg-a", musicXml: "<score-partwise/>" });
+  const playbackPort = makePlaybackPort();
+  const coordinator = createScoreFollowCoordinator({ notationAdapter: adapter,
+    playbackPort, createIndex: () => measureIndex() });
+  assert.equal(coordinator.bind({ pkg: pkg(), sourceId: "pkg-a",
+    musicXml: "<score-partwise/>", renderEvidence: render.evidence }), true);
+  const position = playbackPort.callbacks[0].listener;
+  position({ beat: 0 });
+  await flush();
+  assert.equal(orange, false);
+  position({ beat: 0.5 });
+  await flush();
+  assert.equal(orange, true, "rejected orange presentation must not be cached as complete");
+  await coordinator.dispose();
 });

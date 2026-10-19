@@ -197,13 +197,14 @@ export function createScoreFollowCoordinator({
         "\u001f" +
         String(cursorTarget.measureIndex);
       if (cursorKey !== lastCursorKey) {
-        lastCursorKey = cursorKey;
+        let moved = false;
         try {
-          await notationAdapter?.moveCursor?.(cursorTarget);
+          moved = (await notationAdapter?.moveCursor?.(cursorTarget)) === true;
         } catch {
           // Cursor failure cannot affect audio or authority.
         }
         if (!current(expectedGeneration)) return;
+        if (moved) lastCursorKey = cursorKey;
       }
     }
 
