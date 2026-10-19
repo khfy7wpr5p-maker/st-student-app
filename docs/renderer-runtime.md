@@ -7,7 +7,7 @@ STUDENT-07A consumes the ST Score Rendering Layer only as a read-only notation p
 ## Pinned provenance
 
 - Rendering Layer repository: `khfy7wpr5p-maker/st-score-rendering-layer`
-- Source revision: `375cb5f134a91606eeac59df9cbe33dedbe57e47`
+- Source revision: `3766fedf493e99d59ab43fa06c40c103b34ed2b7`
 - Runtime target: `browser`
 - Score renderer contract: `0.2.0`
 - OpenSheetMusicDisplay: `2.1.2`
