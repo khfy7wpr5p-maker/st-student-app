@@ -56,6 +56,10 @@ function hasDetailedRenderedEventHitTest(renderer) {
 function hasDetailedMeasureHitTest(renderer) {
     return typeof renderer.resolveMeasureAtClientPointDetailed === "function";
 }
+function hasMeasureHighlight(renderer) {
+    const candidate = renderer;
+    return typeof candidate.highlightMeasure === "function" && typeof candidate.clearMeasureHighlights === "function";
+}
 function requireFinitePoint(point) {
     if (point === null || typeof point !== "object" || Array.isArray(point)) {
         throw new TypeError("Score note hit-test point must be an object.");
@@ -378,6 +382,20 @@ export class BrowserScoreHost {
             throw new BrowserScoreHostUnavailableError("Selected renderer does not provide note highlight capability.");
         }
         await renderer.clearHighlights();
+    }
+    async highlightMeasure(highlight) {
+        const renderer = this.#requireRenderer("Measure highlight");
+        if (!hasMeasureHighlight(renderer)) {
+            throw new BrowserScoreHostUnavailableError("Selected renderer does not provide measure highlight capability.");
+        }
+        await renderer.highlightMeasure(highlight);
+    }
+    async clearMeasureHighlights() {
+        const renderer = this.#requireRenderer("Measure highlight clearing");
+        if (!hasMeasureHighlight(renderer)) {
+            throw new BrowserScoreHostUnavailableError("Selected renderer does not provide measure highlight capability.");
+        }
+        await renderer.clearMeasureHighlights();
     }
     async dispose() {
         if (this.#disposed)

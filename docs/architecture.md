@@ -273,7 +273,7 @@ Mount katmanı notation lifecycle'ını serialize eder. Aynı immutable package 
 
 STUDENT-04 aşamasında renderer runtime asset graph'ı henüz Student App'e bağlanmamıştı. STUDENT-07A ile bu eksik production entegrasyonu same-origin ve pinned biçimde tamamlanır:
 
-- Rendering Layer source revision: `375cb5f134a91606eeac59df9cbe33dedbe57e47`
+- Rendering Layer source revision: `3766fedf493e99d59ab43fa06c40c103b34ed2b7`
 - renderer contract: `0.2.0`
 - OSMD vendor pin: `2.1.2`
 - asset root: `vendor/st-score-runtime/`
@@ -667,7 +667,7 @@ Bu ayrım playback kalitesinin (`FULL` / `APPROXIMATE`) tek başına highlight a
 
 Accepted Rendering Layer revision:
 
-`13aa0843158257a207afe062879743d58048cc6d`
+`3766fedf493e99d59ab43fa06c40c103b34ed2b7`
 
 Renderer public contract `0.2.0` değiştirilmez.
 
