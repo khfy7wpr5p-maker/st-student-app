@@ -22,7 +22,7 @@ function requestKey(request) {
   return request.url;
 }
 
-test("installed stale v20/v21/v22/v23/v24/v25/v26/v27/v28/v29 shells migrate atomically to v30 and reopen offline", async () => {
+test("installed stale v20/v21/v22/v23/v24/v25/v26/v27/v28/v29/v30 shells migrate atomically to v31 and reopen offline", async () => {
   const source = await readFile(
     new URL("../service-worker.js", import.meta.url),
     "utf8",
@@ -133,6 +133,11 @@ test("installed stale v20/v21/v22/v23/v24/v25/v26/v27/v28/v29 shells migrate ato
     makeResponse("renderer-before-vf-tabnote-group-fix"),
   );
 
+  entriesFor("st-student-shell-v30").set(
+    "https://student.example/src/practice/scoreFollowIndex.js",
+    makeResponse("score-follow-before-embedded-tab-highlights"),
+  );
+
   const cachesObject = {
     async open(name) {
       if (name === "st-student-samples-v1" && sampleCacheOpenFails) {
@@ -205,13 +210,22 @@ test("installed stale v20/v21/v22/v23/v24/v25/v26/v27/v28/v29 shells migrate ato
 
   assert.equal(skipWaitingCalls, 1);
   assert.equal(
+    entriesFor("st-student-shell-v30").get("https://student.example/src/practice/scoreFollowIndex.js").body,
+    "score-follow-before-embedded-tab-highlights",
+    "install must not overwrite bytes still used by the previous worker",
+  );
+  assert.equal(
+    entriesFor("st-student-shell-v31").get("https://student.example/src/practice/scoreFollowIndex.js").body,
+    "current:https://student.example/src/practice/scoreFollowIndex.js",
+  );
+  assert.equal(
     entriesFor("st-student-shell-v25")
       .get("https://student.example/index.html")
       .body,
     "account-invite-shell-without-presence-usage",
   );
   assert.equal(
-    entriesFor("st-student-shell-v30")
+    entriesFor("st-student-shell-v31")
       .get("https://student.example/index.html")
       .body,
     "account-presence-usage-shell",
@@ -236,7 +250,7 @@ test("installed stale v20/v21/v22/v23/v24/v25/v26/v27/v28/v29 shells migrate ato
     "src/account/accountLifecycleCoordinator.js",
   ]) {
     assert.equal(
-      entriesFor("st-student-shell-v30").has(
+      entriesFor("st-student-shell-v31").has(
         `https://student.example/${asset}`,
       ),
       true,
@@ -264,6 +278,7 @@ test("installed stale v20/v21/v22/v23/v24/v25/v26/v27/v28/v29 shells migrate ato
     "st-student-shell-v27",
     "st-student-shell-v28",
     "st-student-shell-v29",
+    "st-student-shell-v30",
   ]);
   assert.equal(claimCalls, 1);
   assert.equal(cacheEntries.has("st-student-shell-v20"), false);
@@ -276,6 +291,7 @@ test("installed stale v20/v21/v22/v23/v24/v25/v26/v27/v28/v29 shells migrate ato
   assert.equal(cacheEntries.has("st-student-shell-v27"), false);
   assert.equal(cacheEntries.has("st-student-shell-v28"), false);
   assert.equal(cacheEntries.has("st-student-shell-v29"), false);
+  assert.equal(cacheEntries.has("st-student-shell-v30"), false);
   assert.equal(
     entriesFor("st-student-shell-v18").has(
       "https://student.example/index.html",
@@ -303,6 +319,12 @@ test("installed stale v20/v21/v22/v23/v24/v25/v26/v27/v28/v29 shells migrate ato
 
   const response = await responsePromise;
   assert.equal(response.body, "account-presence-usage-shell");
+
+  listeners.get("fetch")({
+    request: { method: "GET", url: "https://student.example/src/practice/scoreFollowIndex.js" },
+    respondWith(promise) { responsePromise = promise; },
+  });
+  assert.equal((await responsePromise).body, "current:https://student.example/src/practice/scoreFollowIndex.js");
 
   const pianoSampleRequest = {
     method: "GET",

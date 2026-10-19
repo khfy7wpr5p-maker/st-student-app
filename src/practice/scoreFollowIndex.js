@@ -497,12 +497,12 @@ function sameMeasureMembership(left, right) {
   return true;
 }
 
-function mapGeneratedTabEvents({ trustedEvents, renderedEvents }) {
+function mapGeneratedTabEvents({ trustedEvents, renderedEvents, tabPartIds = null }) {
   const notationEvents = renderedEvents.filter((event) => event.staff === 1);
   const tabEvents = renderedEvents.filter((event) => event.staff === 2);
-  const tabPartIds = new Set(tabEvents.map((event) => event.partId));
+  const expectedTabParts = tabPartIds ?? new Set(tabEvents.map((event) => event.partId));
   const tabEligibleEvents = trustedEvents.filter(
-    (event) => tabPartIds.has(event.partId),
+    (event) => expectedTabParts.has(event.partId),
   );
   if (
     notationEvents.length !== trustedEvents.length ||
@@ -526,7 +526,7 @@ function mapGeneratedTabEvents({ trustedEvents, renderedEvents }) {
       tabByMusicalKey,
       musicalEventKey(trustedEvent),
     );
-    const expectsTab = tabPartIds.has(trustedEvent.partId);
+    const expectsTab = expectedTabParts.has(trustedEvent.partId);
     if (
       notationEvent === null ||
       (expectsTab && tabEvent === null) ||
@@ -546,6 +546,57 @@ function mapGeneratedTabEvents({ trustedEvents, renderedEvents }) {
   return notationByExactKey.size === 0 && tabByMusicalKey.size === 0
     ? Object.freeze(mapped)
     : null;
+}
+
+function collectEmbeddedTabEvents({ parts, measureIndex }) {
+  const tabPartIds = new Set();
+  for (const part of parts) {
+    let twoStaves = false;
+    let tabClef = false;
+    // Renderer note refs are voice-indexed across staves. Never infer an
+    // ownership/order relationship when the same voice spans both staves.
+    const staffByVoice = new Map();
+    for (const measure of part.measures) {
+      for (const child of elementChildren(measure)) {
+        if (localNameOf(child) === "attributes") {
+          const stavesNode = firstChildNamed(child, "staves");
+          if (stavesNode !== null) {
+            const count = numberText(stavesNode);
+            if (count !== 1 && count !== 2) return null;
+            if (twoStaves && count !== 2) return null;
+            twoStaves ||= count === 2;
+          }
+          for (const clef of childrenNamed(child, "clef")) {
+            const isTab = textOf(firstChildNamed(clef, "sign")) === "TAB";
+            const isSecond = clef.getAttribute("number") === "2";
+            if (isTab !== isSecond) return null;
+            tabClef ||= isTab;
+          }
+          continue;
+        }
+        if (localNameOf(child) !== "note") continue;
+        const staff = explicitStaff(child);
+        const voice = explicitVoice(child);
+        if (staff === 2 && (!twoStaves || !tabClef)) return null;
+        const previousStaff = staffByVoice.get(voice);
+        if (previousStaff !== undefined && previousStaff !== staff) return null;
+        staffByVoice.set(voice, staff);
+      }
+    }
+    if (twoStaves !== tabClef) return null;
+    if (tabClef) tabPartIds.add(part.partId);
+  }
+  if (tabPartIds.size === 0) return null;
+
+  const events = collectExactEvents({ parts, measureIndex, maximumStaff: 2 });
+  if (events === null) return null;
+  if (events.some((event) => event.staff === 2 && !tabPartIds.has(event.partId))) return null;
+
+  return mapGeneratedTabEvents({
+    trustedEvents: events.filter((event) => event.staff === 1),
+    renderedEvents: events,
+    tabPartIds,
+  });
 }
 
 function buildExactEvents({
@@ -569,7 +620,8 @@ function buildExactEvents({
   }
 
   if (provenance.musicXml === musicXml) {
-    return collectExactEvents({ parts, measureIndex });
+    return collectExactEvents({ parts, measureIndex }) ??
+      collectEmbeddedTabEvents({ parts, measureIndex });
   }
 
   if (sourceId !== `${packageId}:guitar-tab`) return null;
