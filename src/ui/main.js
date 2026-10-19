@@ -51,7 +51,7 @@ async function startStandardStudentApp() {
     manifestUrl: "./vendor/st-piano/runtime-manifest.json",
   });
 
-  await sampleBank.initialize().catch(() => false);
+  const sampleBankReadiness = sampleBank.initialize().catch(() => false);
 
   const audioContextSupported =
     typeof (globalThis.AudioContext ?? globalThis.webkitAudioContext) === "function";
@@ -189,6 +189,13 @@ async function startStandardStudentApp() {
       return firebaseRuntime.authAdapter.signOut();
     },
   });
+
+  // A practice opened while the manifest was pending needs its capability refreshed.
+  void sampleBankReadiness.then(async (ready) => {
+    if (ready !== true) return;
+    await controller.recoverActivePracticePlayback();
+    mounted.render();
+  }).catch(() => {});
 
   firebaseRuntime.authAdapter.subscribe((session) => {
     void accountLifecycle.handleSession(session);
