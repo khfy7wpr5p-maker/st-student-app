@@ -135,7 +135,8 @@ test("default bootstrap wires lazy local playback runtime", async () => {
     source,
     /manifestUrl:\s*["']\.\/vendor\/st-piano\/runtime-manifest\.json["']/,
   );
-  assert.match(source, /await\s+sampleBank\.initialize\(\)/);
+  assert.match(source, /const\s+sampleBankReadiness\s*=\s*sampleBank\.initialize\(\)/);
+  assert.doesNotMatch(source, /await\s+sampleBank\.initialize\(\)/);
   assert.match(source, /globalThis\.STScoreAudioEngine/);
   assert.match(source, /const\s+audioContextFactory\s*=\s*\(\)\s*=>/);
   assert.match(
