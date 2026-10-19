@@ -1,5 +1,7 @@
 # ST Student App
 
+> **Güncel proje durumu — 19 Ekim 2026:** [GitHub main, merged PR'lar, Linear backlog ve doğrulanmamış cihaz/production kapıları](docs/project-status-2026-10-19.md). Bu README'deki önceki commit/pin/test anlatımları kendi tarihli geliştirme basamaklarının kayıtlarıdır.
+
 ST Student App, SesliTab öğretmen uygulamasında hazırlanıp **öğretmen tarafından onaylanan** çalışmaların öğrenci tarafından erişilebilir ve salt-okunur biçimde kullanılacağı uygulamadır.
 
 ## MVP akışı
