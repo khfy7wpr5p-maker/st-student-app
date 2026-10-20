@@ -252,3 +252,20 @@ test("Piece Workspace shows TAB between Nota and Akorlar when exact TAB MusicXML
     1,
   );
 });
+
+test("Piece focus is presentation-only and keeps teacher notes and original view actions", () => {
+  for (const view of ["SCORE", "CHORDS"]) {
+    const html = renderStudentApp({
+      student08: true, screen: STUDENT_APP_SCREENS.PIECE_WORKSPACE,
+      session: { studentId: "student-a" }, items: [], practice: null,
+      chordBoard: null, pieceWorkspace: workspace(view),
+    });
+    assert.match(html, /data-action="toggle-piece-focus"/);
+    assert.match(html, /aria-pressed="false"/);
+    assert.equal((html.match(/Parçayı yavaş çalış\./g) ?? []).length, 1);
+    assert.match(html, /data-action="back-from-piece"/);
+    assert.match(html, /data-piece-view="SCORE"/);
+    assert.match(html, /data-piece-view="CHORDS"/);
+    assert.doesNotMatch(html, /Müziğin merkezinde kal|Keşfetmeye yer aç/);
+  }
+});

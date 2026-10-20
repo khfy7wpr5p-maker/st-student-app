@@ -1,3 +1,4 @@
+import { createPieceWorkspacePresentation } from "./pieceWorkspacePresentation.js";
 import { CONNECTIVITY_STATES } from "../offline/connectivityPort.js";
 import { PRACTICE_CAPABILITY_STATES } from "../practice/practiceCapabilities.js";
 import { fitNotationViewport } from "../practice/notationViewport.js";
@@ -168,6 +169,7 @@ export function mountStudentApp({
     throw new TypeError("student app root element is required");
   }
 
+  const piecePresentation = createPieceWorkspacePresentation(root);
   let status = "";
   let connectivityState =
     connectivityPort?.getState?.() === CONNECTIVITY_STATES.OFFLINE
@@ -201,6 +203,7 @@ export function mountStudentApp({
       markup !== lastMarkup ||
       presentationKey !== lastPresentationKey
     ) {
+      piecePresentation.captureScroll();
       const samePresentation = presentationKey === lastPresentationKey;
       const focusIdentity = samePresentation ? focusedActionIdentity(root) : null;
       const oldInput = samePresentation && state.screen === STUDENT_APP_SCREENS.WORK_REQUEST
@@ -263,8 +266,8 @@ export function mountStudentApp({
       lastMarkup = markup;
       lastPresentationKey = presentationKey;
       domGeneration += 1;
+      piecePresentation.synchronize(state);
     }
-
     return Object.freeze({
       state,
       generation: domGeneration,
@@ -794,6 +797,10 @@ export function mountStudentApp({
 
     const action = actionElement.dataset.action;
     if (actionElement.disabled === true) return;
+    if (action === "toggle-piece-focus") {
+      piecePresentation.toggle();
+      return;
+    }
     if (action === "submit-work-request") event.preventDefault?.();
     const publicationId = actionElement.dataset.publicationId;
     const poolItemId = actionElement.dataset.poolItemId;
