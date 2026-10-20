@@ -1,0 +1,159 @@
+@font-face {
+  font-family: "ST Outfit";
+  src: url("../assets/fonts/outfit-semibold.woff") format("woff");
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: "ST Outfit";
+  src: url("../assets/fonts/outfit-bold.woff") format("woff");
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: "ST Knewave";
+  src: url("../assets/fonts/knewave.woff") format("woff");
+  font-weight: 400;
+  font-display: swap;
+}
+
+body:has(.student-app-home) { background: #faf7f0; }
+#app:has(.student-app-home) {
+  width: min(100%, 80rem);
+  padding: 0 max(1.5rem, env(safe-area-inset-right, 0px)) 0 max(1.5rem, env(safe-area-inset-left, 0px));
+}
+.student-app-home {
+  color: #163d51;
+  font-family: "ST Outfit", system-ui, sans-serif;
+}
+.fusion-home {
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+.fusion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 6.25rem;
+  padding-block: max(.75rem, env(safe-area-inset-top, 0px)) .75rem;
+  border-bottom: 1px solid #e7e2d7;
+}
+.fusion-brand { display: flex; align-items: center; gap: .35rem; flex-shrink: 0; }
+.fusion-brand img { width: 4rem; height: 4rem; object-fit: contain; mix-blend-mode: multiply; }
+.fusion-brand > span { font-size: 1.55rem; font-weight: 700; line-height: 1; }
+.fusion-brand small { display: block; font-size: .75rem; font-weight: 600; margin-top: .35rem; color: #5d788b; }
+.fusion-header .app-status {
+  margin: 0;
+  padding: 0;
+  color: #557181;
+  font-size: .75rem;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.fusion-header .app-status:not(:empty)::before {
+  content: "";
+  display: inline-block;
+  width: .4rem;
+  height: .4rem;
+  margin-right: .5rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+.student-app-home .fusion-content {
+  display: block;
+  width: 100%;
+  max-width: 53.125rem;
+  margin-inline: auto;
+  padding-block: 2.2rem 2.8rem;
+  flex: 1;
+}
+.fusion-content h1 {
+  margin: 0;
+  font-family: "ST Outfit", system-ui, sans-serif;
+  font-size: clamp(2.15rem, 10vw, 2.65rem);
+  line-height: 1.08;
+  font-weight: 600;
+  letter-spacing: -.04em;
+}
+.fusion-content h1 span {
+  position: relative;
+  display: table;
+  margin-top: .2rem;
+  padding: 0 .4rem .65rem 0;
+  font-family: "ST Knewave", "ST Outfit", sans-serif;
+  font-weight: 400;
+  color: #157d8d;
+  letter-spacing: -.025em;
+  transform: rotate(-3deg);
+}
+.fusion-content h1 span::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  bottom: .1rem;
+  width: 85%;
+  height: .75rem;
+  border-bottom: .2rem solid #e5a08a;
+  border-radius: 0 0 60% 50%;
+  transform: rotate(-2deg);
+}
+.student-app-home .fusion-cards {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.4rem;
+  margin-top: 2rem;
+}
+.fusion-cards .fusion-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 100%;
+  min-width: 0;
+  min-height: 14.8rem;
+  padding: .4rem 1.55rem 1.5rem;
+  border: 1px solid #153c5010;
+  text-align: left;
+  overflow: hidden;
+  text-decoration: none;
+  transition: transform .18s, box-shadow .18s;
+}
+.fusion-cards .fusion-pool { background: #153f58; color: #f2fcf7; border-radius: 3rem 3rem 3rem 1.25rem; }
+.fusion-cards .fusion-work { background: #c4e8e2; color: #124c65; border-radius: 3rem 1.25rem 3rem 3rem; }
+.fusion-art { display: block; width: min(100%, 18.5rem); height: 10.5rem; object-fit: contain; align-self: flex-end; pointer-events: none; }
+.fusion-pool .fusion-art { transform: rotate(5deg); }
+.fusion-work .fusion-art { transform: rotate(-4deg); }
+.fusion-card-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: .5rem;
+  width: 100%;
+  font: 600 clamp(1.35rem, 6.6vw, 1.8rem)/1.2 "ST Outfit", system-ui, sans-serif;
+  letter-spacing: -.02em;
+}
+.fusion-arrow { display: grid; place-items: center; flex: 0 0 2.5rem; height: 2.5rem; border-radius: 50%; font: 400 1.5rem/1 system-ui, sans-serif; }
+.fusion-pool .fusion-arrow { background: #f1baa6; color: #153f58; }
+.fusion-work .fusion-arrow { background: #153f58; color: #e5f6ef; }
+.fusion-footer { display: flex; justify-content: space-between; align-items: center; min-height: 4.5rem; padding-bottom: env(safe-area-inset-bottom, 0px); border-top: 1px solid #e7e2d7; }
+.fusion-footer > span { color: #b4735c; font-size: 1.5rem; }
+.fusion-footer button { background: transparent; color: #506d78; border: 0; font-size: .875rem; padding: .75rem; min-height: 3rem; }
+.fusion-card:focus-visible, .fusion-footer button:focus-visible { outline: 3px solid #157d8d; outline-offset: 5px; }
+@media (hover: hover) {
+  .fusion-cards .fusion-card:hover { transform: translateY(-3px); box-shadow: 0 14px 30px #153c5012; }
+}
+@media (min-width: 650px) {
+  #app:has(.student-app-home) { padding-inline: max(3rem, env(safe-area-inset-left, 0px)); }
+  .fusion-content h1 { font-size: 3.2rem; }
+  .fusion-content h1 span { font-size: 3.7rem; }
+  .student-app-home .fusion-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.6rem; align-items: start; }
+  .fusion-cards .fusion-card { min-height: 16.5rem; padding: .5rem 1.75rem 1.6rem; }
+  .fusion-cards .fusion-work { margin-top: 1.125rem; }
+  .fusion-art { height: 11.8rem; }
+  .fusion-card-label { font-size: clamp(1.4rem, 2.65vw, 2rem); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fusion-cards .fusion-card { transition: none; }
+}

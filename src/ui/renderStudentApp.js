@@ -5,6 +5,7 @@ import { escapeHtml } from "./escapeHtml.js";
 import { renderChordBoardWorkspace } from "./renderChordBoardWorkspace.js";
 import { renderPracticeWorkspace } from "./renderPracticeWorkspace.js";
 import { renderPieceWorkspace } from "./renderPieceWorkspace.js";
+import { renderStudentHome } from "./renderStudentHome.js";
 
 export { escapeHtml } from "./escapeHtml.js";
 
@@ -71,15 +72,6 @@ function renderHome() {
         <button type="button" data-action="show-my-work">Benim Çalışmalarım</button>
         <button type="button" data-action="sign-out">Çıkış</button>
       </nav>
-    </section>
-  `;
-}
-
-function renderStudent08Home() {
-  return `
-    <section aria-labelledby="page-title">
-      <h1 id="page-title">Çalışmalar</h1>
-      <p>Havuzdan veya Benim Çalışmalarım bölümünden seçim yap.</p>
     </section>
   `;
 }
@@ -558,11 +550,14 @@ export function renderStudentApp(
   let body;
   let statusRenderedInsideShell = false;
 
+  if (state.student08 === true && state.screen === STUDENT_APP_SCREENS.HOME) {
+    return `<main class="student-app student-app-home">${renderStudentHome(
+      renderStatus(status, connectivityState),
+    )}</main>`;
+  }
+
   if (state.student08 === true) {
     switch (state.screen) {
-      case STUDENT_APP_SCREENS.HOME:
-        body = renderStudent08Home();
-        break;
       case STUDENT_APP_SCREENS.PUBLIC_POOL:
         body = renderPool(state);
         break;
