@@ -62,9 +62,7 @@ test(
       await assert.doesNotReject(() =>
         workSection.getByRole("button", { name: "Eser İste" }).waitFor(),
       );
-      await assert.doesNotReject(() =>
-        workSection.getByRole("button", { name: "Havuz" }).waitFor(),
-      );
+      assert.equal(await workSection.getByRole("button", { name: "Havuz", exact: true }).count(), 0);
 
       await page.evaluate(async () => {
         const [{ renderStudentApp }, { STUDENT_APP_SCREENS }] =
@@ -83,6 +81,7 @@ test(
         });
       });
 
+      await page.getByRole("heading", { name: "Bekleyen Eser İstekleri" }).waitFor();
       await page.getByLabel("Eser adı").fill("Carcassi Op. 60 No. 3");
       await assert.doesNotReject(() =>
         page.getByRole("button", { name: "Gönder" }).waitFor(),

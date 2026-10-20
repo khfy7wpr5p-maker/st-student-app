@@ -201,10 +201,13 @@ export function mountStudentApp({
       markup !== lastMarkup ||
       presentationKey !== lastPresentationKey
     ) {
-      const focusIdentity =
-        presentationKey === lastPresentationKey
-          ? focusedActionIdentity(root)
-          : null;
+      const samePresentation = presentationKey === lastPresentationKey;
+      const focusIdentity = samePresentation ? focusedActionIdentity(root) : null;
+      const oldInput = samePresentation && state.screen === STUDENT_APP_SCREENS.WORK_REQUEST
+        ? root.querySelector?.("[data-work-request-title]") : null;
+      const inputFocus = oldInput && root.ownerDocument?.activeElement === oldInput
+        ? { start: oldInput.selectionStart, end: oldInput.selectionEnd, direction: oldInput.selectionDirection }
+        : null;
 
       const liveNotationRoot = root.querySelector?.("#st-score-root") ?? null;
 
@@ -252,6 +255,11 @@ export function mountStudentApp({
       }
 
       restoreFocusedAction(root, focusIdentity);
+      if (inputFocus) {
+        const input = root.querySelector?.("[data-work-request-title]");
+        input?.focus?.({ preventScroll: true });
+        input?.setSelectionRange?.(inputFocus.start, inputFocus.end, inputFocus.direction);
+      }
       lastMarkup = markup;
       lastPresentationKey = presentationKey;
       domGeneration += 1;
@@ -785,6 +793,8 @@ export function mountStudentApp({
     }
 
     const action = actionElement.dataset.action;
+    if (actionElement.disabled === true) return;
+    if (action === "submit-work-request") event.preventDefault?.();
     const publicationId = actionElement.dataset.publicationId;
     const poolItemId = actionElement.dataset.poolItemId;
     const assignmentId = actionElement.dataset.assignmentId;
@@ -824,7 +834,7 @@ export function mountStudentApp({
 
     try {
       status = "";
-      await dispatchStudentAppAction({
+      const result = dispatchStudentAppAction({
         action,
         publicationId,
         poolItemId,
@@ -841,11 +851,34 @@ export function mountStudentApp({
         requestSignIn,
         requestSignOut,
       });
+      if (action === "show-work-request" || action === "submit-work-request" || action === "refresh-work-request-pool") paint();
+      const formId = controller.getState().workRequestFormId;
+      await result;
+      if (controller.getState().screen === STUDENT_APP_SCREENS.WORK_REQUEST &&
+          controller.getState().workRequestFormId === formId &&
+          (action === "show-work-request" || (action === "submit-work-request" && controller.getState().workRequestStatus === "success"))) {
+        const loading = controller.loadWorkRequestPool?.();
+        paint();
+        await loading;
+      }
     } catch (error) {
       status = statusForActionError(action, error);
     }
 
     return render();
+  }
+
+  function onInput(event) {
+    if (event.target?.matches?.("[data-work-request-title]") && root.contains(event.target)) {
+      controller.setWorkRequestDraft?.(event.target.value);
+    }
+  }
+
+  function onSubmit(event) {
+    if (!event.target?.matches?.("[data-work-request-form]")) return;
+    event.preventDefault();
+    const button = event.target.querySelector?.('[data-action="submit-work-request"]');
+    if (button) return onClick({ target: button, preventDefault() {} });
   }
 
   function onConnectivityChange(nextState) {
@@ -912,6 +945,8 @@ export function mountStudentApp({
   }
 
   root.addEventListener("click", onClick);
+  root.addEventListener("input", onInput);
+  root.addEventListener("submit", onSubmit);
   render();
 
   return Object.freeze({
@@ -924,6 +959,8 @@ export function mountStudentApp({
 
       destroyed = true;
       root.removeEventListener("click", onClick);
+      root.removeEventListener("input", onInput);
+      root.removeEventListener("submit", onSubmit);
 
       try {
         controller.disposeActivePractice?.();

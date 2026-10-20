@@ -36,7 +36,7 @@ function state(screen) {
 
 test("mobile sidebar exposes short visible My Work text with the full accessible name", () => {
   const html = renderStudentApp(
-    state(STUDENT_APP_SCREENS.MY_WORK),
+    state(STUDENT_APP_SCREENS.PUBLIC_POOL),
   );
 
   assert.match(

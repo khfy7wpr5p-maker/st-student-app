@@ -393,11 +393,14 @@ function renderMyWork(state) {
 
   return `
     <section aria-labelledby="page-title">
-      <h1 id="page-title">Benim Çalışmalarım</h1>
-      <nav class="work-request-actions" aria-label="Eser istekleri">
-        <button type="button" data-action="show-work-request">Eser İste</button>
-        <button type="button" data-action="show-shared-request-pool">Havuz</button>
-      </nav>
+      <p class="work-eyebrow">SENİN MÜZİK ALANIN</p>
+      <h1 id="page-title" aria-label="Benim Çalışmalarım">Çalışmalarım<span aria-hidden="true">.</span></h1>
+      <div class="work-invitation">
+        <div><p class="work-invitation-title">Sıradaki parçan?</p><p>Çalmak istediğin eseri öğretmeninle paylaş.</p>
+          <button type="button" data-action="show-work-request" aria-label="Eser İste">Eser İste</button>
+        </div>
+        <img src="./src/assets/work-fusion-music.svg" alt="" width="180" height="150">
+      </div>
       <nav class="work-folders" aria-label="Çalışma klasörleri">
         ${folderButton(
           state,
@@ -421,25 +424,39 @@ function renderMyWork(state) {
 }
 
 function renderWorkRequest(state) {
-  const feedback =
-    state.workRequestStatus === "success"
-      ? '<p class="work-request-status" role="status" aria-live="polite">İsteğiniz öğretmeninize gönderildi.</p>'
+  const submitting = state.workRequestSubmitting === true;
+  const poolStatus = state.workRequestPoolStatus ?? "idle";
+  const rows = state.workRequestItems ?? [];
+  const feedback = state.workRequestStatus === "success"
+    ? '<p class="work-request-status" role="status" aria-live="polite">İsteğiniz öğretmeninize gönderildi.</p>'
+    : state.workRequestStatus === "error"
+      ? '<p class="work-request-error" role="alert">Gönderim doğrulanamadı. İnternet bağlantınızı ve bekleyen istekleri kontrol edin.</p>'
       : "";
-
+  const poolFeedback = poolStatus === "loading"
+    ? '<p role="status">İstekler yükleniyor…</p>'
+    : poolStatus === "error"
+      ? '<p role="status">İstek listesi güncellenemedi. Liste için internet bağlantısı gerekir.</p><button type="button" data-action="refresh-work-request-pool">Listeyi yenile</button>'
+      : "";
   return `
     <section aria-labelledby="page-title">
-      <h1 id="page-title">Eser İste</h1>
-      <label>
-        Eser adı
-        <input
-          type="text"
-          data-work-request-title
-          autocomplete="off"
-          maxlength="200"
-        >
-      </label>
-      <button type="button" data-action="submit-work-request">Gönder</button>
-      ${feedback}
+      <p class="work-eyebrow">AKLINDA BİR ŞARKI MI VAR?</p>
+      <h1 id="page-title">Eser İste<span aria-hidden="true">.</span></h1>
+      <p class="work-request-description">Çalmak istediğin eserin adını yaz. İsteğini öğretmenin değerlendirsin.</p>
+      <form data-work-request-form>
+        <label for="work-request-title">Eser adı</label>
+        <input id="work-request-title" type="text" data-work-request-title
+          autocomplete="off" maxlength="200" required
+          placeholder="Örn. Fikrimin İnce Gülü"
+          value="${escapeHtml(state.workRequestDraft ?? "")}"${submitting ? " readonly" : ""}>
+        <button type="submit" data-action="submit-work-request"${submitting ? " disabled" : ""} aria-label="${submitting ? "Gönderiliyor…" : "Gönder"}">${submitting ? "Gönderiliyor…" : "Gönder"}</button>
+        ${feedback}
+      </form>
+      <section class="work-request-pending" aria-labelledby="pending-request-title" aria-busy="${poolStatus === "loading"}">
+        <h2 id="pending-request-title">Bekleyen Eser İstekleri</h2>
+        <p>Öğretmeninin öğrencilerinden gelen eser istekleri.</p>
+        ${poolFeedback}
+        ${rows.length > 0 ? `<ul class="shared-request-list">${rows.map((item) => `<li><strong>${escapeHtml(item.title)}</strong><span>${escapeHtml(item.displayNameOrNickname)}</span></li>`).join("")}</ul>` : poolStatus === "ready" ? "<p>Bekleyen eser isteği yok.</p>" : ""}
+      </section>
     </section>
   `;
 }
@@ -485,6 +502,24 @@ function renderPractice(practice, { showHomeAction = true } = {}) {
 
 function currentPageAttribute(active) {
   return active ? ' aria-current="page"' : "";
+}
+
+function renderWorkShell(body, state, statusMarkup) {
+  const request = state.screen === STUDENT_APP_SCREENS.WORK_REQUEST;
+  return `<div class="student-work-shell">
+    <header class="work-header">
+      <button type="button" class="work-back" data-action="${request ? "back-from-work-request" : "go-home"}">← ${request ? "Çalışmalarım" : "Ana ekran"}</button>
+      ${statusMarkup}
+      <details class="work-menu"><summary aria-label="Öğrenci menüsü">⋯</summary>
+        <nav aria-label="Öğrenci menüsü">
+          <button type="button" data-action="show-public-pool">Havuz</button>
+          <button type="button" data-action="sign-out">Çıkış</button>
+        </nav>
+      </details>
+    </header>
+    <div class="work-content">${body}</div>
+    <footer class="work-footer"><span>ST <small>student</small></span><span aria-hidden="true">♩ ─ ♫</span></footer>
+  </div>`;
 }
 
 function renderStudent08Shell(body, state, statusMarkup = "") {
@@ -590,7 +625,10 @@ export function renderStudentApp(
         throw new Error("unknown student app screen");
     }
 
-    if (
+    if (state.screen === STUDENT_APP_SCREENS.MY_WORK || state.screen === STUDENT_APP_SCREENS.WORK_REQUEST) {
+      body = renderWorkShell(body, state, renderStatus(status, connectivityState));
+      statusRenderedInsideShell = true;
+    } else if (
       state.screen !==
         STUDENT_APP_SCREENS.SIGN_IN &&
       state.screen !==
