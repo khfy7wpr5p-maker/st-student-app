@@ -20,7 +20,7 @@ body:has(.piece-workspace) { background: #faf7f0; }
 .piece-workspace .piece-workspace-content { min-width: 0; }
 .piece-workspace [data-piece-panel][hidden] { display: none !important; }
 .piece-workspace .piece-score-panel { min-height: 0; min-width: 0; }
-.student-app .piece-workspace .practice-workspace { height: auto; min-height: 0; display: flex; flex-direction: column; gap: .6rem; }
+.student-app .piece-workspace .practice-workspace { height: auto; min-height: 0; display: flex; flex-direction: column; gap: .6rem; padding-bottom: calc(12rem + env(safe-area-inset-bottom, 0px)); }
 .piece-workspace .practice-workspace > section { border-color: #d8ddd5; border-radius: 1rem; background: #fff; padding: .65rem; }
 .piece-workspace .practice-notation { min-height: 0; overflow: visible; }
 .piece-workspace .practice-notation > h2 { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
@@ -32,7 +32,7 @@ body:has(.piece-workspace) { background: #faf7f0; }
 /* SVG viewBox scales the drawing; screen CTM keeps renderer hit tests aligned. */
 .piece-workspace #st-score-root svg { display: block; width: var(--piece-notation-width, 100%) !important; max-width: none; height: auto !important; }
 .piece-workspace .practice-violin { max-height: none; }
-.piece-workspace .practice-playback { position: sticky; bottom: 0; z-index: 5; margin: 0; padding: .45rem .6rem max(.45rem, env(safe-area-inset-bottom, 0px)) !important; gap: .25rem; box-shadow: 0 -3px 16px #153f5310; }
+.piece-workspace .practice-playback { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: min(calc(100% - 1rem), 63rem); box-sizing: border-box; z-index: 5; margin: 0; padding: .45rem .6rem max(.45rem, env(safe-area-inset-bottom, 0px)) !important; gap: .25rem; box-shadow: 0 -3px 16px #153f5310; }
 .piece-workspace .practice-playback-toolbar { display: grid; grid-template-columns: minmax(0, 1fr); gap: .35rem; }
 .piece-workspace .practice-playback-quality { margin: 0; color: #526f73; font-size: .65rem; text-align: right; }
 .piece-workspace .practice-playback-controls { display: flex; width: 100%; gap: .4rem; }
