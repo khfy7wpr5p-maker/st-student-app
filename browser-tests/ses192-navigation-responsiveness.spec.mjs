@@ -192,6 +192,7 @@ test(
       await poolHeading.waitFor();
       assert.equal(await myWorkHeading.count(), 0);
 
+      await workMenu.click();
       await page.getByRole("button", { name: "Benim Çalışmalarım" }).click();
       await myWorkHeading.waitFor();
       await loading.waitFor();

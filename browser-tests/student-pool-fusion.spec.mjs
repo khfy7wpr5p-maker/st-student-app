@@ -34,7 +34,8 @@ test("Pool preserves empty, detail and navigation flows without horizontal scrol
     await page.getByText("Havuzda henüz içerik yok.", { exact: true }).waitFor();
     assert.equal(await page.locator("aside").count(), 0);
     assert.equal(await page.locator(".pool-card").count(), 0);
-    assert.ok(await page.locator(".pool-empty img").evaluate(img => img.complete && img.naturalWidth > 0));
+    await page.locator(".pool-empty img").evaluate(img => img.decode());
+    assert.ok(await page.locator(".pool-empty img").evaluate(img => img.naturalWidth > 0));
     await page.screenshot({ path: "/tmp/student-pool-empty.png", fullPage: true });
     await page.getByRole("button", { name: "← Ana ekran", exact: true }).click();
     await page.getByRole("button", { name: "Havuz", exact: true }).click();

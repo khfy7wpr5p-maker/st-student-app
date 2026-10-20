@@ -44,6 +44,7 @@ test("Fusion home fits phone/desktop and preserves real pool, work and sign-out 
     await page.getByRole("button", { name: "Havuz", exact: true }).click();
     await page.getByRole("heading", { name: "Havuz", exact: true }).waitFor();
     assert.equal(await page.locator(".fusion-home").count(), 0);
+    await page.locator('summary[aria-label="Öğrenci menüsü"]').click();
     await page.getByRole("button", { name: "Çıkış", exact: true }).click();
     await signIn();
     await page.getByRole("button", { name: "Benim Çalışmalarım", exact: true }).click();
