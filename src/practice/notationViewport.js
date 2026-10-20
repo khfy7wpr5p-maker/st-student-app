@@ -13,6 +13,20 @@ function parseViewBox(svg) {
   return Object.freeze({ x: values[0], y: values[1], width: values[2], height: values[3] });
 }
 
+// Preserve the renderer's coordinate system when CSS changes only SVG dimensions.
+// Some render backends emit width/height without an explicit viewBox.
+export function ensureNotationViewBoxes(root) {
+  for (const svg of root?.querySelectorAll?.('svg') ?? []) {
+    if (parseViewBox(svg) !== null) continue;
+    const width = Number(svg.getAttribute?.('width'));
+    const height = Number(svg.getAttribute?.('height'));
+    if (Number.isFinite(width) && width > 0 && Number.isFinite(height) && height > 0) {
+      svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+      svg.setAttribute('preserveAspectRatio', 'xMidYMin meet');
+    }
+  }
+}
+
 function unionBoxes(boxes) {
   if (boxes.length === 0) return null;
   const left = Math.min(...boxes.map((box) => box.x));

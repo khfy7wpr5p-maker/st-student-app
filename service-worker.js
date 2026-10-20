@@ -1,5 +1,5 @@
 const CACHE_NAME = "st-student-shell-v18";
-const SHELL_CACHE_NAME = "st-student-shell-v37";
+const SHELL_CACHE_NAME = "st-student-shell-v38";
 const SAMPLE_CACHE_NAME = "st-student-samples-v1";
 const SAMPLE_CACHE_LIMIT = 96;
 const ACTIVE_CACHE_NAMES = new Set([

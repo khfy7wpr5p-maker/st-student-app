@@ -53,13 +53,13 @@ test("standard bootstrap attaches account lifecycle to restore, auth changes, an
   assert.doesNotMatch(source, /clientSessionId\s*:\s*session|studentId\s*:\s*firebase/i);
 });
 
-test("v37 offline shell contains account lifecycle modules and pinned Firebase Database runtime but never API responses", async () => {
+test("v38 offline shell contains account lifecycle modules and pinned Firebase Database runtime but never API responses", async () => {
   const source = await readFile(
     new URL("../service-worker.js", import.meta.url),
     "utf8",
   );
 
-  assert.match(source, /st-student-shell-v37/);
+  assert.match(source, /st-student-shell-v38/);
   assert.match(source, /firebasejs\/12\.19\.0\/firebase-database\.js/);
   for (const asset of [
     "src/providers/firebase/firebasePresenceWriter.js",

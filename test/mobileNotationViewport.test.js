@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { fitNotationViewport } from "../src/practice/notationViewport.js";
+import { ensureNotationViewBoxes, fitNotationViewport } from "../src/practice/notationViewport.js";
 
 function fakeGraphic(tagName, box) {
   return {
@@ -136,4 +136,16 @@ test("notation viewport leaves desktop rendering untouched", () => {
   const result = fitNotationViewport(root, { viewportWidth: 1024 });
   assert.deepEqual(result, { fitted: 0 });
   assert.equal(svg.snapshot().viewBox, "0 0 1000 800");
+});
+
+test('sizing establishes SVG coordinates without changing existing renderer coordinates', () => {
+  const svg = fakeSvg();
+  const missing = fakeSvg({ viewBox: '' });
+  missing.setAttribute('width', '720');
+  missing.setAttribute('height', '360');
+  const invalid = fakeSvg({ viewBox: '' });
+  ensureNotationViewBoxes({ querySelectorAll: () => [svg, missing, invalid] });
+  assert.equal(svg.getAttribute('viewBox'), '0 0 1000 800');
+  assert.equal(missing.getAttribute('viewBox'), '0 0 720 360');
+  assert.equal(invalid.getAttribute('viewBox'), '');
 });

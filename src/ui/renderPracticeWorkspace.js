@@ -12,6 +12,7 @@ function capabilityOf(practice, name) {
 function renderNotation(
   practice,
   notationHeading,
+  showNotationSizing,
 ) {
   const capability = capabilityOf(practice, "notation");
   const heading = escapeHtml(notationHeading);
@@ -20,6 +21,13 @@ function renderNotation(
     return `
       <section class="practice-notation practice-primary" aria-labelledby="notation-heading">
         <h2 id="notation-heading">${heading}</h2>
+        ${showNotationSizing ? `
+          <div class="piece-notation-sizing" role="group" aria-label="Nota boyutu">
+            <button type="button" data-action="decrease-piece-notation" aria-label="Notayı küçült">−</button>
+            <output data-piece-notation-size aria-label="Nota boyutu yüzdesi">100%</output>
+            <button type="button" data-action="increase-piece-notation" aria-label="Notayı büyüt">+</button>
+            <button type="button" data-action="fit-piece-notation">Genişliğe sığdır</button>
+          </div>` : ""}
         <div id="st-score-root" role="region" aria-label="${heading}"></div>
       </section>
     `;
@@ -181,6 +189,7 @@ export function renderPracticeWorkspace(
     showHomeAction = true,
     showTitle = true,
     notationHeading = "Nota",
+    showNotationSizing = false,
   } = {},
 ) {
   if (practice === null || typeof practice !== "object") {
@@ -213,6 +222,7 @@ export function renderPracticeWorkspace(
       ${renderNotation(
         practice,
         notationHeading,
+        showNotationSizing,
       )}
       ${renderViolin(practice)}
       ${renderPlayback(practice)}
