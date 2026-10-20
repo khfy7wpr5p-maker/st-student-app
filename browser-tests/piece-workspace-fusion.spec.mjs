@@ -16,8 +16,12 @@ test('Piece layout keeps real notation, follow, controls and teacher note across
     await page.locator('[data-sign-in-email]').fill('student-a@ses13.test');
     await page.locator('[data-sign-in-password]').fill('ses13-password');
     await page.getByRole('button', { name: 'Giriş Yap', exact: true }).click();
+    await page.getByRole('heading', { name: 'Bugün ne çalıyoruz?', exact: true }).waitFor();
     await page.getByRole('button', { name: 'Benim Çalışmalarım', exact: true }).click();
-    await page.getByRole('button', { name: 'SES-13 Öğrenci A Etüdü', exact: true }).click();
+    await page.getByRole('heading', { name: 'Benim Çalışmalarım', exact: true }).waitFor();
+    // The work stylesheet adds a decorative note to the accessible name.
+    const piece = page.locator('[data-action="open-piece"]').filter({ hasText: 'SES-13 Öğrenci A Etüdü' });
+    await piece.click();
     await page.locator('#st-score-root svg').first().waitFor();
     const note = page.locator('.piece-teacher-note');
     assert.equal(await note.count(), 1);
@@ -62,7 +66,7 @@ test('Piece layout keeps real notation, follow, controls and teacher note across
     assert.equal(await page.evaluate(() => window.pieceSvg === document.querySelector('#st-score-root svg')), true);
     await page.screenshot({ path: '/tmp/student-piece-workspace.png', fullPage: true });
     await page.getByRole('button', { name: '← Geri', exact: true }).click();
-    await page.getByRole('button', { name: 'SES-13 Öğrenci A Etüdü', exact: true }).click();
+    await piece.click();
     assert.equal(await page.locator('.piece-workspace').getAttribute('data-focus-mode'), 'false');
     assert.deepEqual(errors, []);
   } finally {
