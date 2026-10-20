@@ -22,7 +22,7 @@ function requestKey(request) {
   return request.url;
 }
 
-test("installed stale v20/v21/v22/v23/v24/v25/v26/v27/v28/v29/v30/v31/v32/v33 shells migrate atomically to v34 and reopen offline", async () => {
+test("installed stale v20–v34 shells migrate atomically to v35 and reopen offline", async () => {
   const source = await readFile(
     new URL("../service-worker.js", import.meta.url),
     "utf8",
@@ -154,6 +154,10 @@ test("installed stale v20/v21/v22/v23/v24/v25/v26/v27/v28/v29/v30/v31/v32/v33 sh
     "https://student.example/src/ui/renderStudentApp.js",
     makeResponse("before-fusion-home"),
   );
+  entriesFor("st-student-shell-v34").set(
+    "https://student.example/src/ui/renderStudentApp.js",
+    makeResponse("before-work-fusion"),
+  );
 
   const cachesObject = {
     async open(name) {
@@ -228,13 +232,13 @@ test("installed stale v20/v21/v22/v23/v24/v25/v26/v27/v28/v29/v30/v31/v32/v33 sh
   assert.equal(skipWaitingCalls, 1);
   assert.equal(entriesFor("st-student-shell-v32").get("https://student.example/src/ui/main.js")?.body,
     "bootstrap-before-background-audio-initialization", "install preserves active bootstrap bytes");
-  assert.equal(entriesFor("st-student-shell-v34").get("https://student.example/src/ui/main.js")?.body,
+  assert.equal(entriesFor("st-student-shell-v35").get("https://student.example/src/ui/main.js")?.body,
     "current:https://student.example/src/ui/main.js", "new shell contains the nonblocking bootstrap");
   for (const module of ["scoreFollowCoordinator.js", "notationAdapter.js"]) {
     const url = `https://student.example/src/practice/${module}`;
     assert.equal(entriesFor("st-student-shell-v31").get(url)?.body,
       "before-follow-startup-recovery", "installation preserves the active v31 modules");
-    assert.equal(entriesFor("st-student-shell-v34").get(url)?.body,
+    assert.equal(entriesFor("st-student-shell-v35").get(url)?.body,
       `current:${url}`, "new shell contains recovery modules");
   }
   assert.equal(
@@ -243,7 +247,7 @@ test("installed stale v20/v21/v22/v23/v24/v25/v26/v27/v28/v29/v30/v31/v32/v33 sh
     "install must not overwrite bytes still used by the previous worker",
   );
   assert.equal(
-    entriesFor("st-student-shell-v34").get("https://student.example/src/practice/scoreFollowIndex.js").body,
+    entriesFor("st-student-shell-v35").get("https://student.example/src/practice/scoreFollowIndex.js").body,
     "current:https://student.example/src/practice/scoreFollowIndex.js",
   );
   assert.equal(
@@ -253,7 +257,7 @@ test("installed stale v20/v21/v22/v23/v24/v25/v26/v27/v28/v29/v30/v31/v32/v33 sh
     "account-invite-shell-without-presence-usage",
   );
   assert.equal(
-    entriesFor("st-student-shell-v34")
+    entriesFor("st-student-shell-v35")
       .get("https://student.example/index.html")
       .body,
     "account-presence-usage-shell",
@@ -268,6 +272,8 @@ test("installed stale v20/v21/v22/v23/v24/v25/v26/v27/v28/v29/v30/v31/v32/v33 sh
     "src/assets/st-student-icon-512.png",
     "src/assets/st-student-apple-touch-icon.png",
     "src/config/accountServiceConfig.js",
+    "src/ui/student-work-fusion.css",
+    "src/assets/work-fusion-music.svg",
     "src/auth/inviteFragment.js",
     "src/auth/inviteActivationFlow.js",
     "src/providers/accountService/accountServiceApiClient.js",
@@ -278,7 +284,7 @@ test("installed stale v20/v21/v22/v23/v24/v25/v26/v27/v28/v29/v30/v31/v32/v33 sh
     "src/account/accountLifecycleCoordinator.js",
   ]) {
     assert.equal(
-      entriesFor("st-student-shell-v34").has(
+      entriesFor("st-student-shell-v35").has(
         `https://student.example/${asset}`,
       ),
       true,
@@ -310,6 +316,7 @@ test("installed stale v20/v21/v22/v23/v24/v25/v26/v27/v28/v29/v30/v31/v32/v33 sh
     "st-student-shell-v31",
     "st-student-shell-v32",
     "st-student-shell-v33",
+    "st-student-shell-v34",
   ]);
   assert.equal(claimCalls, 1);
   assert.equal(cacheEntries.has("st-student-shell-v20"), false);

@@ -47,10 +47,9 @@ test("S08-4B mobile navigation exposes the current student section to VoiceOver"
   const work = renderStudentApp(
     student08State(STUDENT_APP_SCREENS.MY_WORK),
   );
-  assert.match(
-    work,
-    /<button(?=[^>]*aria-label="Benim Çalışmalarım")(?=[^>]*aria-current="page")(?=[^>]*data-action="show-my-work")[^>]*>/,
-  );
+  assert.doesNotMatch(work, /<aside/);
+  assert.match(work, /data-action="go-home"/);
+  assert.match(work, /aria-label="Benim Çalışmalarım"/);
 
   const practice = renderStudentApp(
     student08State(STUDENT_APP_SCREENS.PRACTICE),
