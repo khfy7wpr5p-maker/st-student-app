@@ -106,7 +106,7 @@ STUDENT-09, salt-okunur SCORE görünümüne renderer kanıtına bağlı etkile�
 - TAB ve CHORDS hiçbir zaman SCORE follow identity'sini devralmaz;
 - Student App edit/write authority kazanmaz.
 
-Pinned renderer revision: `3766fedf493e99d59ab43fa06c40c103b34ed2b7`.
+Pinned renderer revision: `a015f9049149037c48ac764ab30ed2bcbbe200d3`.
 Offline shell cache VIOLIN-02 ile `st-student-shell-v18`'dir; score-follow modüllerine ek olarak `violinFollowCoordinator.js`, `violinFingerboard.js` ve exact pinned `vendor/st-violin-learning/` runtime graph'ı same-origin static shell içinde cache edilir. Private Practice Package verisi Cache Storage'a girmez. Private Practice Package verisi Cache Storage'a taşınmaz.
 
 Chromium ve WebKit browser kabulü gerçek pinned renderer üzerinde note/rest/whitespace/outside/later-measure geometry, cursor, exact highlight ve network-free follow module import davranışını doğrular.
