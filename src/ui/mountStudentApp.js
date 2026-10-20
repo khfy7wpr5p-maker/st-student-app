@@ -266,9 +266,8 @@ export function mountStudentApp({
       lastMarkup = markup;
       lastPresentationKey = presentationKey;
       domGeneration += 1;
+      piecePresentation.synchronize(state);
     }
-
-    piecePresentation.synchronize(state);
     return Object.freeze({
       state,
       generation: domGeneration,
