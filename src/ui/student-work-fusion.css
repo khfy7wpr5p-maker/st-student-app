@@ -1,4 +1,4 @@
-/* Scoped to MY_WORK and WORK_REQUEST; score, pool and login keep their shell. */
+/* Scoped to MY_WORK, WORK_REQUEST and PUBLIC_POOL; practice and login keep their shell. */
 body:has(.student-work-shell) { background: #faf7f0; }
 #app:has(.student-work-shell) { width: min(100%, 52rem); padding: 0 max(1.2rem, env(safe-area-inset-right, 0px)) 0 max(1.2rem, env(safe-area-inset-left, 0px)); }
 .student-work-shell { color: #153f53; font-family: "ST Outfit", system-ui, sans-serif; min-height: 100svh; display: flex; flex-direction: column; }
@@ -57,3 +57,15 @@ body:has(.student-work-shell) { background: #faf7f0; }
 .student-work-shell .shared-request-list strong { font-size: .95rem; }
 .student-work-shell .shared-request-list span { color: #526f73; font-size: .8rem; }
 .student-work-shell button[data-action="refresh-work-request-pool"] { min-height: 44px; border: 1px solid #a7bfb7; border-radius: .8rem; background: #fffdf8; font-size: .9rem; }
+
+.student-work-shell .pool-empty { margin-block: 2rem; padding: 2rem 1rem; text-align: center; background: #f4f0e6; border: 1px solid #e4e1d6; border-radius: 1.8rem .8rem 1.8rem .8rem; }
+.student-work-shell .pool-empty img { display: block; width: min(100%, 16rem); height: auto; margin: 0 auto 1.5rem; }
+.student-work-shell .pool-empty p { margin: 0; color: #526f73; line-height: 1.7; overflow-wrap: anywhere; }
+.student-work-shell .pool-list { gap: 1rem; }
+.student-work-shell .pool-list > li, .student-work-shell .pool-card { min-width: 0; }
+.student-work-shell .pool-card { color: #153f53; background: #fffdf8; border-color: #cad8d1; border-radius: 1.2rem .6rem 1.2rem .6rem; }
+.student-work-shell .pool-card-title { color: #153f53; overflow-wrap: anywhere; }
+.student-work-shell .pool-card-description, .student-work-shell .pool-published-at, .student-work-shell .pool-detail-published-at { color: #526f73; }
+.student-work-shell .pool-detail { min-width: 0; margin-top: 1.5rem; padding: 1.2rem; background: #f1eddf; border: 1px solid #e1dac8; border-radius: 1.5rem .6rem 1.5rem .6rem; }
+.student-work-shell .pool-detail h2 { color: #153f53; overflow-wrap: anywhere; }
+.student-work-shell .pool-detail p { color: #526f73; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }

@@ -317,7 +317,7 @@ test("STUDENT-08 renderer keeps Havuz presentation-only and exposes lifecycle fo
     practice: null,
   });
 
-  assert.match(poolHtml, /class="student-shell"/);
+  assert.match(poolHtml, /class="student-work-shell"/);
   assert.match(poolHtml, /data-action="open-pool-item"/);
   assert.doesNotMatch(poolHtml, /open-practice|open-assignment|MusicXML|packageId/);
 

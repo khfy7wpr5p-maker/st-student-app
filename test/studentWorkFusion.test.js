@@ -33,10 +33,11 @@ test("MY_WORK uses a full-width work shell with home, pool and sign-out access",
   assert.match(html, /work-fusion-music\.svg/);
 });
 
-test("PUBLIC_POOL keeps the existing shell outside the two work screens", () => {
+test("PUBLIC_POOL shares the work design and keeps navigation to My Work", () => {
   const html = renderStudentApp(state("public_pool"));
-  assert.match(html, /<aside class="student-navigation"/);
-  assert.doesNotMatch(html, /student-work-shell/);
+  assert.doesNotMatch(html, /<aside/);
+  assert.match(html, /student-work-shell/);
+  assert.match(html, /data-action="show-my-work"/);
 });
 
 test("WORK_REQUEST renders a real form and a separate read-only pending section", () => {

@@ -8,7 +8,7 @@ test("account invitation modules are part of the atomic offline shell graph", as
     "utf8",
   );
 
-  assert.match(source, /const SHELL_CACHE_NAME = "st-student-shell-v35"/);
+  assert.match(source, /const SHELL_CACHE_NAME = "st-student-shell-v36"/);
   for (const asset of [
     "src/config/accountServiceConfig.js",
     "src/auth/inviteFragment.js",

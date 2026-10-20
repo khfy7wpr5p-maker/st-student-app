@@ -35,14 +35,10 @@ test("S08-4B mobile navigation exposes the current student section to VoiceOver"
   const pool = renderStudentApp(
     student08State(STUDENT_APP_SCREENS.PUBLIC_POOL),
   );
-  assert.match(
-    pool,
-    /<button(?=[^>]*aria-label="Havuz")(?=[^>]*aria-current="page")(?=[^>]*data-action="show-public-pool")[^>]*>/,
-  );
-  assert.doesNotMatch(
-    pool,
-    /<button(?=[^>]*aria-current="page")(?=[^>]*data-action="show-my-work")[^>]*>/,
-  );
+  assert.doesNotMatch(pool, /<aside/);
+  assert.match(pool, /<h1 id="page-title">Havuz/);
+  assert.match(pool, /data-action="go-home"/);
+  assert.match(pool, /data-action="show-my-work"/);
 
   const work = renderStudentApp(
     student08State(STUDENT_APP_SCREENS.MY_WORK),
