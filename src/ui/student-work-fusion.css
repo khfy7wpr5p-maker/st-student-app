@@ -62,8 +62,9 @@ body:has(.student-work-shell) { background: #faf7f0; }
 .student-work-shell .pool-empty img { display: block; width: min(100%, 16rem); height: auto; margin: 0 auto 1.5rem; }
 .student-work-shell .pool-empty p { margin: 0; color: #526f73; line-height: 1.7; overflow-wrap: anywhere; }
 .student-work-shell .pool-list { gap: 1rem; }
+.student-work-shell .pool-list > li, .student-work-shell .pool-card { min-width: 0; }
 .student-work-shell .pool-card { color: #153f53; background: #fffdf8; border-color: #cad8d1; border-radius: 1.2rem .6rem 1.2rem .6rem; }
-.student-work-shell .pool-card-title { color: #153f53; }
+.student-work-shell .pool-card-title { color: #153f53; overflow-wrap: anywhere; }
 .student-work-shell .pool-card-description, .student-work-shell .pool-published-at, .student-work-shell .pool-detail-published-at { color: #526f73; }
 .student-work-shell .pool-detail { min-width: 0; margin-top: 1.5rem; padding: 1.2rem; background: #f1eddf; border: 1px solid #e1dac8; border-radius: 1.5rem .6rem 1.5rem .6rem; }
 .student-work-shell .pool-detail h2 { color: #153f53; overflow-wrap: anywhere; }
