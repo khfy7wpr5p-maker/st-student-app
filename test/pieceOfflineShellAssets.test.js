@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const REQUIRED_PIECE_RUNTIME_MODULES = [
+  "./src/ui/pieceWorkspacePresentation.js",
+  "./src/ui/piece-workspace-fusion.css",
   "./src/config/secureDeliveryConfig.js",
   "./src/ui/student08Composition.js",
   "./src/providers/secureDelivery/secureDeliveryApiClient.js",
