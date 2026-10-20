@@ -178,7 +178,9 @@ test(
         true,
       );
 
-      await page.getByRole("button", { name: "Öğrenci menüsü", exact: true }).click();
+      const workMenu = page.locator('summary[aria-label="Öğrenci menüsü"]');
+      await workMenu.click();
+      assert.equal(await workMenu.evaluate((node) => node.parentElement.open), true);
       await page.getByRole("button", { name: "Havuz", exact: true }).click();
       await poolHeading.waitFor();
       await loading.waitFor();

@@ -48,7 +48,9 @@ test("Fusion home fits phone/desktop and preserves real pool, work and sign-out 
     await signIn();
     await page.getByRole("button", { name: "Benim Çalışmalarım", exact: true }).click();
     await page.getByRole("heading", { name: "Benim Çalışmalarım", exact: true }).waitFor();
-    await page.getByRole("button", { name: "Öğrenci menüsü", exact: true }).click();
+    const workMenu = page.locator('summary[aria-label="Öğrenci menüsü"]');
+    await workMenu.click();
+    assert.equal(await workMenu.evaluate((node) => node.parentElement.open), true);
     await page.getByRole("button", { name: "Çıkış", exact: true }).click();
     await signIn();
     await page.getByRole("button", { name: "Çıkış", exact: true }).click();

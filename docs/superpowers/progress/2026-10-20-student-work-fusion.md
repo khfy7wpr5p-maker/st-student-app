@@ -68,3 +68,15 @@ accessible label) -> GREEN; full Node suite now 733/733, 0 failures, exit 0.
 Browser test syntax and git diff --check pass. Fresh browser CI must prove the
 updated tree; prior red result is not reclassified as passing. Physical iPhone
 and authenticated teacher/student round trip remain unverified.
+
+Second CI diagnosis: run 39399121958 at b569d93 passed the new work-screen
+scenario in both browsers (11/13 checks passed per browser). The remaining
+SES-192 and home checks wait for a nonexistent button role on native summary.
+Pinned Playwright 1.62.1 coreBundle.js kImplicitRoleByTagName does not map SUMMARY;
+getImplicitAriaRole therefore returns null. The previous test adaptation's role
+assumption was wrong, not a timeout or application navigation failure.
+Fix limited to the two tests: locate the named native summary, click it, assert
+its parent details.open is true, then use the original destination button and
+retain all navigation/race/focus/sign-out assertions. No production code changed.
+Local npm test: 733/733, 0 failures, exit 0; syntax and whitespace checks pass.
+New browser CI is required to demonstrate GREEN; no result is inferred locally.
