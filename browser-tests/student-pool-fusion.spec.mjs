@@ -44,7 +44,9 @@ test("Pool preserves empty, detail and navigation flows without horizontal scrol
     await page.getByRole("heading", { name: "Benim Çalışmalarım", exact: true }).waitFor();
     await page.locator(".work-menu summary").click();
     await page.getByRole("button", { name: "Havuz", exact: true }).click();
-    await page.evaluate(async () => { window.poolTest.populate(); await window.poolTest.app.showPublicPool(); });
+    await page.evaluate(() => window.poolTest.populate());
+    await page.getByRole("button", { name: "← Ana ekran", exact: true }).click();
+    await page.getByRole("button", { name: "Havuz", exact: true }).click();
     await page.locator(".pool-card").click();
     await page.getByText("Birinci satır.\nİkinci satır.", { exact: true }).waitFor();
     assert.equal(await page.locator('[data-action="open-assignment"]').count(), 0);
