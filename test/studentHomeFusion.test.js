@@ -27,7 +27,7 @@ test("Fusion home escapes live status and leaves other screen shells intact", ()
   for (const screen of [STUDENT_APP_SCREENS.PUBLIC_POOL, STUDENT_APP_SCREENS.MY_WORK]) {
     const other = renderStudentApp({ ...home, screen });
     assert.doesNotMatch(other, /fusion-home/);
-    assert.match(other, screen === STUDENT_APP_SCREENS.MY_WORK ? /class="student-work-shell"/ : /class="student-shell"/);
+    assert.match(other, /class="student-work-shell"/);
   }
 });
 

@@ -142,7 +142,10 @@ function renderWorkList({ heading, items, emptyText }) {
 function renderPool(state) {
   const list =
     state.items.length === 0
-      ? "<p>Havuzda henüz içerik yok.</p>"
+      ? `<div class="pool-empty">
+          <img src="./src/assets/pool-fusion-music.svg" alt="" width="260" height="190">
+          <p>Havuzda henüz içerik yok.</p>
+        </div>`
       : `
         <ul class="pool-list">
           ${state.items
@@ -194,8 +197,8 @@ function renderPool(state) {
       `;
 
   return `
-    <section aria-labelledby="page-title">
-      <h1 id="page-title">Havuz</h1>
+    <section class="pool-content" aria-labelledby="page-title">
+      <h1 id="page-title">Havuz<span aria-hidden="true">.</span></h1>
       ${list}
       ${detail}
     </section>
@@ -506,13 +509,16 @@ function currentPageAttribute(active) {
 
 function renderWorkShell(body, state, statusMarkup) {
   const request = state.screen === STUDENT_APP_SCREENS.WORK_REQUEST;
+  const pool = state.screen === STUDENT_APP_SCREENS.PUBLIC_POOL;
   return `<div class="student-work-shell">
     <header class="work-header">
       <button type="button" class="work-back" data-action="${request ? "back-from-work-request" : "go-home"}">← ${request ? "Çalışmalarım" : "Ana ekran"}</button>
       ${statusMarkup}
       <details class="work-menu"><summary aria-label="Öğrenci menüsü">⋯</summary>
         <nav aria-label="Öğrenci menüsü">
-          <button type="button" data-action="show-public-pool">Havuz</button>
+          ${pool
+            ? '<button type="button" data-action="show-my-work" aria-label="Benim Çalışmalarım">Çalışmalarım</button>'
+            : '<button type="button" data-action="show-public-pool">Havuz</button>'}
           <button type="button" data-action="sign-out">Çıkış</button>
         </nav>
       </details>
@@ -625,7 +631,7 @@ export function renderStudentApp(
         throw new Error("unknown student app screen");
     }
 
-    if (state.screen === STUDENT_APP_SCREENS.MY_WORK || state.screen === STUDENT_APP_SCREENS.WORK_REQUEST) {
+    if (state.screen === STUDENT_APP_SCREENS.MY_WORK || state.screen === STUDENT_APP_SCREENS.WORK_REQUEST || state.screen === STUDENT_APP_SCREENS.PUBLIC_POOL) {
       body = renderWorkShell(body, state, renderStatus(status, connectivityState));
       statusRenderedInsideShell = true;
     } else if (
