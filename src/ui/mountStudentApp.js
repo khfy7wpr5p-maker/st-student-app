@@ -1,7 +1,7 @@
 import { createPieceWorkspacePresentation } from "./pieceWorkspacePresentation.js";
 import { CONNECTIVITY_STATES } from "../offline/connectivityPort.js";
 import { PRACTICE_CAPABILITY_STATES } from "../practice/practiceCapabilities.js";
-import { fitNotationViewport } from "../practice/notationViewport.js";
+import { ensureNotationViewBoxes, fitNotationViewport } from "../practice/notationViewport.js";
 import { STUDENT_APP_SCREENS } from "./studentAppController.js";
 import { renderStudentApp } from "./renderStudentApp.js";
 import { dispatchStudentAppAction } from "./shellActions.js";
@@ -698,6 +698,9 @@ export function mountStudentApp({
 
     if (capability === PRACTICE_CAPABILITY_STATES.AVAILABLE) {
       try {
+        if (state.screen === STUDENT_APP_SCREENS.PIECE_WORKSPACE) {
+          ensureNotationViewBoxes(persistentNotationRoot);
+        }
         fitNotationViewport(persistentNotationRoot, {
           viewportWidth: root.ownerDocument?.defaultView?.innerWidth,
         });
@@ -799,6 +802,10 @@ export function mountStudentApp({
     if (actionElement.disabled === true) return;
     if (action === "toggle-piece-focus") {
       piecePresentation.toggle();
+      return;
+    }
+    if (["decrease-piece-notation", "increase-piece-notation", "fit-piece-notation"].includes(action)) {
+      piecePresentation.resizeNotation(action);
       return;
     }
     if (action === "submit-work-request") event.preventDefault?.();

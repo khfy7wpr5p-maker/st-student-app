@@ -155,7 +155,7 @@ test("Piece Workspace is focus-mode with explicit back and capability-driven vie
     /data-action="select-piece-view"[^>]*data-piece-view="CHORDS"[^>]*>Akorlar<\/button>/s,
   );
   assert.doesNotMatch(html, />TAB<\/button>/);
-  assert.match(html, /<strong>Öğretmen notu<\/strong>/);
+  assert.match(html, /<details open[^>]*class="piece-teacher-note"[^>]*>[\s\S]*<summary>Öğretmen notu<\/summary>/);
   assert.match(html, /Parçayı yavaş çalış\./);
   assert.match(html, /id="st-score-root"/);
   assert.doesNotMatch(html, /class="student-navigation"/);

@@ -54,15 +54,15 @@ function renderPieceTeacherNote(
   }
 
   return `
-    <aside
+    <details open
       class="piece-teacher-note"
       aria-label="Öğretmen notu"
     >
-      <strong>Öğretmen notu</strong>
+      <summary>Öğretmen notu</summary>
       <p>${escapeHtml(
         viewModel.teacherNote,
       )}</p>
-    </aside>
+    </details>
   `;
 }
 
@@ -103,6 +103,7 @@ function renderMusicPanel(viewModel) {
           showHomeAction: false,
           showTitle: false,
           notationHeading,
+          showNotationSizing: true,
         },
       )}
     </div>

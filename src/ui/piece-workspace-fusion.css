@@ -1,31 +1,38 @@
-/* Only the Piece workspace; renderer geometry and playback actions are unchanged. */
+/* Only the Piece workspace; musical source and playback actions are unchanged. */
 body:has(.piece-workspace) { background: #faf7f0; }
-#app:has(.piece-workspace) { width: min(100%, 64rem); height: 100svh; height: 100dvh; padding: max(.7rem, env(safe-area-inset-top, 0px)) max(1rem, env(safe-area-inset-right, 0px)) max(.7rem, env(safe-area-inset-bottom, 0px)) max(1rem, env(safe-area-inset-left, 0px)); }
-.student-app:has(> .piece-workspace) { height: 100%; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: .4rem; color: #153f53; font-family: "ST Outfit", system-ui, sans-serif; }
+#app:has(.piece-workspace) { width: min(100%, 64rem); height: auto; min-height: 100svh; min-height: 100dvh; padding: max(.5rem, env(safe-area-inset-top, 0px)) max(.5rem, env(safe-area-inset-right, 0px)) 0 max(.5rem, env(safe-area-inset-left, 0px)); }
+.student-app:has(> .piece-workspace) { height: auto; min-height: 0; display: grid; gap: .2rem; color: #153f53; font-family: "ST Outfit", system-ui, sans-serif; }
 .student-app:has(> .piece-workspace) > .app-status { margin: 0; padding: 0; min-height: 1rem; text-align: right; color: #526f73; font-size: .7rem; }
 .student-app .piece-workspace { --st-text: #153f53; --st-text-muted: #526f73; display: flex; flex-direction: column; min-height: 0; min-width: 0; gap: .7rem; }
 .piece-workspace button { color: #153f53; background: #fffdf8; border: 1px solid #cad8d1; border-radius: .8rem; min-height: 44px; }
 .piece-workspace button:focus-visible, .piece-workspace input:focus-visible, .piece-workspace [tabindex]:focus-visible { outline: 3px solid #157d8d; outline-offset: 2px; }
-.piece-workspace .piece-workspace-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: .5rem; flex: none; }
+.piece-workspace .piece-workspace-header { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: .4rem; flex: none; }
 .piece-workspace .piece-back { justify-self: start; padding: .4rem .5rem; border-color: transparent; background: transparent; font-size: .85rem; }
-.piece-workspace .piece-focus-toggle { font-size: .8rem; padding: .5rem .8rem; }
-.piece-workspace #piece-title { grid-column: 1 / -1; font-family: "ST Outfit", system-ui, sans-serif; font-size: clamp(1.15rem, 4vw, 1.6rem); line-height: 1.25; overflow-wrap: anywhere; max-height: 4rem; overflow: auto; }
-.piece-workspace .piece-teacher-note { flex: none; min-width: 0; max-height: min(16vh, 8rem); overflow: auto; background: #c4e8e2; border-radius: .8rem; padding: .6rem .8rem; font-size: .8rem; line-height: 1.5; overflow-wrap: anywhere; }
+.piece-workspace .piece-focus-toggle { grid-column: 3; grid-row: 1; font-size: .75rem; padding: .4rem .6rem; }
+.piece-workspace #piece-title { grid-column: 2; grid-row: 1; font-family: "ST Outfit", system-ui, sans-serif; font-size: clamp(.95rem, 3.6vw, 1.35rem); line-height: 1.3; overflow-wrap: anywhere; margin: 0; }
+.piece-workspace .piece-teacher-note { flex: none; min-width: 0; background: #c4e8e2; border-radius: .8rem; padding: .5rem .7rem; font-size: .8rem; line-height: 1.5; overflow-wrap: anywhere; }
+.piece-workspace .piece-teacher-note summary { cursor: pointer; min-height: 32px; align-content: center; font-weight: 600; }
+.piece-workspace .piece-teacher-note p { margin: .25rem 0 0; }
 .piece-workspace .piece-teacher-note p { color: #355b63; }
 .piece-workspace .piece-view-selector { display: flex; flex: none; gap: .5rem; min-width: 0; }
 .piece-workspace .piece-view-selector button { flex: 1; min-width: 0; font-size: .85rem; padding: .4rem; }
 .piece-workspace .piece-view-selector [aria-selected="true"], .piece-workspace .piece-chord-selector [aria-pressed="true"] { background: #153f53; color: #faf7f0; border-color: #153f53; }
-.piece-workspace .piece-workspace-content { flex: 1; min-height: 0; min-width: 0; display: grid; grid-template-rows: minmax(0, 1fr); }
+.piece-workspace .piece-workspace-content { min-width: 0; }
 .piece-workspace [data-piece-panel][hidden] { display: none !important; }
 .piece-workspace .piece-score-panel { min-height: 0; min-width: 0; }
-.student-app .piece-workspace .practice-workspace { height: 100%; min-height: 0; display: grid; gap: .65rem; grid-template-rows: minmax(0, 1fr) auto; }
-.student-app .piece-workspace .practice-workspace:has(.practice-violin) { grid-template-rows: minmax(0, 1fr) auto auto; }
+.student-app .piece-workspace .practice-workspace { height: auto; min-height: 0; display: flex; flex-direction: column; gap: .6rem; padding-bottom: calc(12rem + env(safe-area-inset-bottom, 0px)); }
 .piece-workspace .practice-workspace > section { border-color: #d8ddd5; border-radius: 1rem; background: #fff; padding: .65rem; }
-.piece-workspace .practice-notation { min-height: 0; overflow: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
-.piece-workspace .practice-notation > h2 { font-size: .85rem; margin-bottom: .3rem; }
-.piece-workspace .practice-notation #st-score-root { overflow-x: auto; }
-.piece-workspace .practice-violin { max-height: min(22vh, 9rem); overflow: auto; }
-.piece-workspace .practice-playback { margin: 0; padding: .6rem .7rem !important; gap: .35rem; }
+.piece-workspace .practice-notation { min-height: 0; overflow: visible; }
+.piece-workspace .practice-notation > h2 { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.piece-workspace .piece-notation-sizing { display: flex; align-items: center; gap: .3rem; margin-bottom: .3rem; font-size: .75rem; }
+.piece-workspace .piece-notation-sizing button { min-width: 44px; padding: .3rem .5rem; }
+.piece-workspace .piece-notation-sizing output { min-width: 3ch; text-align: center; font-variant-numeric: tabular-nums; }
+.piece-workspace [data-action="fit-piece-notation"] { margin-left: auto; font-size: .75rem; }
+.piece-workspace .practice-notation #st-score-root { width: 100%; max-width: 100%; overflow-x: auto; }
+/* SVG viewBox scales the drawing; screen CTM keeps renderer hit tests aligned. */
+.piece-workspace #st-score-root svg { display: block; width: var(--piece-notation-width, 100%) !important; max-width: none; height: auto !important; }
+.piece-workspace .practice-violin { max-height: none; }
+.piece-workspace .practice-playback { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: min(calc(100% - 1rem), 63rem); box-sizing: border-box; z-index: 5; margin: 0; padding: .45rem .6rem max(.45rem, env(safe-area-inset-bottom, 0px)) !important; gap: .25rem; box-shadow: 0 -3px 16px #153f5310; }
 .piece-workspace .practice-playback-toolbar { display: grid; grid-template-columns: minmax(0, 1fr); gap: .35rem; }
 .piece-workspace .practice-playback-quality { margin: 0; color: #526f73; font-size: .65rem; text-align: right; }
 .piece-workspace .practice-playback-controls { display: flex; width: 100%; gap: .4rem; }
@@ -51,6 +58,5 @@ body:has(.piece-workspace) { background: #faf7f0; }
 .piece-workspace[data-focus-mode="true"] .piece-workspace-header { grid-template-columns: auto minmax(0, 1fr) auto; }
 .piece-workspace[data-focus-mode="true"] #piece-title { grid-row: 1; grid-column: 2; font-size: .85rem; max-height: 3rem; }
 .piece-workspace[data-focus-mode="true"] .piece-focus-toggle { grid-row: 1; grid-column: 3; }
-.piece-workspace[data-focus-mode="true"] .piece-teacher-note { max-height: 4rem; padding-block: .35rem; }
-@media (min-width: 800px) { .piece-workspace .practice-playback-toolbar { grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: .6rem; } .piece-workspace .practice-playback-quality { grid-column: 1 / -1; } .piece-workspace .practice-playback-controls { min-width: 20rem; } }
-@media (max-height: 560px) and (min-width: 560px) { .piece-workspace .piece-workspace-content { overflow: auto; } .student-app .piece-workspace .practice-workspace { min-height: 16rem; grid-template-columns: minmax(0, 1fr) 15rem; grid-template-rows: minmax(0, 1fr); } .piece-workspace .practice-playback { grid-column: 2; grid-row: 1 / -1; align-content: start; } .piece-workspace .practice-violin { grid-column: 1; } }
+@media (min-width: 640px) { .piece-workspace .practice-playback-toolbar { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: .5rem; } .piece-workspace .practice-playback-quality { grid-column: 1 / -1; } }
+@media (max-height: 560px) and (min-width: 560px) { .piece-workspace .practice-playback { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: .5rem; } .piece-workspace .practice-playback-quality { display: none; } .piece-workspace .practice-control-button::after, .piece-workspace .practice-tempo-apply::after { content: none; } }
