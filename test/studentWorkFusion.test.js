@@ -1,10 +1,23 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { renderStudentApp } from "../src/ui/renderStudentApp.js";
+import { DOMParser } from "@xmldom/xmldom";
 
 const state = (screen) => ({
   student08: true, screen, session: { studentId: "student-a" },
   items: [], assignmentState: "ACTIVE", practice: null,
+});
+
+test("request buttons have explicit names that exclude decorative CSS arrows", () => {
+  for (const [screen, action, label, extra] of [
+    ["my_work", "show-work-request", "Eser İste", {}],
+    ["work_request", "submit-work-request", "Gönder", {}],
+    ["work_request", "submit-work-request", "Gönderiliyor…", { workRequestSubmitting: true }],
+  ]) {
+    const doc = new DOMParser().parseFromString(renderStudentApp({ ...state(screen), ...extra }), "text/html");
+    const button = Array.from(doc.getElementsByTagName("button")).find(node => node.getAttribute("data-action") === action);
+    assert.equal(button?.getAttribute("aria-label"), label);
+  }
 });
 
 test("MY_WORK uses a full-width work shell with home, pool and sign-out access", () => {

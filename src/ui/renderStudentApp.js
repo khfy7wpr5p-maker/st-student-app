@@ -397,7 +397,7 @@ function renderMyWork(state) {
       <h1 id="page-title" aria-label="Benim Çalışmalarım">Çalışmalarım<span aria-hidden="true">.</span></h1>
       <div class="work-invitation">
         <div><p class="work-invitation-title">Sıradaki parçan?</p><p>Çalmak istediğin eseri öğretmeninle paylaş.</p>
-          <button type="button" data-action="show-work-request">Eser İste</button>
+          <button type="button" data-action="show-work-request" aria-label="Eser İste">Eser İste</button>
         </div>
         <img src="./src/assets/work-fusion-music.svg" alt="" width="180" height="150">
       </div>
@@ -448,7 +448,7 @@ function renderWorkRequest(state) {
           autocomplete="off" maxlength="200" required
           placeholder="Örn. Fikrimin İnce Gülü"
           value="${escapeHtml(state.workRequestDraft ?? "")}"${submitting ? " readonly" : ""}>
-        <button type="submit" data-action="submit-work-request"${submitting ? " disabled" : ""}>${submitting ? "Gönderiliyor…" : "Gönder"}</button>
+        <button type="submit" data-action="submit-work-request"${submitting ? " disabled" : ""} aria-label="${submitting ? "Gönderiliyor…" : "Gönder"}">${submitting ? "Gönderiliyor…" : "Gönder"}</button>
         ${feedback}
       </form>
       <section class="work-request-pending" aria-labelledby="pending-request-title" aria-busy="${poolStatus === "loading"}">

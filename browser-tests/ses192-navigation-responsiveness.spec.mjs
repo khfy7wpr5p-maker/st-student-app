@@ -178,7 +178,8 @@ test(
         true,
       );
 
-      await page.getByRole("button", { name: "Havuz" }).first().click();
+      await page.getByRole("button", { name: "Öğrenci menüsü", exact: true }).click();
+      await page.getByRole("button", { name: "Havuz", exact: true }).click();
       await poolHeading.waitFor();
       await loading.waitFor();
       await page.evaluate(() => globalThis.__ses192.resolve("pool", []));

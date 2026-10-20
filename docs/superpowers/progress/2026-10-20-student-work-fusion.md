@@ -54,3 +54,17 @@ practice/audio/score modules changed. Only two-screen UI integration, local
 presentation assets, tests and existing static-shell cache version changed.
 Merge/deploy remain outside approval; browser/device and teacher round-trip
 checks remain release gates. SES-240/241 in review; SES-242 in progress.
+
+Follow-up CI diagnosis (2026-10-20): run 39398398302 at 000479a passed Node
+and renderer build; Chromium and WebKit each passed 10/13 browser checks.
+Both failed the same three locators: SES-192 Havuz (now inside closed menu),
+Fusion home sign-out from MY_WORK (same menu), and the new exact Eser İste
+locator (CSS generated arrow participates in accessible name).
+Fix: request buttons have explicit plain-text accessible names, including
+submitting state; existing navigation tests open the real menu before invoking
+Havuz/sign-out. No assertions on request success, navigation races, item
+identities or focus were removed. Regression assertion watched RED (missing
+accessible label) -> GREEN; full Node suite now 733/733, 0 failures, exit 0.
+Browser test syntax and git diff --check pass. Fresh browser CI must prove the
+updated tree; prior red result is not reclassified as passing. Physical iPhone
+and authenticated teacher/student round trip remain unverified.
