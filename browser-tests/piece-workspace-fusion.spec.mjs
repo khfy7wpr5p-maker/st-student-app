@@ -108,17 +108,6 @@ test('Piece layout keeps real notation, follow, controls and teacher note across
     assert.equal(await page.locator('.piece-workspace').getAttribute('data-focus-mode'), 'true');
     await page.getByRole('tab', { name: 'TAB', exact: true }).click();
     await page.locator('#st-score-root .vf-tabnote').first().waitFor();
-    await page.getByRole('button', { name: 'Dinle', exact: true }).click();
-    await page.waitForFunction(() => document.querySelector('#st-score-root [data-st-score-highlight="true"]'));
-    await page.getByRole('button', { name: 'Duraklat', exact: true }).click();
-    await checkHeldCursorSizing(page);
-    for (const [width, height] of [[844, 390], [390, 680]]) {
-      await page.setViewportSize({ width, height });
-      await assertCursorAligned(page);
-    }
-    await page.getByRole('button', { name: 'Dinle', exact: true }).click();
-    await assertCursorAligned(page);
-    await page.getByRole('button', { name: 'Duraklat', exact: true }).click();
     await keepSvg();
     await page.getByRole('button', { name: 'Odaktan çık', exact: true }).click();
     assert.equal(await page.evaluate(() => window.pieceSvg === document.querySelector('#st-score-root svg')), true);
@@ -126,6 +115,50 @@ test('Piece layout keeps real notation, follow, controls and teacher note across
     await page.getByRole('button', { name: '← Geri', exact: true }).click();
     await piece.click();
     assert.equal(await page.locator('.piece-workspace').getAttribute('data-focus-mode'), 'false');
+    assert.deepEqual(errors, []);
+  } finally {
+    await browser?.close();
+    await server.close();
+  }
+});
+
+test('real TAB Piece keeps green geometry and orange follow through sizing and actual redraws', { timeout: 90000 }, async () => {
+  const server = await startRepositoryStaticServer();
+  let browser;
+  try {
+    browser = await ({ chromium, webkit }[process.env.ST_BROWSER ?? 'chromium']).launch({ headless: true });
+    const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+    const errors = [];
+    page.on('pageerror', error => errors.push(error.message));
+    const source = await readFile(new URL('./support/student-app-e2e-fixtures.mjs', import.meta.url), 'utf8');
+    const xml = await readFile(new URL('../test/fixtures/score-follow/smellstab-guitar-tab.musicxml', import.meta.url), 'utf8');
+    // Unlike the generic shell fixture's independent SCORE/TAB examples,
+    // use the same authoritative musical identities for playback and TAB.
+    await page.route('**/student-app-e2e-fixtures.mjs', route => route.fulfill({ contentType: 'application/javascript', body: source.replace('scoreXml: SCORE_XML_A,', `scoreXml: ${JSON.stringify(xml)},`).replace('tabXml: TAB_XML_A,', `tabXml: ${JSON.stringify(xml)},`) }));
+    await page.route('**/src/ui/main.js', route => route.fulfill({ contentType: 'application/javascript', body: 'import "/browser-tests/support/student-app-e2e-bootstrap.mjs";' }));
+    await page.goto(`${server.baseUrl}/index.html`);
+    await page.locator('[data-sign-in-email]').fill('student-a@ses13.test');
+    await page.locator('[data-sign-in-password]').fill('ses13-password');
+    await page.getByRole('button', { name: 'Giriş Yap', exact: true }).click();
+    await page.getByRole('button', { name: 'Benim Çalışmalarım', exact: true }).click();
+    await page.locator('[data-action="open-piece"]').filter({ hasText: 'SES-13 Öğrenci A Etüdü' }).click();
+    await page.getByRole('tab', { name: 'TAB', exact: true }).click();
+    await page.locator('#st-score-root .vf-tabnote').first().waitFor();
+    await page.getByRole('button', { name: 'Dinle', exact: true }).click();
+    await page.waitForFunction(() => document.querySelector('#st-score-root .vf-tabnote[data-st-score-highlight="true"]'));
+    await page.getByRole('button', { name: 'Duraklat', exact: true }).click();
+    await checkHeldCursorSizing(page);
+    for (const [width, height] of [[844, 390], [390, 680]]) {
+      const oldSvg = await page.locator('#st-score-root svg').first().elementHandle();
+      await page.setViewportSize({ width, height });
+      await page.waitForFunction(element => !element.isConnected, oldSvg);
+      await assertCursorAligned(page);
+      assert.ok(await page.locator('#st-score-root .vf-tabnote[data-st-score-highlight="true"]').count() > 0, 'held orange TAB survives actual OSMD redraw');
+      await oldSvg.dispose();
+    }
+    await page.getByRole('button', { name: 'Dinle', exact: true }).click();
+    await assertCursorAligned(page);
+    await page.getByRole('button', { name: 'Duraklat', exact: true }).click();
     assert.deepEqual(errors, []);
   } finally {
     await browser?.close();
