@@ -18,12 +18,13 @@ async function assertCursorAligned(page) {
 }
 
 async function checkHeldCursorSizing(page) {
+  await page.getByRole('button', { name: 'Genişliğe sığdır', exact: true }).click();
   await assertCursorAligned(page);
   const cursor = page.locator('#st-score-root img[id^="cursorImg-"]').first();
   const baseline = await cursor.boundingBox();
   const svg = page.locator('#st-score-root svg').first();
   const svgBaseline = await svg.boundingBox();
-  for (const [label, count] of [['Notayı küçült', 5], ['Notayı büyüt', 9]]) {
+  for (const [label, count] of [['Notayı küçült', 4], ['Notayı büyüt', 9]]) {
     for (let i = 0; i < count; i++) await page.getByRole('button', { name: label, exact: true }).click();
     await assertCursorAligned(page);
     const box = await cursor.boundingBox();
