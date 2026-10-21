@@ -944,9 +944,10 @@ export function mountStudentApp({
       .catch(() => null)
       .finally(() => {
         if (!destroyed) {
-          render();
+          return render();
         }
-      });
+      })
+      .catch(() => {});
   }
 
   if (typeof connectivityPort?.subscribe === "function") {
@@ -961,7 +962,7 @@ export function mountStudentApp({
   root.addEventListener("click", onClick);
   root.addEventListener("input", onInput);
   root.addEventListener("submit", onSubmit);
-  render();
+  void render().catch(() => {});
 
   return Object.freeze({
     render,
