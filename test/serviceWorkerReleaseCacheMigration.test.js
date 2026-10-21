@@ -22,7 +22,7 @@ function requestKey(request) {
   return request.url;
 }
 
-test("installed stale v20–v39 shells migrate atomically to v40 and reopen offline", async () => {
+test("installed stale v20–v40 shells migrate atomically to v41 and reopen offline", async () => {
   const source = await readFile(
     new URL("../service-worker.js", import.meta.url),
     "utf8",
@@ -184,6 +184,11 @@ test("installed stale v20–v39 shells migrate atomically to v40 and reopen offl
     makeResponse("before-green-cursor-projection"),
   );
 
+  entriesFor("st-student-shell-v40").set(
+    "https://student.example/src/ui/main.js",
+    makeResponse("before-account-lifecycle-rejection-handlers"),
+  );
+
   const cachesObject = {
     async open(name) {
       if (name === "st-student-samples-v1" && sampleCacheOpenFails) {
@@ -257,13 +262,13 @@ test("installed stale v20–v39 shells migrate atomically to v40 and reopen offl
   assert.equal(skipWaitingCalls, 1);
   assert.equal(entriesFor("st-student-shell-v32").get("https://student.example/src/ui/main.js")?.body,
     "bootstrap-before-background-audio-initialization", "install preserves active bootstrap bytes");
-  assert.equal(entriesFor("st-student-shell-v40").get("https://student.example/src/ui/main.js")?.body,
+  assert.equal(entriesFor("st-student-shell-v41").get("https://student.example/src/ui/main.js")?.body,
     "current:https://student.example/src/ui/main.js", "new shell contains the nonblocking bootstrap");
   for (const module of ["scoreFollowCoordinator.js", "notationAdapter.js"]) {
     const url = `https://student.example/src/practice/${module}`;
     assert.equal(entriesFor("st-student-shell-v31").get(url)?.body,
       "before-follow-startup-recovery", "installation preserves the active v31 modules");
-    assert.equal(entriesFor("st-student-shell-v40").get(url)?.body,
+    assert.equal(entriesFor("st-student-shell-v41").get(url)?.body,
       `current:${url}`, "new shell contains recovery modules");
   }
   assert.equal(
@@ -272,7 +277,7 @@ test("installed stale v20–v39 shells migrate atomically to v40 and reopen offl
     "install must not overwrite bytes still used by the previous worker",
   );
   assert.equal(
-    entriesFor("st-student-shell-v40").get("https://student.example/src/practice/scoreFollowIndex.js").body,
+    entriesFor("st-student-shell-v41").get("https://student.example/src/practice/scoreFollowIndex.js").body,
     "current:https://student.example/src/practice/scoreFollowIndex.js",
   );
   assert.equal(
@@ -282,7 +287,7 @@ test("installed stale v20–v39 shells migrate atomically to v40 and reopen offl
     "account-invite-shell-without-presence-usage",
   );
   assert.equal(
-    entriesFor("st-student-shell-v40")
+    entriesFor("st-student-shell-v41")
       .get("https://student.example/index.html")
       .body,
     "account-presence-usage-shell",
@@ -309,7 +314,7 @@ test("installed stale v20–v39 shells migrate atomically to v40 and reopen offl
     "src/account/accountLifecycleCoordinator.js",
   ]) {
     assert.equal(
-      entriesFor("st-student-shell-v40").has(
+      entriesFor("st-student-shell-v41").has(
         `https://student.example/${asset}`,
       ),
       true,
@@ -347,11 +352,13 @@ test("installed stale v20–v39 shells migrate atomically to v40 and reopen offl
     "st-student-shell-v37",
     "st-student-shell-v38",
     "st-student-shell-v39",
+    "st-student-shell-v40",
   ]);
+  assert.equal(cacheEntries.has("st-student-shell-v40"), false);
   assert.equal(cacheEntries.has("st-student-shell-v39"), false);
-  assert.ok(entriesFor("st-student-shell-v40").has("https://student.example/src/practice/notationCursorProjection.js"));
+  assert.ok(entriesFor("st-student-shell-v41").has("https://student.example/src/practice/notationCursorProjection.js"));
   assert.equal(cacheEntries.has("st-student-shell-v35"), false);
-  assert.ok(entriesFor("st-student-shell-v40").has("https://student.example/src/assets/pool-fusion-music.svg"));
+  assert.ok(entriesFor("st-student-shell-v41").has("https://student.example/src/assets/pool-fusion-music.svg"));
   assert.equal(claimCalls, 1);
   assert.equal(cacheEntries.has("st-student-shell-v20"), false);
   assert.equal(cacheEntries.has("st-student-shell-v21"), false);
