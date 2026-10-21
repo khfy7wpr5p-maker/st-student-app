@@ -749,7 +749,7 @@ export function mountStudentApp({
         ? controller.getPracticeRenderSource?.() ?? null
         : null;
 
-    lifecycle = lifecycle.then(async () => {
+    const renderPromise = lifecycle.then(async () => {
       await synchronizeNotation({
         state: snapshot.state,
         renderSource,
@@ -763,7 +763,10 @@ export function mountStudentApp({
       });
     });
 
-    return lifecycle;
+    // Keep later rendering and teardown usable while preserving this
+    // render's rejection for callers that explicitly await it.
+    lifecycle = renderPromise.catch(() => {});
+    return renderPromise;
   }
 
   async function onClick(event) {

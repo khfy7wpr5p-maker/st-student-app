@@ -17,6 +17,7 @@ let failNextRead = false;
 let failureObserved = false;
 let syncCalls = 0;
 let recoveryCalls = 0;
+let disposalCalls = 0;
 const listeners = new Map();
 const root = {
   innerHTML: "",
@@ -43,6 +44,9 @@ const mounted = mountStudentApp({
     async synchronizeOffline() { syncCalls += 1; },
     async recoverActivePracticePlayback() { recoveryCalls += 1; },
   },
+  scoreFollowCoordinator: {
+    async dispose() { disposalCalls += 1; },
+  },
   connectivityPort: {
     getState: () => "OFFLINE",
     subscribe(listener) {
@@ -66,7 +70,12 @@ await flush();
 assert.equal(failureObserved, true, "the render failure must actually occur");
 assert.equal(listeners.size, 3, "render failure must preserve shell controls");
 assert.doesNotMatch(root.innerHTML, /private-render-provider-detail/);
-await mounted.destroy().catch(() => {});
+await mounted.render();
+injectFailure = true;
+await assert.rejects(mounted.render(), /private-render-provider-detail/,
+  "explicit render callers must still receive the failure");
+await mounted.destroy();
+assert.equal(disposalCalls, 1, "render failure must not skip asynchronous disposal");
 assert.equal(subscriber, null);
 assert.equal(listeners.size, 0);
 `;
