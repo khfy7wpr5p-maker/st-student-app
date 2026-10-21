@@ -1,6 +1,6 @@
 # ST Student App
 
-> **Güncel proje durumu — 19 Ekim 2026:** [GitHub main, merged PR'lar, Linear backlog ve doğrulanmamış cihaz/production kapıları](docs/project-status-2026-10-19.md). Bu README'deki önceki commit/pin/test anlatımları kendi tarihli geliştirme basamaklarının kayıtlarıdır.
+> **21 Ekim 2026 güncel mimari ve arayüz kapanışı:** [Teacher/Student uyumluluk matrisi, canlı yayın ve açık hata/kabul kayıtları](docs/student-teacher-ui-compatibility-2026-10-21.md). Güncel uygulama referansı `a958dc0`, renderer source `a015f904`, contract `0.2.0`, OSMD `2.1.2`, shell `v40`. Aşağıdaki önceki aşama pin/test anlatımları tarihsel kanıttır. [19 Ekim durum kaydı](docs/project-status-2026-10-19.md) korunmuştur.
 
 ST Student App, SesliTab öğretmen uygulamasında hazırlanıp **öğretmen tarafından onaylanan** çalışmaların öğrenci tarafından erişilebilir ve salt-okunur biçimde kullanılacağı uygulamadır.
 
@@ -108,7 +108,7 @@ STUDENT-09, salt-okunur SCORE görünümüne renderer kanıtına bağlı etkile�
 - TAB ve CHORDS hiçbir zaman SCORE follow identity'sini devralmaz;
 - Student App edit/write authority kazanmaz.
 
-Pinned renderer revision: `3766fedf493e99d59ab43fa06c40c103b34ed2b7`.
+Pinned renderer revision: `a015f9049149037c48ac764ab30ed2bcbbe200d3`.
 Offline shell cache VIOLIN-02 ile `st-student-shell-v18`'dir; score-follow modüllerine ek olarak `violinFollowCoordinator.js`, `violinFingerboard.js` ve exact pinned `vendor/st-violin-learning/` runtime graph'ı same-origin static shell içinde cache edilir. Private Practice Package verisi Cache Storage'a girmez. Private Practice Package verisi Cache Storage'a taşınmaz.
 
 Chromium ve WebKit browser kabulü gerçek pinned renderer üzerinde note/rest/whitespace/outside/later-measure geometry, cursor, exact highlight ve network-free follow module import davranışını doğrular.

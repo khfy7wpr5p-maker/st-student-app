@@ -155,7 +155,7 @@ test("Piece Workspace is focus-mode with explicit back and capability-driven vie
     /data-action="select-piece-view"[^>]*data-piece-view="CHORDS"[^>]*>Akorlar<\/button>/s,
   );
   assert.doesNotMatch(html, />TAB<\/button>/);
-  assert.match(html, /<strong>Öğretmen notu<\/strong>/);
+  assert.match(html, /<details open[^>]*class="piece-teacher-note"[^>]*>[\s\S]*<summary>Öğretmen notu<\/summary>/);
   assert.match(html, /Parçayı yavaş çalış\./);
   assert.match(html, /id="st-score-root"/);
   assert.doesNotMatch(html, /class="student-navigation"/);
@@ -251,4 +251,21 @@ test("Piece Workspace shows TAB between Nota and Akorlar when exact TAB MusicXML
     (html.match(/id="st-score-root"/g) ?? []).length,
     1,
   );
+});
+
+test("Piece focus is presentation-only and keeps teacher notes and original view actions", () => {
+  for (const view of ["SCORE", "CHORDS"]) {
+    const html = renderStudentApp({
+      student08: true, screen: STUDENT_APP_SCREENS.PIECE_WORKSPACE,
+      session: { studentId: "student-a" }, items: [], practice: null,
+      chordBoard: null, pieceWorkspace: workspace(view),
+    });
+    assert.match(html, /data-action="toggle-piece-focus"/);
+    assert.match(html, /aria-pressed="false"/);
+    assert.equal((html.match(/Parçayı yavaş çalış\./g) ?? []).length, 1);
+    assert.match(html, /data-action="back-from-piece"/);
+    assert.match(html, /data-piece-view="SCORE"/);
+    assert.match(html, /data-piece-view="CHORDS"/);
+    assert.doesNotMatch(html, /Müziğin merkezinde kal|Keşfetmeye yer aç/);
+  }
 });

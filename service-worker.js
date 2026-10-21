@@ -1,5 +1,5 @@
 const CACHE_NAME = "st-student-shell-v18";
-const SHELL_CACHE_NAME = "st-student-shell-v33";
+const SHELL_CACHE_NAME = "st-student-shell-v40";
 const SAMPLE_CACHE_NAME = "st-student-samples-v1";
 const SAMPLE_CACHE_LIMIT = 96;
 const ACTIVE_CACHE_NAMES = new Set([
@@ -49,13 +49,26 @@ const SHELL_ASSETS = Object.freeze([
   "./src/ui/studentAppController.js",
   "./src/ui/studentPerfA.js",
   "./src/ui/mountStudentApp.js",
+  "./src/ui/pieceWorkspacePresentation.js",
+  "./src/ui/piece-workspace-fusion.css",
   "./src/ui/mountStudentAppPerfA.js",
   "./src/ui/renderStudentApp.js",
+  "./src/ui/renderStudentHome.js",
+  "./src/ui/student-home-fusion.css",
+  "./src/ui/student-work-fusion.css",
+  "./src/assets/work-fusion-music.svg",
+  "./src/assets/pool-fusion-music.svg",
+  "./src/assets/home-fusion-pool.svg",
+  "./src/assets/home-fusion-work.svg",
+  "./src/assets/fonts/knewave.woff",
+  "./src/assets/fonts/outfit-semibold.woff",
+  "./src/assets/fonts/outfit-bold.woff",
   "./src/ui/renderPracticeWorkspace.js",
   "./src/ui/shellActions.js",
   "./src/ui/escapeHtml.js",
   "./src/practice/notationAdapter.js",
   "./src/practice/notationViewport.js",
+  "./src/practice/notationCursorProjection.js",
   "./src/practice/notationRuntimeLoader.js",
   "./src/practice/scoreFollowIndex.js",
   "./src/practice/scoreFollowCoordinator.js",

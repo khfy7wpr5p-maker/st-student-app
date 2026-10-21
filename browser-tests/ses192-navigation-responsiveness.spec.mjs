@@ -178,7 +178,10 @@ test(
         true,
       );
 
-      await page.getByRole("button", { name: "Havuz" }).first().click();
+      const workMenu = page.locator('summary[aria-label="Öğrenci menüsü"]');
+      await workMenu.click();
+      assert.equal(await workMenu.evaluate((node) => node.parentElement.open), true);
+      await page.getByRole("button", { name: "Havuz", exact: true }).click();
       await poolHeading.waitFor();
       await loading.waitFor();
       await page.evaluate(() => globalThis.__ses192.resolve("pool", []));
@@ -189,6 +192,7 @@ test(
       await poolHeading.waitFor();
       assert.equal(await myWorkHeading.count(), 0);
 
+      await workMenu.click();
       await page.getByRole("button", { name: "Benim Çalışmalarım" }).click();
       await myWorkHeading.waitFor();
       await loading.waitFor();

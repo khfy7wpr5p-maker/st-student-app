@@ -41,6 +41,8 @@ test("real Smells source highlights notation and TAB with the production resolve
       // Drive the real coordinator with the unchanged production plan's clock.
       listener({ beat: playbackContext.plan.notes[0].startBeat });
       globalThis.__embeddedTabFollow = coordinator;
+      globalThis.__embeddedTabFollowPosition = listener;
+      globalThis.__embeddedTabFollowBeats = [...new Set(playbackContext.plan.notes.map(note => note.startBeat))].slice(1, 3);
       return { capability: render.capability, measures: playbackContext.plan.measures.length, notes: playbackContext.plan.notes.length };
     }, xml);
     assert.deepEqual(result, { capability: "AVAILABLE", measures: 17, notes: 150 });
@@ -58,6 +60,22 @@ test("real Smells source highlights notation and TAB with the production resolve
     );
     assert.ok(painted.some((item) => item.tab && item.orange && item.visible), "TAB fret glyph must be visibly orange");
     assert.ok(painted.some((item) => !item.tab && item.orange && item.visible), "notation notehead must be visibly orange");
+    // A real OSMD autoResize redraw replaces fret SVGs. Held/paused highlights
+    // and subsequent playback updates must target those new elements.
+    for (const [step, viewport] of [{ width: 844, height: 390 }, { width: 390, height: 680 }].entries()) {
+      await page.evaluate(() => { globalThis.__tabBeforeResize = document.querySelector('#st-score-root .vf-tabnote'); });
+      await page.setViewportSize(viewport);
+      await page.waitForFunction(() => globalThis.__tabBeforeResize?.isConnected === false);
+      await page.waitForFunction(() => document.querySelector('#st-score-root .vf-tabnote[data-st-score-highlight="true"]') && document.querySelector('#st-score-root [data-st-score-highlight="true"]:not(.vf-tabnote)'));
+      const orange = await page.locator('#st-score-root [data-st-score-highlight="true"]').evaluateAll(elements =>
+        elements.every(el => el.getAttribute('fill') === '#ff8c00' && el.getAttribute('stroke') === '#ff8c00'));
+      assert.equal(orange, true, 'orange state survives redraw without a new position tick');
+      await page.evaluate(index => {
+        globalThis.__tabBeforeTick = document.querySelector('#st-score-root .vf-tabnote[data-st-score-highlight="true"]');
+        globalThis.__embeddedTabFollowPosition({ beat: globalThis.__embeddedTabFollowBeats[index] });
+      }, step);
+      await page.waitForFunction(() => globalThis.__tabBeforeTick.getAttribute('data-st-score-highlight') !== 'true' && document.querySelector('#st-score-root .vf-tabnote[data-st-score-highlight="true"]'));
+    }
     await page.evaluate(() => globalThis.__embeddedTabFollow.clear());
     assert.equal(await page.locator('#st-score-root [data-st-score-highlight="true"]').count(), 0);
     assert.deepEqual(errors, []);

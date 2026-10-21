@@ -32,10 +32,10 @@ const SCORE_XML_A =
   '<direction placement="above"><direction-type><metronome>' +
   '<beat-unit>quarter</beat-unit><per-minute>60</per-minute>' +
   '</metronome></direction-type><sound tempo="60"/></direction>' +
-  '<note><pitch><step>C</step><octave>4</octave></pitch><duration>1</duration><type>quarter</type></note>' +
-  '<note><pitch><step>E</step><octave>4</octave></pitch><duration>1</duration><type>quarter</type></note>' +
-  '<note><pitch><step>G</step><octave>4</octave></pitch><duration>1</duration><type>quarter</type></note>' +
-  '<note><pitch><step>C</step><octave>5</octave></pitch><duration>1</duration><type>quarter</type></note>' +
+  '<note><pitch><step>C</step><octave>4</octave></pitch><duration>1</duration><voice>1</voice><type>quarter</type></note>' +
+  '<note><pitch><step>E</step><octave>4</octave></pitch><duration>1</duration><voice>1</voice><type>quarter</type></note>' +
+  '<note><pitch><step>G</step><octave>4</octave></pitch><duration>1</duration><voice>1</voice><type>quarter</type></note>' +
+  '<note><pitch><step>C</step><octave>5</octave></pitch><duration>1</duration><voice>1</voice><type>quarter</type></note>' +
   '</measure></part></score-partwise>';
 
 const TAB_XML_A =

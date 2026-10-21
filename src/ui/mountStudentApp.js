@@ -1,6 +1,7 @@
+import { createPieceWorkspacePresentation } from "./pieceWorkspacePresentation.js";
 import { CONNECTIVITY_STATES } from "../offline/connectivityPort.js";
 import { PRACTICE_CAPABILITY_STATES } from "../practice/practiceCapabilities.js";
-import { fitNotationViewport } from "../practice/notationViewport.js";
+import { ensureNotationViewBoxes, fitNotationViewport } from "../practice/notationViewport.js";
 import { STUDENT_APP_SCREENS } from "./studentAppController.js";
 import { renderStudentApp } from "./renderStudentApp.js";
 import { dispatchStudentAppAction } from "./shellActions.js";
@@ -168,6 +169,7 @@ export function mountStudentApp({
     throw new TypeError("student app root element is required");
   }
 
+  const piecePresentation = createPieceWorkspacePresentation(root);
   let status = "";
   let connectivityState =
     connectivityPort?.getState?.() === CONNECTIVITY_STATES.OFFLINE
@@ -201,10 +203,14 @@ export function mountStudentApp({
       markup !== lastMarkup ||
       presentationKey !== lastPresentationKey
     ) {
-      const focusIdentity =
-        presentationKey === lastPresentationKey
-          ? focusedActionIdentity(root)
-          : null;
+      piecePresentation.captureScroll();
+      const samePresentation = presentationKey === lastPresentationKey;
+      const focusIdentity = samePresentation ? focusedActionIdentity(root) : null;
+      const oldInput = samePresentation && state.screen === STUDENT_APP_SCREENS.WORK_REQUEST
+        ? root.querySelector?.("[data-work-request-title]") : null;
+      const inputFocus = oldInput && root.ownerDocument?.activeElement === oldInput
+        ? { start: oldInput.selectionStart, end: oldInput.selectionEnd, direction: oldInput.selectionDirection }
+        : null;
 
       const liveNotationRoot = root.querySelector?.("#st-score-root") ?? null;
 
@@ -252,11 +258,16 @@ export function mountStudentApp({
       }
 
       restoreFocusedAction(root, focusIdentity);
+      if (inputFocus) {
+        const input = root.querySelector?.("[data-work-request-title]");
+        input?.focus?.({ preventScroll: true });
+        input?.setSelectionRange?.(inputFocus.start, inputFocus.end, inputFocus.direction);
+      }
       lastMarkup = markup;
       lastPresentationKey = presentationKey;
       domGeneration += 1;
+      piecePresentation.synchronize(state);
     }
-
     return Object.freeze({
       state,
       generation: domGeneration,
@@ -687,6 +698,9 @@ export function mountStudentApp({
 
     if (capability === PRACTICE_CAPABILITY_STATES.AVAILABLE) {
       try {
+        if (state.screen === STUDENT_APP_SCREENS.PIECE_WORKSPACE) {
+          ensureNotationViewBoxes(persistentNotationRoot);
+        }
         fitNotationViewport(persistentNotationRoot, {
           viewportWidth: root.ownerDocument?.defaultView?.innerWidth,
         });
@@ -785,6 +799,16 @@ export function mountStudentApp({
     }
 
     const action = actionElement.dataset.action;
+    if (actionElement.disabled === true) return;
+    if (action === "toggle-piece-focus") {
+      piecePresentation.toggle();
+      return;
+    }
+    if (["decrease-piece-notation", "increase-piece-notation", "fit-piece-notation"].includes(action)) {
+      piecePresentation.resizeNotation(action);
+      return;
+    }
+    if (action === "submit-work-request") event.preventDefault?.();
     const publicationId = actionElement.dataset.publicationId;
     const poolItemId = actionElement.dataset.poolItemId;
     const assignmentId = actionElement.dataset.assignmentId;
@@ -824,7 +848,7 @@ export function mountStudentApp({
 
     try {
       status = "";
-      await dispatchStudentAppAction({
+      const result = dispatchStudentAppAction({
         action,
         publicationId,
         poolItemId,
@@ -841,11 +865,34 @@ export function mountStudentApp({
         requestSignIn,
         requestSignOut,
       });
+      if (action === "show-work-request" || action === "submit-work-request" || action === "refresh-work-request-pool") paint();
+      const formId = controller.getState().workRequestFormId;
+      await result;
+      if (controller.getState().screen === STUDENT_APP_SCREENS.WORK_REQUEST &&
+          controller.getState().workRequestFormId === formId &&
+          (action === "show-work-request" || (action === "submit-work-request" && controller.getState().workRequestStatus === "success"))) {
+        const loading = controller.loadWorkRequestPool?.();
+        paint();
+        await loading;
+      }
     } catch (error) {
       status = statusForActionError(action, error);
     }
 
     return render();
+  }
+
+  function onInput(event) {
+    if (event.target?.matches?.("[data-work-request-title]") && root.contains(event.target)) {
+      controller.setWorkRequestDraft?.(event.target.value);
+    }
+  }
+
+  function onSubmit(event) {
+    if (!event.target?.matches?.("[data-work-request-form]")) return;
+    event.preventDefault();
+    const button = event.target.querySelector?.('[data-action="submit-work-request"]');
+    if (button) return onClick({ target: button, preventDefault() {} });
   }
 
   function onConnectivityChange(nextState) {
@@ -912,6 +959,8 @@ export function mountStudentApp({
   }
 
   root.addEventListener("click", onClick);
+  root.addEventListener("input", onInput);
+  root.addEventListener("submit", onSubmit);
   render();
 
   return Object.freeze({
@@ -923,7 +972,10 @@ export function mountStudentApp({
       }
 
       destroyed = true;
+      piecePresentation.dispose();
       root.removeEventListener("click", onClick);
+      root.removeEventListener("input", onInput);
+      root.removeEventListener("submit", onSubmit);
 
       try {
         controller.disposeActivePractice?.();

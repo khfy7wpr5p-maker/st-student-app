@@ -1,3 +1,5 @@
+> Tarihsel snapshot: Güncel 21 Ekim 2026 incelemesi ve açık uyumsuzluklar [buradadır](student-teacher-ui-compatibility-2026-10-21.md). Bu kayıt kendi tarihindeki kanıtı korur.
+
 # ST Student — Kanıta Dayalı Güncel Proje Durumu (19 Ekim 2026)
 
 > **Belge türü:** Güncel kod ve görev senkronizasyonu. Aşağıdaki 'merged' yalnız GitHub durumu anlamına gelir; iPhone cihazı, PWA/offline cache, production bundle veya gerçek öğrenci hesabındaki davranışın kesin kabulü olarak yorumlanamaz. Bu belge dışında uygulama kodu ya da üretim altyapısı değiştirilmedi.
@@ -47,3 +49,4 @@
 ## Kaynak gerçeği
 
 Protected main ve exact runtime kanıtı, eski roadmap/draft metinlerinden üstündür. Eski kayıtlar silinmez; güncellenirken 'tarihsel baseline' olarak işaretlenir.
+

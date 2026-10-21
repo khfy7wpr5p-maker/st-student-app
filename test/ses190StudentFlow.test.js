@@ -290,7 +290,7 @@ test("SES-190 renderer keeps controls compact, accessible, escaped, and read-onl
     practice: null,
   });
   assert.match(workHtml, /data-action="show-work-request"[^>]*>Eser İste</);
-  assert.match(workHtml, /data-action="show-shared-request-pool"[^>]*>Havuz</);
+  assert.doesNotMatch(workHtml, /data-action="show-shared-request-pool"/);
   assert.match(workHtml, /Aktif Çalışmalar/);
   assert.match(workHtml, /Repertuarım/);
 
@@ -303,6 +303,7 @@ test("SES-190 renderer keeps controls compact, accessible, escaped, and read-onl
     workRequestStatus: "success",
   });
   assert.match(formHtml, /Eser adı/);
+  assert.match(formHtml, /Bekleyen Eser İstekleri/);
   assert.match(formHtml, /data-work-request-title/);
   assert.match(formHtml, /data-action="submit-work-request"[^>]*>Gönder</);
   assert.match(formHtml, /role="status"[^>]*aria-live="polite"/);
