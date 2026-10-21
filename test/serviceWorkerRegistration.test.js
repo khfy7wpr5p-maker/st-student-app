@@ -77,7 +77,7 @@ test("service worker caches explicit app-shell and playback assets plus pinned F
   );
 
   assert.match(source, /st-student-shell-v18/);
-  assert.match(source, /st-student-shell-v39/);
+  assert.match(source, /st-student-shell-v40/);
   assert.match(source, /self\.skipWaiting\(\)/);
   assert.match(source, /self\.clients\.claim\(\)/);
   assert.match(source, /index\.html/);
@@ -90,6 +90,7 @@ test("service worker caches explicit app-shell and playback assets plus pinned F
   assert.match(source, /assets\/st-student-icon-512\.png/);
   assert.match(source, /assets\/st-student-apple-touch-icon\.png/);
   assert.match(source, /src\/practice\/notationViewport\.js/);
+  assert.match(source, /src\/practice\/notationCursorProjection\.js/);
   assert.match(source, /src\/practice\/scoreFollowIndex\.js/);
   assert.match(source, /src\/practice\/scoreFollowCoordinator\.js/);
   assert.match(source, /request\.method\s*!==\s*["']GET["']/);
@@ -122,7 +123,7 @@ test("Student shell is installed atomically into v39 and stale prior shell cache
 
   assert.match(
     source,
-    /const SHELL_CACHE_NAME = "st-student-shell-v39"/,
+    /const SHELL_CACHE_NAME = "st-student-shell-v40"/,
   );
   assert.match(
     source,

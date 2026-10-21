@@ -1,5 +1,7 @@
 // Local view state only: never dispatches a domain action or redraws notation.
 // Scale the SVG viewport, not the page or the renderer's musical identities.
+import { createNotationCursorProjection } from '../practice/notationCursorProjection.js';
+
 export function createPieceWorkspacePresentation(root) {
   let pieceId = null;
   let focusMode = false;
@@ -7,6 +9,8 @@ export function createPieceWorkspacePresentation(root) {
   let noteOpen = true;
   const notationSizes = new Map();
   const scrollPositions = new Map();
+  let cursorRoot = null;
+  let cursorProjection = null;
 
   function scrollPanel() {
     return root.querySelector?.('.piece-score-panel:not([hidden]) .practice-notation') ??
@@ -40,6 +44,13 @@ export function createPieceWorkspacePresentation(root) {
     const size = notationSizes.get(activeView) ?? 100;
     const panel = root.querySelector?.('.piece-score-panel:not([hidden])');
     panel?.style?.setProperty('--piece-notation-width', `${size}%`);
+    const nextCursorRoot = panel?.querySelector?.('#st-score-root') ?? null;
+    if (nextCursorRoot !== cursorRoot) {
+      cursorProjection?.dispose();
+      cursorRoot = nextCursorRoot;
+      cursorProjection = cursorRoot ? createNotationCursorProjection(cursorRoot) : null;
+    }
+    cursorProjection?.refresh();
     const output = root.querySelector?.('[data-piece-notation-size]');
     if (output) output.textContent = `${size}%`;
     const decrease = root.querySelector?.('[data-action="decrease-piece-notation"]');
@@ -70,6 +81,11 @@ export function createPieceWorkspacePresentation(root) {
   return Object.freeze({
     captureScroll,
     synchronize,
+    dispose() {
+      cursorProjection?.dispose();
+      cursorProjection = null;
+      cursorRoot = null;
+    },
     resizeNotation(action) {
       if (pieceId === null || !['SCORE', 'TAB'].includes(activeView)) return;
       const size = notationSizes.get(activeView) ?? 100;
