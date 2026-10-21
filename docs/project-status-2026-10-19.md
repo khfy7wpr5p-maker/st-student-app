@@ -49,4 +49,3 @@
 ## Kaynak gerçeği
 
 Protected main ve exact runtime kanıtı, eski roadmap/draft metinlerinden üstündür. Eski kayıtlar silinmez; güncellenirken 'tarihsel baseline' olarak işaretlenir.
-
