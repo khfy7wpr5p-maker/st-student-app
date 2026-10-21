@@ -196,7 +196,7 @@ async function startStandardStudentApp() {
   void sampleBankReadiness.then(async (ready) => {
     if (ready !== true) return;
     await controller.recoverActivePracticePlayback();
-    mounted.render();
+    await mounted.render();
   }).catch(() => {});
 
   firebaseRuntime.authAdapter.subscribe((session) => {
@@ -208,14 +208,14 @@ async function startStandardStudentApp() {
     if (session === null) {
       if (currentSession !== null) {
         controller.signOut();
-        mounted.render();
+        void mounted.render().catch(() => {});
       }
       return;
     }
 
     if (currentSession?.studentId !== session.studentId) {
       controller.attachSession(session);
-      mounted.render();
+      void mounted.render().catch(() => {});
     }
   });
 }

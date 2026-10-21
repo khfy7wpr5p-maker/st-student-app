@@ -68,7 +68,7 @@ for (const outcome of ["ready", "failed"]) {
       mountStudentApp() {
         mounted = true;
         controller.openPractice("pub-a");
-        return { render() { renders += 1; } };
+        return { async render() { renders += 1; } };
       },
       registerStudentAppServiceWorker: async () => {},
     };
