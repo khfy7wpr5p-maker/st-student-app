@@ -972,6 +972,7 @@ export function mountStudentApp({
       }
 
       destroyed = true;
+      piecePresentation.dispose();
       root.removeEventListener("click", onClick);
       root.removeEventListener("input", onInput);
       root.removeEventListener("submit", onSubmit);

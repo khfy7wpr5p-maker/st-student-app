@@ -4,6 +4,39 @@ import { readFile } from 'node:fs/promises';
 import { chromium, webkit } from 'playwright';
 import { startRepositoryStaticServer } from './support/static-server.mjs';
 
+async function assertCursorAligned(page) {
+  await page.waitForFunction(() => {
+    const cursor = document.querySelector('#st-score-root img[id^="cursorImg-"]');
+    const svg = cursor?.parentElement?.querySelector('svg');
+    const matrix = svg?.getScreenCTM();
+    if (!cursor || !matrix || getComputedStyle(cursor).display === 'none') return false;
+    const expected = new DOMPoint(Number.parseFloat(cursor.style.left), Number.parseFloat(cursor.style.top)).matrixTransform(matrix);
+    const actual = cursor.getBoundingClientRect();
+    return Math.abs(actual.left - expected.x) < 1 && Math.abs(actual.top - expected.y) < 1 &&
+      Math.abs(actual.width - cursor.width * matrix.a) < 1 && Math.abs(actual.height - cursor.height * matrix.d) < 1;
+  }, null, { timeout: 10000 });
+}
+
+async function checkHeldCursorSizing(page) {
+  await assertCursorAligned(page);
+  const cursor = page.locator('#st-score-root img[id^="cursorImg-"]').first();
+  const baseline = await cursor.boundingBox();
+  const svg = page.locator('#st-score-root svg').first();
+  const svgBaseline = await svg.boundingBox();
+  for (const [label, count] of [['Notayı küçült', 5], ['Notayı büyüt', 9]]) {
+    for (let i = 0; i < count; i++) await page.getByRole('button', { name: label, exact: true }).click();
+    await assertCursorAligned(page);
+    const box = await cursor.boundingBox();
+    const svgBox = await svg.boundingBox();
+    const ratio = svgBox.width / svgBaseline.width;
+    assert.ok(Math.abs(box.height / baseline.height - ratio) < 0.02, 'held green cursor scales with the score');
+    assert.ok(Math.abs(box.width / baseline.width - ratio) < 0.02, 'held green cursor width scales with the score');
+    assert.ok(await page.locator('#st-score-root [data-st-score-highlight="true"]').count() > 0, 'orange note follow survives sizing');
+  }
+  await page.getByRole('button', { name: 'Genişliğe sığdır', exact: true }).click();
+  await assertCursorAligned(page);
+}
+
 test('Piece layout keeps real notation, follow, controls and teacher note across focus and chord views', { timeout: 90000 }, async () => {
   const server = await startRepositoryStaticServer();
   let browser;
@@ -49,6 +82,7 @@ test('Piece layout keeps real notation, follow, controls and teacher note across
     await page.getByRole('button', { name: 'Dinle', exact: true }).click();
     await page.waitForFunction(() => document.querySelector('#st-score-root [data-st-score-highlight="true"]'));
     await page.getByRole('button', { name: 'Duraklat', exact: true }).click();
+    await checkHeldCursorSizing(page);
     await page.getByLabel('Tempo', { exact: true }).fill('72');
     await page.getByRole('button', { name: 'Tempoyu uygula', exact: true }).click();
     assert.equal(await page.getByLabel('Tempo', { exact: true }).inputValue(), '72');
@@ -74,6 +108,17 @@ test('Piece layout keeps real notation, follow, controls and teacher note across
     assert.equal(await page.locator('.piece-workspace').getAttribute('data-focus-mode'), 'true');
     await page.getByRole('tab', { name: 'TAB', exact: true }).click();
     await page.locator('#st-score-root .vf-tabnote').first().waitFor();
+    await page.getByRole('button', { name: 'Dinle', exact: true }).click();
+    await page.waitForFunction(() => document.querySelector('#st-score-root [data-st-score-highlight="true"]'));
+    await page.getByRole('button', { name: 'Duraklat', exact: true }).click();
+    await checkHeldCursorSizing(page);
+    for (const [width, height] of [[844, 390], [390, 680]]) {
+      await page.setViewportSize({ width, height });
+      await assertCursorAligned(page);
+    }
+    await page.getByRole('button', { name: 'Dinle', exact: true }).click();
+    await assertCursorAligned(page);
+    await page.getByRole('button', { name: 'Duraklat', exact: true }).click();
     await keepSvg();
     await page.getByRole('button', { name: 'Odaktan çık', exact: true }).click();
     assert.equal(await page.evaluate(() => window.pieceSvg === document.querySelector('#st-score-root svg')), true);
