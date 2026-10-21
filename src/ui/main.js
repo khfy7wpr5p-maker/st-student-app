@@ -119,7 +119,9 @@ async function startStandardStudentApp() {
     usageReporter: accountUsageReporter,
   });
 
-  void accountLifecycle.handleSession(initialSession);
+  void accountLifecycle.handleSession(initialSession).catch(() => {
+    // Presence and usage are informational; never block auth or expose provider errors.
+  });
   globalThis.addEventListener?.(
     "pagehide",
     () => {
@@ -198,7 +200,9 @@ async function startStandardStudentApp() {
   }).catch(() => {});
 
   firebaseRuntime.authAdapter.subscribe((session) => {
-    void accountLifecycle.handleSession(session);
+    void accountLifecycle.handleSession(session).catch(() => {
+      // Presence and usage are informational; never block auth or expose provider errors.
+    });
     const currentSession = controller.getState().session;
 
     if (session === null) {
