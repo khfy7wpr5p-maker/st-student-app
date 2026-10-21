@@ -145,49 +145,23 @@ test("installed stale v20–v40 shells migrate atomically to v41 and reopen offl
     );
   }
 
-  entriesFor("st-student-shell-v32").set(
-    "https://student.example/src/ui/main.js",
-    makeResponse("bootstrap-before-background-audio-initialization"),
-  );
-
-  entriesFor("st-student-shell-v33").set(
-    "https://student.example/src/ui/renderStudentApp.js",
-    makeResponse("before-fusion-home"),
-  );
-  entriesFor("st-student-shell-v34").set(
-    "https://student.example/src/ui/renderStudentApp.js",
-    makeResponse("before-work-fusion"),
-  );
-
-  entriesFor("st-student-shell-v35").set(
-    "https://student.example/src/ui/renderStudentApp.js",
-    makeResponse("before-pool-fusion"),
-  );
-
-  entriesFor("st-student-shell-v36").set(
-    "https://student.example/src/ui/renderPieceWorkspace.js",
-    makeResponse("before-piece-workspace-fusion"),
-  );
-
-  entriesFor("st-student-shell-v37").set(
-    "https://student.example/src/ui/piece-workspace-fusion.css",
-    makeResponse("before-mobile-piece-reading"),
-  );
-
-  entriesFor("st-student-shell-v38").set(
-    "https://student.example/vendor/st-score-runtime/modules/adapter-osmd.js",
-    makeResponse("before-tab-resize-follow"),
-  );
-
-  entriesFor("st-student-shell-v39").set(
-    "https://student.example/src/ui/pieceWorkspacePresentation.js",
-    makeResponse("before-green-cursor-projection"),
-  );
-
-  entriesFor("st-student-shell-v40").set(
-    "https://student.example/src/ui/main.js",
-    makeResponse("before-account-lifecycle-rejection-handlers"),
-  );
+  const staleShellFixtures = [
+    [32, "src/ui/main.js", "bootstrap-before-background-audio-initialization"],
+    [33, "src/ui/renderStudentApp.js", "before-fusion-home"],
+    [34, "src/ui/renderStudentApp.js", "before-work-fusion"],
+    [35, "src/ui/renderStudentApp.js", "before-pool-fusion"],
+    [36, "src/ui/renderPieceWorkspace.js", "before-piece-workspace-fusion"],
+    [37, "src/ui/piece-workspace-fusion.css", "before-mobile-piece-reading"],
+    [38, "vendor/st-score-runtime/modules/adapter-osmd.js", "before-tab-resize-follow"],
+    [39, "src/ui/pieceWorkspacePresentation.js", "before-green-cursor-projection"],
+    [40, "src/ui/main.js", "before-account-lifecycle-rejection-handlers"],
+  ];
+  for (const [version, asset, body] of staleShellFixtures) {
+    entriesFor(`st-student-shell-v${version}`).set(
+      new URL(asset, SCOPE).href,
+      makeResponse(body),
+    );
+  }
 
   const cachesObject = {
     async open(name) {
