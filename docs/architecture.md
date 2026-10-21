@@ -1,5 +1,18 @@
 # ST Student App v1 Mimari Sözleşmesi
 
+## Güncel uygulama sınırı — 21 Ekim 2026
+
+Güncel ve tarihli kaynak: [Student/Teacher arayüz kapanışı ve uyumluluk incelemesi](student-teacher-ui-compatibility-2026-10-21.md). Aşağıdaki numaralı geliştirme aşamaları tarihsel kararları da içerir; eski commit/cache değerleri güncel sürümün yerine kullanılmaz.
+
+- Uygulama referansı `a958dc077c822b3b6c31b51f283fad5d5b13439d`; renderer `a015f9049149037c48ac764ab30ed2bcbbe200d3`, contract `0.2.0`, OSMD `2.1.2`; shell `st-student-shell-v40`.
+- Giriş sonrası ana ekran, Havuz, Çalışmalarım, Eser İste ve Piece çalışma ekranı ayrı sunum yüzeyleridir. Çalışmalarım ACTIVE / COMPLETED / REPERTOIRE ayrımını ve kimlikli eser bağlantılarını korur.
+- Piece Nota/TAB/Akorlar görünümlerinde mevcut içerik ve öğretmen notu korunur. Odak, ayrı %60–150 nota boyutu ve telefonda erişilebilir transport sunum durumudur; öğretmen lifecycle veya müzik kaynağı üzerinde write authority değildir.
+- SCORE ve TAB exact source/render kanıtıyla ölçü imleci ve turuncu event takibi kullanabilir. CHORDS, SCORE event authority'sini devralmaz. `StudentPlaybackPort` tek müzikal zaman kaynağıdır.
+- OSMD autoResize sonrası turuncu ownership/highlight tekrar kurulur. Yeşil HTML imleç `notationCursorProjection.js` ile SVG ekran matrisine projekte edilir; native OSMD koordinatları, MusicXML ve ses saati değiştirilmez. Observer/animation-frame yalnız görsel yerleşim içindir ve teardown'da temizlenir.
+- Kalıcı endpoint'ler Student `https://st-student-app.onrender.com` ve API `https://st-student-api.onrender.com/api/secure-delivery/v1` olarak kalır. Private paketler IndexedDB'de; yalnız statik asset graph Service Worker cache'indedir.
+- Bilinen entegrasyon hatası: Bekleyen Eser İstekleri için Student'ın çağırdığı authenticated GET route'u mevcut backend'de eksiktir; canlı 404 [SES-243](https://linear.app/seslitab/issue/SES-243). Domain metodunun mevcut olması HTTP entegrasyonunun tamamlandığını kanıtlamaz.
+- Fiziksel iPhone/PWA/VoiceOver ve gerçek teacher/student istek round-trip kabulü [SES-242](https://linear.app/seslitab/issue/SES-242) altında ayrı kalır. Otomatik tarayıcı PASS cihaz kabulü sayılmaz.
+
 ## 1. Amaç
 
 ST Student App, öğretmenin SesliTab içinde düzenleyip onayladığı çalışmayı öğrencinin hesabında açar. Öğrenci OMR, MusicXML düzenleme veya öğretmen editörüyle uğraşmaz.
@@ -629,9 +642,9 @@ Interactive score follow yalnız aktif SCORE presentation için oluşturulur. Co
 - aktif package mevcutsa;
 - render source `musicxml` ise;
 - render source `sourceId` exact package identity ile eşleşiyorsa;
-- Piece Workspace görünümü SCORE ise
+- Piece Workspace görünümü SCORE veya TAB ise
 
-kaynak döndürür. TAB ve CHORDS bu kaynağı alamaz.
+kaynak döndürür. TAB için aktif görünümün exact render kaynağı kullanılır; CHORDS bu kaynağı alamaz. Farklı XML'lerin event kimliği/timing eşleşmiyorsa turuncu takip fail-closed kalır.
 
 Renderer interaction authority iki kanıtla sınırlandırılır:
 
@@ -665,17 +678,17 @@ Bu ayrım playback kalitesinin (`FULL` / `APPROXIMATE`) tek başına highlight a
 
 ### Renderer ve offline invariantları
 
-Accepted Rendering Layer revision:
+Güncel accepted Rendering Layer revision (21 Ekim 2026):
 
-`3766fedf493e99d59ab43fa06c40c103b34ed2b7`
+`a015f9049149037c48ac764ab30ed2bcbbe200d3`
 
 Renderer public contract `0.2.0` değiştirilmez.
 
-Service Worker shell cache:
+Güncel Service Worker shell cache:
 
-`st-student-shell-v18`
+`st-student-shell-v40`
 
-v18 static shell şu follow graph'ını taşır:
+İlk v18 follow graph'ı güncel shell'de korunur; v40 ayrıca Piece sunumu ve cursor projection modülünü taşır:
 
 - `src/practice/scoreFollowIndex.js`
 - `src/practice/scoreFollowCoordinator.js`

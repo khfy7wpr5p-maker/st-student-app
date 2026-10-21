@@ -1,5 +1,7 @@
 # ST Student App
 
+> **21 Ekim 2026 güncel mimari ve arayüz kapanışı:** [Teacher/Student uyumluluk matrisi, canlı yayın ve açık hata/kabul kayıtları](docs/student-teacher-ui-compatibility-2026-10-21.md). Güncel uygulama referansı `a958dc0`, renderer source `a015f904`, contract `0.2.0`, OSMD `2.1.2`, shell `v40`. Aşağıdaki önceki aşama pin/test anlatımları tarihsel kanıttır. [19 Ekim durum kaydı](docs/project-status-2026-10-19.md) korunmuştur.
+
 ST Student App, SesliTab öğretmen uygulamasında hazırlanıp **öğretmen tarafından onaylanan** çalışmaların öğrenci tarafından erişilebilir ve salt-okunur biçimde kullanılacağı uygulamadır.
 
 ## MVP akışı
