@@ -4,6 +4,19 @@ import { readFile } from 'node:fs/promises';
 import { chromium, webkit } from 'playwright';
 import { startRepositoryStaticServer } from './support/static-server.mjs';
 
+async function resizeAndWaitForNotation(page, viewport) {
+  const previousSvg = await page.locator('#st-score-root svg').first().elementHandle();
+  try {
+    await page.setViewportSize(viewport);
+    // OSMD debounces window resize. Wait for that redraw before testing
+    // focus-only SVG identity, which must still remain unchanged.
+    await page.waitForFunction(element => !element.isConnected, previousSvg, { timeout: 10000 });
+    await page.locator('#st-score-root svg').first().waitFor();
+  } finally {
+    await previousSvg.dispose();
+  }
+}
+
 async function assertCursorAligned(page) {
   await page.waitForFunction(() => {
     const cursor = document.querySelector('#st-score-root img[id^="cursorImg-"]');
@@ -91,12 +104,12 @@ test('Piece layout keeps real notation, follow, controls and teacher note across
     await page.getByLabel('Ölçü tekrarını aç', { exact: true }).check();
     assert.equal(await page.getByLabel('Ölçü tekrarını aç', { exact: true }).isChecked(), true);
     for (const [width, height] of [[320, 568], [390, 680], [768, 844], [1280, 844], [844, 390], [568, 320]]) {
-      await page.setViewportSize({ width, height });
+      await resizeAndWaitForNotation(page, { width, height });
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `no horizontal overflow at ${width}`);
       const controls = await page.locator('.practice-playback').boundingBox();
       assert.ok(controls.y >= 0 && controls.y + controls.height <= height + 1, `visible playback controls at ${width}x${height}`);
     }
-    await page.setViewportSize({ width: 390, height: 844 });
+    await resizeAndWaitForNotation(page, { width: 390, height: 844 });
     await page.getByRole('button', { name: 'Odaktan çık', exact: true }).click();
     await page.getByRole('tab', { name: 'Akorlar', exact: true }).click();
     assert.equal(await note.innerText(), teacherText);
