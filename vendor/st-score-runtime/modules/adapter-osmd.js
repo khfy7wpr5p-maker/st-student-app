@@ -114,6 +114,7 @@ export class OsmdRenderer {
     }
     async load(source) {
         validateScoreSource(source);
+        this.#rendered = false;
         await this.clearHighlights();
         await this.clearMeasureHighlights();
         this.#resetHitTestIndex();
@@ -135,6 +136,7 @@ export class OsmdRenderer {
             drawComposer: options.drawComposer ?? true,
             pageFormat: options.pageMode === "page" ? "A4 P" : "Endless",
         });
+        this.#rendered = false;
         osmd.render();
         this.#rendered = true;
         try {
@@ -303,6 +305,9 @@ export class OsmdRenderer {
     }
     async highlight(highlight) {
         this.#requireRendered("highlight()");
+        this.#paintHighlight(highlight);
+    }
+    #paintHighlight(highlight) {
         const className = highlight.className ?? DEFAULT_HIGHLIGHT_CLASS;
         if (!HIGHLIGHT_CLASS_PATTERN.test(className)) {
             throw new Error("Highlight className must be one safe CSS class token of at most 64 characters.");
@@ -325,7 +330,7 @@ export class OsmdRenderer {
             target.element.setAttribute("fill", "#ff8c00");
             target.element.setAttribute("stroke", "#ff8c00");
         }
-        this.#highlighted.set(element, Object.freeze({ className, painted: Object.freeze(painted) }));
+        this.#highlighted.set(element, Object.freeze({ target: Object.freeze({ ...highlight.target }), className, painted: Object.freeze(painted) }));
     }
     async clearHighlights() {
         for (const [element, state] of this.#highlighted)
@@ -434,6 +439,7 @@ export class OsmdRenderer {
         if (!osmd.updateGraphic)
             throw new Error("OSMD updateGraphic() is unavailable for part visibility changes.");
         osmd.updateGraphic();
+        this.#rendered = false;
         osmd.render();
         this.#rendered = true;
         try {
@@ -446,6 +452,7 @@ export class OsmdRenderer {
         }
     }
     async dispose() {
+        this.#rendered = false;
         await this.clearHighlights();
         await this.clearMeasureHighlights();
         this.#resetHitTestIndex();
@@ -455,8 +462,49 @@ export class OsmdRenderer {
         this.#rendered = false;
     }
     #ensureOsmd() {
-        if (this.#osmd === undefined)
-            this.#osmd = this.#factory(this.#container);
+        if (this.#osmd === undefined) {
+            const osmd = this.#factory(this.#container);
+            const render = osmd.render.bind(osmd);
+            // OSMD autoResize calls its own render(), bypassing this adapter's render().
+            // Observe that instance boundary so new SVGs receive fresh ownership and
+            // held/paused highlights, even without another playback position update.
+            osmd.render = () => {
+                if (this.#osmd !== osmd)
+                    return;
+                const highlights = this.#rendered ? [...this.#highlighted.values()] : null;
+                if (highlights !== null) {
+                    this.#rendered = false;
+                    for (const [element, state] of this.#highlighted)
+                        this.#restoreNoteHighlight(element, state);
+                    this.#highlighted.clear();
+                    this.#resetHitTestIndex();
+                }
+                render();
+                if (highlights === null)
+                    return; // Explicit renders refresh their indexes below.
+                try {
+                    this.#rebuildHitTestIndex();
+                    this.#rendered = true;
+                }
+                catch (error) {
+                    this.#resetHitTestIndex();
+                    throw error;
+                }
+                for (const highlight of highlights) {
+                    try {
+                        this.#paintHighlight(highlight);
+                    }
+                    catch {
+                        // Never partially restore an ambiguous/stale set after a redraw.
+                        for (const [element, state] of this.#highlighted)
+                            this.#restoreNoteHighlight(element, state);
+                        this.#highlighted.clear();
+                        break;
+                    }
+                }
+            };
+            this.#osmd = osmd;
+        }
         return this.#osmd;
     }
     #requireRendered(operation) {
