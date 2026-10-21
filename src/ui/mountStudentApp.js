@@ -749,7 +749,7 @@ export function mountStudentApp({
         ? controller.getPracticeRenderSource?.() ?? null
         : null;
 
-    lifecycle = lifecycle.then(async () => {
+    const renderPromise = lifecycle.then(async () => {
       await synchronizeNotation({
         state: snapshot.state,
         renderSource,
@@ -763,7 +763,10 @@ export function mountStudentApp({
       });
     });
 
-    return lifecycle;
+    // Keep later rendering and teardown usable while preserving this
+    // render's rejection for callers that explicitly await it.
+    lifecycle = renderPromise.catch(() => {});
+    return renderPromise;
   }
 
   async function onClick(event) {
@@ -944,9 +947,10 @@ export function mountStudentApp({
       .catch(() => null)
       .finally(() => {
         if (!destroyed) {
-          render();
+          return render();
         }
-      });
+      })
+      .catch(() => {});
   }
 
   if (typeof connectivityPort?.subscribe === "function") {
@@ -961,7 +965,7 @@ export function mountStudentApp({
   root.addEventListener("click", onClick);
   root.addEventListener("input", onInput);
   root.addEventListener("submit", onSubmit);
-  render();
+  void render().catch(() => {});
 
   return Object.freeze({
     render,
