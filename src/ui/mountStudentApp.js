@@ -259,6 +259,8 @@ export function mountStudentApp({
         }
       }
 
+      // Reopen retained detail before focusing its replacement controls.
+      violinDock.synchronize(presentationKey);
       restoreFocusedAction(root, focusIdentity);
       if (inputFocus) {
         const input = root.querySelector?.("[data-work-request-title]");
@@ -269,7 +271,6 @@ export function mountStudentApp({
       lastPresentationKey = presentationKey;
       domGeneration += 1;
       piecePresentation.synchronize(state);
-      violinDock.synchronize(presentationKey);
     }
     return Object.freeze({
       state,

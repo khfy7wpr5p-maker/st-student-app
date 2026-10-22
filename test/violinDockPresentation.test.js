@@ -30,7 +30,7 @@ function fixture() {
   const root = { ownerDocument: { defaultView: win }, addEventListener() {}, removeEventListener() {}, querySelector(s) {
     return { '[data-violin-dock]': dock, '.piece-workspace': workspace, '#st-score-root': score, '[data-violin-fingerboard]': host, '[data-violin-detail]': detail, '[data-action="toggle-violin-detail"]': button }[s] ?? null;
   } };
-  return { root, props, observers, scrolls, horizontalScrolls, button, close, detail, listeners, viewport, dock,
+  return { root, props, observers, scrolls, horizontalScrolls, button, close, detail, listeners, viewport, dock, cursor,
     setPlaying: v => playing=v, setCompact: v => compact=v, setHeight: v => dockHeight=v,
     flush() { const pending=[...frames.values()]; frames.clear(); for(const fn of pending) fn(); }, frames };
 }
@@ -83,5 +83,14 @@ test('playing note outside an enlarged score scrolls horizontally into view',()=
   const f=fixture(), p=createViolinDockPresentation({root:f.root});
   p.synchronize('piece-a'); f.flush();
   assert.ok(f.horizontalScrolls.some(s=>s.left===36 && s.behavior==='instant'));
+  p.dispose();
+});
+
+test('detached cursor cannot move the visible document',()=>{
+  const f=fixture(), p=createViolinDockPresentation({root:f.root});
+  f.cursor.isConnected=false;
+  p.synchronize('piece-a'); f.flush();
+  assert.equal(f.scrolls.length,0);
+  assert.equal(f.horizontalScrolls.length,0);
   p.dispose();
 });

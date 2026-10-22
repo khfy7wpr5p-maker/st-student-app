@@ -42,8 +42,17 @@ export function createViolinDockPresentation({ root } = {}) {
     // Geometry determines visibility only; never derive pitch or event identity here.
     if (!follow || detailOpen || viewport?.scale > 1 || !host?.querySelector?.('[data-playing="true"]')) return;
     const cursor = score?.querySelector?.('img[id^="cursorImg-"]');
+    if (dock.isConnected === false || score?.isConnected === false || cursor?.isConnected === false) return;
     const active = cursor?.getBoundingClientRect?.();
     if (!active || active.height <= 0) return;
+    const note = score?.querySelector?.('[data-st-score-highlight="true"]')?.getBoundingClientRect?.() ?? active;
+    const scoreBounds = score?.getBoundingClientRect?.();
+    if (scoreBounds && Number.isFinite(note.left) && Number.isFinite(note.right)) {
+      const leftEdge = Math.max(0, scoreBounds.left) + 8;
+      const rightEdge = Math.min(win.innerWidth, scoreBounds.right) - 8;
+      const horizontalDelta = note.left < leftEdge ? note.left - leftEdge : note.right > rightEdge ? note.right - rightEdge : 0;
+      if (rightEdge > leftEdge && Math.abs(horizontalDelta) > 1) score?.scrollBy?.({ left: horizontalDelta, behavior: 'instant' });
+    }
     const top = (viewport?.offsetTop ?? 0) + 8;
     const bottomEdge = bounds.top - 8;
     if (bottomEdge <= top) return;

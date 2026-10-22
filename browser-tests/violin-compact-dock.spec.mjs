@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile, mkdir } from 'node:fs/promises';
+import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { chromium, webkit } from 'playwright';
 import { startRepositoryStaticServer } from './support/static-server.mjs';
 import { renderPracticeWorkspace } from '../src/ui/renderPracticeWorkspace.js';
@@ -38,8 +38,13 @@ test('long violin score keeps measures 21 and 24 beside the compact dock across 
       t.playbackPort.subscribePositionForPackage(t.controller.getScoreFollowSource().pkg, p => t.position=p);
     });
     await mkdir('test-results/ses252', { recursive: true });
+    const metrics=[];
     for (const [width,height] of [[320,568],[390,680],[844,390],[568,320]]) {
+      const previous=await page.locator('#st-score-root svg').first().elementHandle();
       await page.setViewportSize({width,height});
+      await page.waitForFunction(svg=>!svg.isConnected,previous);
+      await previous.dispose();
+      await page.locator('#st-score-root svg').first().waitFor();
       for (const index of [20,23]) {
         await page.evaluate(async index => {
           const t=globalThis.__SES252__; t.position=null;
@@ -57,6 +62,12 @@ test('long violin score keeps measures 21 and 24 beside the compact dock across 
         assert.ok(board.height <= 145, `compact board height at ${width}x${height}: ${board.height}`);
         assert.match(await page.locator('[data-violin-fingerboard]').textContent(), /Mi · Açık Mi teli · 0/);
         assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+        for (const selector of ['[data-action="play-practice"]','[data-action="pause-practice"]','[data-action="restart-practice"]','[data-practice-tempo]','[data-action="set-practice-tempo"]','[data-action="set-measure-repeat"]']) {
+          const control=await page.locator(selector).boundingBox();
+          assert.ok(control.x>=0 && control.y>=0 && control.x+control.width<=width+1 && control.y+control.height<=height+1, `${selector} visible at ${width}x${height}: ${JSON.stringify(control)}`);
+        }
+        metrics.push(await page.evaluate(({width,height,index})=>({width,height,measure:index+1,innerHeight,viewport:{height:visualViewport.height,offsetTop:visualViewport.offsetTop,scale:visualViewport.scale},dock:document.querySelector('[data-violin-dock]').getBoundingClientRect().toJSON(),board:document.querySelector('.practice-violin-compact').getBoundingClientRect().toJSON()}),{width,height,index}));
+        await writeFile(`test-results/ses252/${engine}-metrics.json`,JSON.stringify(metrics,null,2));
         await page.screenshot({path:`test-results/ses252/${engine}-${width}x${height}-measure-${index+1}.png`});
       }
     }
@@ -74,6 +85,13 @@ test('long violin score keeps measures 21 and 24 beside the compact dock across 
     assert.equal(await page.locator('[data-action="toggle-violin-detail"]').evaluate(e=>document.activeElement===e),true);
     await page.getByRole('button',{name:'Odak',exact:true}).click();
     assert.equal(await page.locator('[data-violin-dock]').isVisible(),true);
+    for(let i=0;i<5;i++) await page.getByRole('button',{name:'Notayı büyüt',exact:true}).click();
+    await page.evaluate(async()=>{const t=globalThis.__SES252__;await t.playbackPort.playMeasureOnceForPackage(t.controller.getScoreFollowSource().pkg,{startBeat:92,endBeat:96});});
+    await page.waitForFunction(()=>{
+      const n=document.querySelector('#st-score-root [data-st-score-highlight="true"]')?.getBoundingClientRect();
+      const r=document.querySelector('#st-score-root')?.getBoundingClientRect();
+      return n && r && n.left>=Math.max(0,r.left) && n.right<=Math.min(innerWidth,r.right);
+    });
     assert.deepEqual(errors,[]);
     await context.close();
   } finally { await browser?.close(); await server.close(); }
