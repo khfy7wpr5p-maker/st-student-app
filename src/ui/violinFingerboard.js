@@ -125,8 +125,13 @@ function violinSvg(snapshot) {
           data-stop-ratio="${ratio}"
           cx="${x}"
           cy="${activeRow.y}"
-          r="8"
+          r="10"
         />
+        <text
+          class="violin-stop-number"
+          x="${x}"
+          y="${activeRow.y + 4}"
+        >${primary.finger}</text>
       `;
 
   return `

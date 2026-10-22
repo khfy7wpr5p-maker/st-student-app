@@ -129,6 +129,18 @@ test("unavailable TAB and violin do not create empty sections", () => {
   assert.doesNotMatch(html, /<h2[^>]*>Keman<[/]h2>/);
 });
 
+test("violin board stays with the score view and does not appear under TAB", () => {
+  const practice = makePractice({ capabilities: {
+    notation: PRACTICE_CAPABILITY_STATES.AVAILABLE,
+    violin: PRACTICE_CAPABILITY_STATES.AVAILABLE,
+  } });
+  assert.match(renderPracticeWorkspace(practice), /data-violin-fingerboard/);
+  assert.doesNotMatch(
+    renderPracticeWorkspace(practice, { notationHeading: "TAB" }),
+    /data-violin-fingerboard/,
+  );
+});
+
 test("dynamic title is escaped and internal identifiers are not rendered", () => {
   const html = renderPracticeWorkspace(
     makePractice({
