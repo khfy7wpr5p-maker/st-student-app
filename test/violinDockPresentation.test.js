@@ -11,14 +11,15 @@ function fixture() {
   const close = { focus() { this.focused = true; } };
   const detail = { hidden: true, querySelector: () => close };
   const style = { setProperty: (k,v) => props.set(k,v), removeProperty: k => props.delete(k) };
-  const cursor = { getBoundingClientRect: () => ({ top: 420, bottom: 540, height: 120 }) };
-  const score = { querySelector: () => cursor };
+  const cursor = { getBoundingClientRect: () => ({ top: 420, bottom: 540, height: 120, left: 300, right: 340, width: 40 }) };
+  const horizontalScrolls=[];
+  const score = { querySelector: () => cursor, getBoundingClientRect: () => ({left:8,right:312}), scrollBy: options=>horizontalScrolls.push(options) };
   const host = { querySelector: () => playing ? {} : null };
   const dock = { style: {}, getBoundingClientRect: () => ({ top: 500, height: dockHeight }) };
   const workspace = { style };
   const viewport = { height: 720, offsetTop: 0, scale: 1, addEventListener() {}, removeEventListener() {} };
   const win = {
-    innerHeight: 720, visualViewport: viewport,
+    innerHeight: 720, innerWidth:320, visualViewport: viewport,
     matchMedia: () => ({ matches: compact }),
     requestAnimationFrame: fn => { frames.set(++next, fn); return next; },
     cancelAnimationFrame: id => frames.delete(id),
@@ -29,7 +30,7 @@ function fixture() {
   const root = { ownerDocument: { defaultView: win }, addEventListener() {}, removeEventListener() {}, querySelector(s) {
     return { '[data-violin-dock]': dock, '.piece-workspace': workspace, '#st-score-root': score, '[data-violin-fingerboard]': host, '[data-violin-detail]': detail, '[data-action="toggle-violin-detail"]': button }[s] ?? null;
   } };
-  return { root, props, observers, scrolls, button, close, detail, listeners, viewport, dock,
+  return { root, props, observers, scrolls, horizontalScrolls, button, close, detail, listeners, viewport, dock,
     setPlaying: v => playing=v, setCompact: v => compact=v, setHeight: v => dockHeight=v,
     flush() { const pending=[...frames.values()]; frames.clear(); for(const fn of pending) fn(); }, frames };
 }
@@ -76,4 +77,11 @@ test('desktop and disposal release observers, frame and layout reservation', () 
   assert.equal(f.detail.hidden,true);
   p.dispose();
   assert.ok(f.observers.every(o=>o.disconnected)); assert.equal(f.frames.size,0);
+});
+
+test('playing note outside an enlarged score scrolls horizontally into view',()=>{
+  const f=fixture(), p=createViolinDockPresentation({root:f.root});
+  p.synchronize('piece-a'); f.flush();
+  assert.ok(f.horizontalScrolls.some(s=>s.left===36 && s.behavior==='instant'));
+  p.dispose();
 });

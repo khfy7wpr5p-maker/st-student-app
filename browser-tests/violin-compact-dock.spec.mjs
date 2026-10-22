@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile, mkdir } from 'node:fs/promises';
 import { chromium, webkit } from 'playwright';
 import { startRepositoryStaticServer } from './support/static-server.mjs';
+import { renderPracticeWorkspace } from '../src/ui/renderPracticeWorkspace.js';
 
 test('long violin score keeps measures 21 and 24 beside the compact dock across phone orientations', { timeout: 120000 }, async () => {
   const server = await startRepositoryStaticServer();
@@ -22,7 +23,7 @@ test('long violin score keeps measures 21 and 24 beside the compact dock across 
       .replace('scoreXml: SCORE_XML_A,', `scoreXml: ${JSON.stringify(xml)},`)
       .replace('canonicalEvents: Object.freeze([]),', 'violin: Object.freeze({ schemaVersion: 1, targetPartId: "P1", position: 1 }), canonicalEvents: Object.freeze([]),') }));
     const bootstrap = await readFile(new URL('./support/student-app-e2e-bootstrap.mjs', import.meta.url), 'utf8');
-    await page.route('**/student-app-e2e-bootstrap.mjs', route => route.fulfill({ contentType: 'application/javascript', body: bootstrap + '\nglobalThis.__SES252__ = {controller, playbackPort};' }));
+    await page.route('**/student-app-e2e-bootstrap.mjs', route => route.fulfill({ contentType: 'application/javascript', body: bootstrap.replace('mountStudentApp({', 'const mounted = mountStudentApp({') + '\nglobalThis.__SES252__ = {controller, playbackPort, mounted};' }));
     await page.route('**/src/ui/main.js', route => route.fulfill({ contentType: 'application/javascript', body: 'import "/browser-tests/support/student-app-e2e-bootstrap.mjs";' }));
     await page.goto(server.baseUrl + '/index.html');
     await page.locator('[data-sign-in-email]').fill('student-a@ses13.test');
@@ -64,6 +65,8 @@ test('long violin score keeps measures 21 and 24 beside the compact dock across 
     const scroll=before.scroll, beat=before.beat;
     await page.getByRole('button', {name:'Keman klavyesini genişlet',exact:true}).click();
     assert.equal(await page.locator('[data-violin-detail]').isVisible(),true);
+    await page.evaluate(async () => { const t=globalThis.__SES252__; await t.controller.setPracticeTempo(72); await t.mounted.render(); });
+    assert.equal(await page.locator('[data-action="close-violin-detail"]').evaluate(e=>document.activeElement===e),true,'expanded close-button focus survives a control repaint');
     await page.keyboard.press('Escape');
     assert.equal(await page.locator('[data-violin-detail]').isVisible(),false);
     assert.equal(await page.evaluate(()=>scrollY),scroll);
@@ -74,4 +77,20 @@ test('long violin score keeps measures 21 and 24 beside the compact dock across 
     assert.deepEqual(errors,[]);
     await context.close();
   } finally { await browser?.close(); await server.close(); }
+});
+
+test('desktop violin cards retain their opaque background and border', async () => {
+  const engine=process.env.ST_BROWSER ?? 'chromium';
+  const browser=await ({chromium,webkit}[engine]).launch({headless:true});
+  try {
+    const page=await browser.newPage({viewport:{width:1280,height:900}});
+    const index=await readFile(new URL('../index.html',import.meta.url),'utf8');
+    const css=await readFile(new URL('../src/ui/piece-workspace-fusion.css',import.meta.url),'utf8');
+    const markup=renderPracticeWorkspace({ capabilities:{notation:'AVAILABLE',violin:'AVAILABLE',playback:'AVAILABLE'},practice:{tempoBpm:60} },{compactViolin:true});
+    await page.setContent(`<style>${index.match(/<style>([\s\S]*?)<\/style>/)[1]}\n${css}</style><div id="app"><main class="student-app"><section class="piece-workspace">${markup}</section></main></div>`);
+    for(const selector of ['.practice-violin','.practice-playback']) {
+      const style=await page.locator(selector).evaluate(e=>{const c=getComputedStyle(e);return {background:c.backgroundColor,border:c.borderTopStyle,width:c.borderTopWidth};});
+      assert.deepEqual(style,{background:'rgb(255, 255, 255)',border:'solid',width:'1px'},selector+' retains existing desktop card');
+    }
+  } finally {await browser.close();}
 });
