@@ -1,5 +1,5 @@
 const CACHE_NAME = "st-student-shell-v18";
-const SHELL_CACHE_NAME = "st-student-shell-v44";
+const SHELL_CACHE_NAME = "st-student-shell-v45";
 const SAMPLE_CACHE_NAME = "st-student-samples-v1";
 const SAMPLE_CACHE_LIMIT = 96;
 const ACTIVE_CACHE_NAMES = new Set([
@@ -74,6 +74,7 @@ const SHELL_ASSETS = Object.freeze([
   "./src/practice/scoreFollowCoordinator.js",
   "./src/practice/violinFollowCoordinator.js",
   "./src/ui/violinFingerboard.js",
+  "./src/ui/violinDockPresentation.js",
   "./vendor/st-violin-learning/runtime-manifest.json",
   "./vendor/st-violin-learning/src/firstPosition.js",
   "./vendor/st-violin-learning/src/followSnapshot.js",

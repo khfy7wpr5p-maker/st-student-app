@@ -104,6 +104,7 @@ function renderMusicPanel(viewModel) {
           showTitle: false,
           notationHeading,
           showNotationSizing: true,
+          compactViolin: true,
         },
       )}
     </div>

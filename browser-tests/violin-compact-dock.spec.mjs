@@ -1,0 +1,114 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFile, mkdir, writeFile } from 'node:fs/promises';
+import { chromium, webkit } from 'playwright';
+import { startRepositoryStaticServer } from './support/static-server.mjs';
+import { renderPracticeWorkspace } from '../src/ui/renderPracticeWorkspace.js';
+
+test('long violin score keeps measures 21 and 24 beside the compact dock across phone orientations', { timeout: 120000 }, async () => {
+  const server = await startRepositoryStaticServer();
+  const engine = process.env.ST_BROWSER ?? 'chromium';
+  let browser;
+  try {
+    browser = await ({ chromium, webkit }[engine]).launch({ headless: true });
+    const context = await browser.newContext({ viewport: { width: 390, height: 680 } });
+    const page = await context.newPage();
+    const errors = [];
+    page.on('pageerror', e => errors.push(e.message));
+    const fixture = await readFile(new URL('./support/student-app-e2e-fixtures.mjs', import.meta.url), 'utf8');
+    const note = '<note><pitch><step>E</step><octave>5</octave></pitch><duration>1</duration><voice>1</voice><type>quarter</type></note>';
+    const xml = '<?xml version="1.0" encoding="UTF-8"?><score-partwise version="4.0"><part-list><score-part id="P1"><part-name>Violin</part-name></score-part></part-list><part id="P1">' +
+      Array.from({ length: 28 }, (_, i) => `<measure number="${i+1}">${i===0 ? '<attributes><divisions>1</divisions><time><beats>4</beats><beat-type>4</beat-type></time><clef><sign>G</sign><line>2</line></clef></attributes>' : ''}${note.repeat(4)}</measure>`).join('') + '</part></score-partwise>';
+    await page.route('**/student-app-e2e-fixtures.mjs', route => route.fulfill({ contentType: 'application/javascript', body: fixture
+      .replace('scoreXml: SCORE_XML_A,', `scoreXml: ${JSON.stringify(xml)},`)
+      .replace('canonicalEvents: Object.freeze([]),', 'violin: Object.freeze({ schemaVersion: 1, targetPartId: "P1", position: 1 }), canonicalEvents: Object.freeze([]),') }));
+    const bootstrap = await readFile(new URL('./support/student-app-e2e-bootstrap.mjs', import.meta.url), 'utf8');
+    await page.route('**/student-app-e2e-bootstrap.mjs', route => route.fulfill({ contentType: 'application/javascript', body: bootstrap.replace('mountStudentApp({', 'const mounted = mountStudentApp({') + '\nglobalThis.__SES252__ = {controller, playbackPort, mounted};' }));
+    await page.route('**/src/ui/main.js', route => route.fulfill({ contentType: 'application/javascript', body: 'import "/browser-tests/support/student-app-e2e-bootstrap.mjs";' }));
+    await page.goto(server.baseUrl + '/index.html');
+    await page.locator('[data-sign-in-email]').fill('student-a@ses13.test');
+    await page.locator('[data-sign-in-password]').fill('ses13-password');
+    await page.getByRole('button', { name: 'Giriş Yap', exact: true }).click();
+    await page.getByRole('button', { name: 'Benim Çalışmalarım', exact: true }).click();
+    await page.locator('[data-action="open-piece"]').filter({ hasText: 'SES-13 Öğrenci A Etüdü' }).click();
+    await page.locator('#st-score-root svg').first().waitFor();
+    await page.getByRole('button', { name: 'Dinle', exact: true }).click();
+    await page.evaluate(() => {
+      const t=globalThis.__SES252__;
+      t.playbackPort.subscribePositionForPackage(t.controller.getScoreFollowSource().pkg, p => t.position=p);
+    });
+    await mkdir('test-results/ses252', { recursive: true });
+    const metrics=[];
+    for (const [width,height] of [[320,568],[390,680],[844,390],[568,320]]) {
+      const previous=await page.locator('#st-score-root svg').first().elementHandle();
+      await page.setViewportSize({width,height});
+      await page.waitForFunction(svg=>!svg.isConnected,previous);
+      await previous.dispose();
+      await page.locator('#st-score-root svg').first().waitFor();
+      for (const index of [20,23]) {
+        await page.evaluate(async index => {
+          const t=globalThis.__SES252__; t.position=null;
+          await t.playbackPort.playMeasureOnceForPackage(t.controller.getScoreFollowSource().pkg, { startBeat: index*4, endBeat: index*4+4 });
+        }, index);
+        await page.waitForFunction(index => globalThis.__SES252__.position?.beat >= index*4 && globalThis.__SES252__.position?.beat < index*4+4, index);
+        await page.waitForFunction(() => {
+          const cursor=document.querySelector('#st-score-root img[id^="cursorImg-"]');
+          const dock=document.querySelector('[data-violin-dock]');
+          if (!cursor || !dock) return false;
+          const c=cursor.getBoundingClientRect(),d=dock.getBoundingClientRect();
+          return c.height>0 && c.top>=0 && c.bottom<=d.top && d.bottom<=innerHeight+1;
+        });
+        const board=await page.locator('.practice-violin-compact').boundingBox();
+        assert.ok(board.height <= 145, `compact board height at ${width}x${height}: ${board.height}`);
+        assert.match(await page.locator('[data-violin-fingerboard]').textContent(), /Mi · Açık Mi teli · 0/);
+        assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+        for (const selector of ['[data-action="play-practice"]','[data-action="pause-practice"]','[data-action="restart-practice"]','[data-practice-tempo]','[data-action="set-practice-tempo"]','[data-action="set-measure-repeat"]']) {
+          const control=await page.locator(selector).boundingBox();
+          assert.ok(control.x>=0 && control.y>=0 && control.x+control.width<=width+1 && control.y+control.height<=height+1, `${selector} visible at ${width}x${height}: ${JSON.stringify(control)}`);
+        }
+        metrics.push(await page.evaluate(({width,height,index})=>({width,height,measure:index+1,innerHeight,viewport:{height:visualViewport.height,offsetTop:visualViewport.offsetTop,scale:visualViewport.scale},dock:document.querySelector('[data-violin-dock]').getBoundingClientRect().toJSON(),board:document.querySelector('.practice-violin-compact').getBoundingClientRect().toJSON()}),{width,height,index}));
+        await writeFile(`test-results/ses252/${engine}-metrics.json`,JSON.stringify(metrics,null,2));
+        await page.screenshot({path:`test-results/ses252/${engine}-${width}x${height}-measure-${index+1}.png`});
+      }
+    }
+    await page.getByRole('button', { name: 'Duraklat', exact: true }).click();
+    const before=await page.evaluate(() => ({scroll:scrollY,beat:globalThis.__SES252__.position.beat}));
+    const scroll=before.scroll, beat=before.beat;
+    await page.getByRole('button', {name:'Keman klavyesini genişlet',exact:true}).click();
+    assert.equal(await page.locator('[data-violin-detail]').isVisible(),true);
+    await page.evaluate(async () => { const t=globalThis.__SES252__; await t.controller.setPracticeTempo(72); await t.mounted.render(); });
+    assert.equal(await page.locator('[data-action="close-violin-detail"]').evaluate(e=>document.activeElement===e),true,'expanded close-button focus survives a control repaint');
+    await page.keyboard.press('Escape');
+    assert.equal(await page.locator('[data-violin-detail]').isVisible(),false);
+    assert.equal(await page.evaluate(()=>scrollY),scroll);
+    assert.equal(await page.evaluate(()=>globalThis.__SES252__.position.beat),beat);
+    assert.equal(await page.locator('[data-action="toggle-violin-detail"]').evaluate(e=>document.activeElement===e),true);
+    await page.getByRole('button',{name:'Odak',exact:true}).click();
+    assert.equal(await page.locator('[data-violin-dock]').isVisible(),true);
+    for(let i=0;i<5;i++) await page.getByRole('button',{name:'Notayı büyüt',exact:true}).click();
+    await page.evaluate(async()=>{const t=globalThis.__SES252__;await t.playbackPort.playMeasureOnceForPackage(t.controller.getScoreFollowSource().pkg,{startBeat:92,endBeat:96});});
+    await page.waitForFunction(()=>{
+      const n=document.querySelector('#st-score-root [data-st-score-highlight="true"]')?.getBoundingClientRect();
+      const r=document.querySelector('#st-score-root')?.getBoundingClientRect();
+      return n && r && n.left>=Math.max(0,r.left) && n.right<=Math.min(innerWidth,r.right);
+    });
+    assert.deepEqual(errors,[]);
+    await context.close();
+  } finally { await browser?.close(); await server.close(); }
+});
+
+test('desktop violin cards retain their opaque background and border', async () => {
+  const engine=process.env.ST_BROWSER ?? 'chromium';
+  const browser=await ({chromium,webkit}[engine]).launch({headless:true});
+  try {
+    const page=await browser.newPage({viewport:{width:1280,height:900}});
+    const index=await readFile(new URL('../index.html',import.meta.url),'utf8');
+    const css=await readFile(new URL('../src/ui/piece-workspace-fusion.css',import.meta.url),'utf8');
+    const markup=renderPracticeWorkspace({ capabilities:{notation:'AVAILABLE',violin:'AVAILABLE',playback:'AVAILABLE'},practice:{tempoBpm:60} },{compactViolin:true});
+    await page.setContent(`<style>${index.match(/<style>([\s\S]*?)<\/style>/)[1]}\n${css}</style><div id="app"><main class="student-app"><section class="piece-workspace">${markup}</section></main></div>`);
+    for(const selector of ['.practice-violin','.practice-playback']) {
+      const style=await page.locator(selector).evaluate(e=>{const c=getComputedStyle(e);return {background:c.backgroundColor,border:c.borderTopStyle,width:c.borderTopWidth};});
+      assert.deepEqual(style,{background:'rgb(255, 255, 255)',border:'solid',width:'1px'},selector+' retains existing desktop card');
+    }
+  } finally {await browser.close();}
+});
