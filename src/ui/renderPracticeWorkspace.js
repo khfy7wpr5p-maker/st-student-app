@@ -50,7 +50,7 @@ function renderNotation(
   `;
 }
 
-function renderViolin(practice, notationHeading) {
+function renderViolin(practice, notationHeading, compact = false) {
   if (
     notationHeading !== "Nota" ||
     capabilityOf(practice, "violin") !==
@@ -60,8 +60,9 @@ function renderViolin(practice, notationHeading) {
   }
 
   return `
-    <section class="practice-violin practice-secondary" aria-labelledby="violin-heading">
-      <h2 id="violin-heading">Keman</h2>
+    <section class="practice-violin practice-secondary${compact ? ' practice-violin-compact' : ''}" aria-labelledby="violin-heading">
+      <h2 id="violin-heading"${compact ? ' class="violin-heading"' : ''}>Keman</h2>
+      ${compact ? '<button type="button" class="violin-detail-toggle" data-action="toggle-violin-detail" aria-expanded="false" aria-controls="violin-detail" aria-label="Keman klavyesini genişlet">↗</button>' : ''}
       <div
         class="violin-fingerboard-host"
         data-violin-fingerboard
@@ -72,6 +73,10 @@ function renderViolin(practice, notationHeading) {
           <p class="violin-fingering-text">Çalma başladığında tel ve parmak konumu burada gösterilir.</p>
         </div>
       </div>
+      ${compact ? `<div id="violin-detail" data-violin-detail hidden role="region" aria-label="Keman klavyesi ayrıntısı">
+        <button type="button" data-action="close-violin-detail" aria-label="Keman ayrıntısını kapat">Kapat</button>
+        <div data-violin-detail-state></div>
+      </div>` : ''}
     </section>
   `;
 }
@@ -191,6 +196,7 @@ export function renderPracticeWorkspace(
     showTitle = true,
     notationHeading = "Nota",
     showNotationSizing = false,
+    compactViolin = false,
   } = {},
 ) {
   if (practice === null || typeof practice !== "object") {
@@ -214,6 +220,8 @@ export function renderPracticeWorkspace(
   const sectionLabel = showTitle
     ? 'aria-labelledby="page-title"'
     : 'aria-label="Nota çalışması"';
+  const violin = renderViolin(practice, notationHeading, compactViolin);
+  const dock = compactViolin && violin.length > 0;
 
   return `
     <section class="practice-workspace" ${sectionLabel}>
@@ -225,8 +233,10 @@ export function renderPracticeWorkspace(
         notationHeading,
         showNotationSizing,
       )}
-      ${renderViolin(practice, notationHeading)}
-      ${renderPlayback(practice)}
+      ${dock ? '<section class="practice-dock" data-violin-dock aria-label="Keman ve dinleme">' : ''}
+        ${violin}
+        ${renderPlayback(practice)}
+      ${dock ? '</section>' : ''}
     </section>
   `;
 }

@@ -153,11 +153,15 @@ function violinSvg(snapshot) {
 function availableMarkup(snapshot) {
   const semantic = semanticText(snapshot);
   if (semantic === null) return neutralMarkup();
+  const string = STRING_NAMES[snapshot.primary.stringId];
+  const compact = snapshot.primary.finger === 0
+    ? `${noteName(snapshot.pitch)} · Açık ${string} teli · 0`
+    : `${noteName(snapshot.pitch)} · ${string} teli · ${snapshot.primary.finger} (${PLACEMENT_NAMES[snapshot.primary.placement]})`;
 
   return `
     <div class="violin-fingerboard-state" data-playing="${snapshot.playing === true ? "true" : "false"}">
       ${violinSvg(snapshot)}
-      <p class="violin-fingering-text">${escapeHtml(semantic)}</p>
+      <p class="violin-fingering-text"><span class="violin-compact-label">${escapeHtml(compact)}</span><span class="violin-full-label">${escapeHtml(semantic)}</span></p>
     </div>
   `;
 }
@@ -175,6 +179,8 @@ export function createViolinFingerboardPresentation({ root } = {}) {
     const element = target();
     if (element === null) return false;
     element.innerHTML = markup;
+    const detail = root?.querySelector?.('[data-violin-detail-state]');
+    if (detail) detail.innerHTML = markup;
     return true;
   }
 

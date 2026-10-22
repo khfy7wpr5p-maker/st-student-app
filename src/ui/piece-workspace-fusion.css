@@ -33,6 +33,28 @@ body:has(.piece-workspace) { background: #faf7f0; }
 .piece-workspace #st-score-root svg { display: block; width: var(--piece-notation-width, 100%) !important; max-width: none; height: auto !important; }
 .piece-workspace .practice-violin { max-height: none; }
 .piece-workspace .violin-fingerboard-host { width: 100%; max-width: 34rem; }
+.piece-workspace .practice-workspace > .practice-dock { display: contents; }
+.piece-workspace .violin-detail-toggle { display: none; }
+.piece-workspace [data-violin-detail][hidden] { display: none; }
+.piece-workspace [data-violin-detail] { position: absolute; bottom: 100%; inset-inline: 0; z-index: 6; padding: .6rem; background: #fff; border: 1px solid #cad8d1; border-radius: .8rem; max-height: calc(100dvh - var(--violin-dock-height, 20rem) - 1rem); overflow: auto; box-shadow: 0 -3px 16px #153f5320; }
+.piece-workspace [data-violin-detail] > button { display: block; margin-left: auto; padding: .4rem .7rem; }
+@media (max-width: 640px), (max-height: 560px) and (max-width: 1024px) {
+  .piece-workspace:has([data-violin-dock]) .practice-workspace { padding-bottom: calc(var(--violin-dock-height, 21rem) + .75rem); }
+  .piece-workspace .practice-workspace > .practice-dock { display: flex; flex-direction: column; position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: min(calc(100% - 1rem), 63rem); z-index: 5; border: 1px solid #d8ddd5; border-radius: .8rem .8rem 0 0; background: #fff; padding: 0 0 env(safe-area-inset-bottom, 0px); box-shadow: 0 -3px 16px #153f5310; }
+  .piece-workspace .practice-dock .practice-playback { position: static; transform: none; width: 100%; border: 0; border-top: 1px solid #d8ddd5; border-radius: 0; padding: .35rem .5rem !important; box-shadow: none; }
+  .piece-workspace .practice-violin-compact { position: relative; display: block; margin: 0; padding: .35rem .5rem; border: 0; }
+  .piece-workspace .practice-violin-compact .violin-heading { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); margin: 0; }
+  .piece-workspace .violin-detail-toggle { display: block; position: absolute; right: .35rem; top: .35rem; width: 44px; height: 44px; padding: 0; z-index: 1; }
+  .piece-workspace .practice-violin-compact > .violin-fingerboard-host { max-width: none; min-height: 88px; padding-right: 48px; }
+  .piece-workspace .practice-violin-compact > .violin-fingerboard-host .violin-fingerboard-svg { height: 68px; width: 100%; }
+  .piece-workspace .practice-violin-compact > .violin-fingerboard-host .violin-fingering-text { margin: .1rem 0 0; font-size: .8rem; line-height: 1.4; }
+  .piece-workspace .practice-violin-compact > .violin-fingerboard-host .violin-compact-label { display: inline; }
+  .piece-workspace .practice-violin-compact > .violin-fingerboard-host .violin-full-label { display: none; }
+}
+@media (max-height: 560px) and (min-width: 560px) and (max-width: 1024px) {
+  .piece-workspace .practice-workspace > .practice-dock { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; }
+  .piece-workspace .practice-dock .practice-playback { border-top: 0; border-left: 1px solid #d8ddd5; }
+}
 .piece-workspace .practice-playback { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: min(calc(100% - 1rem), 63rem); box-sizing: border-box; z-index: 5; margin: 0; padding: .45rem .6rem max(.45rem, env(safe-area-inset-bottom, 0px)) !important; gap: .25rem; box-shadow: 0 -3px 16px #153f5310; }
 .piece-workspace .practice-playback-toolbar { display: grid; grid-template-columns: minmax(0, 1fr); gap: .35rem; }
 .piece-workspace .practice-playback-quality { margin: 0; color: #526f73; font-size: .65rem; text-align: right; }

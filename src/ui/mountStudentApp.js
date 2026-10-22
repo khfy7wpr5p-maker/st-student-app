@@ -1,4 +1,5 @@
 import { createPieceWorkspacePresentation } from "./pieceWorkspacePresentation.js";
+import { createViolinDockPresentation } from "./violinDockPresentation.js";
 import { CONNECTIVITY_STATES } from "../offline/connectivityPort.js";
 import { PRACTICE_CAPABILITY_STATES } from "../practice/practiceCapabilities.js";
 import { ensureNotationViewBoxes, fitNotationViewport } from "../practice/notationViewport.js";
@@ -170,6 +171,7 @@ export function mountStudentApp({
   }
 
   const piecePresentation = createPieceWorkspacePresentation(root);
+  const violinDock = createViolinDockPresentation({ root });
   let status = "";
   let connectivityState =
     connectivityPort?.getState?.() === CONNECTIVITY_STATES.OFFLINE
@@ -267,6 +269,7 @@ export function mountStudentApp({
       lastPresentationKey = presentationKey;
       domGeneration += 1;
       piecePresentation.synchronize(state);
+      violinDock.synchronize(presentationKey);
     }
     return Object.freeze({
       state,
@@ -803,6 +806,8 @@ export function mountStudentApp({
 
     const action = actionElement.dataset.action;
     if (actionElement.disabled === true) return;
+    if (action === 'toggle-violin-detail') { violinDock.toggleDetail(); return; }
+    if (action === 'close-violin-detail') { violinDock.closeDetail(); return; }
     if (action === "toggle-piece-focus") {
       piecePresentation.toggle();
       return;
@@ -978,6 +983,7 @@ export function mountStudentApp({
       destroyed = true;
       piecePresentation.dispose();
       root.removeEventListener("click", onClick);
+      violinDock.dispose();
       root.removeEventListener("input", onInput);
       root.removeEventListener("submit", onSubmit);
 

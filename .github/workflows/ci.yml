@@ -103,6 +103,13 @@ jobs:
         env:
           ST_BROWSER: ${{ matrix.browser }}
         run: npm run test:browser
+      - name: Upload compact violin screen evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ses252-screens-${{ matrix.browser }}
+          path: test-results/ses252/
+          if-no-files-found: ignore
 
   deploy-pages:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
