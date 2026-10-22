@@ -50,8 +50,9 @@ function renderNotation(
   `;
 }
 
-function renderViolin(practice) {
+function renderViolin(practice, notationHeading) {
   if (
+    notationHeading !== "Nota" ||
     capabilityOf(practice, "violin") !==
     PRACTICE_CAPABILITY_STATES.AVAILABLE
   ) {
@@ -224,7 +225,7 @@ export function renderPracticeWorkspace(
         notationHeading,
         showNotationSizing,
       )}
-      ${renderViolin(practice)}
+      ${renderViolin(practice, notationHeading)}
       ${renderPlayback(practice)}
     </section>
   `;

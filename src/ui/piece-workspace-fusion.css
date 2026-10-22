@@ -32,6 +32,7 @@ body:has(.piece-workspace) { background: #faf7f0; }
 /* SVG viewBox scales the drawing; screen CTM keeps renderer hit tests aligned. */
 .piece-workspace #st-score-root svg { display: block; width: var(--piece-notation-width, 100%) !important; max-width: none; height: auto !important; }
 .piece-workspace .practice-violin { max-height: none; }
+.piece-workspace .violin-fingerboard-host { width: 100%; max-width: 34rem; }
 .piece-workspace .practice-playback { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: min(calc(100% - 1rem), 63rem); box-sizing: border-box; z-index: 5; margin: 0; padding: .45rem .6rem max(.45rem, env(safe-area-inset-bottom, 0px)) !important; gap: .25rem; box-shadow: 0 -3px 16px #153f5310; }
 .piece-workspace .practice-playback-toolbar { display: grid; grid-template-columns: minmax(0, 1fr); gap: .35rem; }
 .piece-workspace .practice-playback-quality { margin: 0; color: #526f73; font-size: .65rem; text-align: right; }

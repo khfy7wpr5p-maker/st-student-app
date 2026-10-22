@@ -49,6 +49,7 @@ test("available F#4 renders four strings and a D-string high-second marker at en
   assert.match(root.panel.innerHTML, /data-finger="2"/);
   assert.match(root.panel.innerHTML, /data-placement="HIGH"/);
   assert.match(root.panel.innerHTML, /data-stop-ratio="0\.206299"/);
+  assert.match(root.panel.innerHTML, /class="violin-stop-number"[^>]*>2<\/text>/);
   assert.match(root.panel.innerHTML, /20\.6299%/);
   assert.doesNotMatch(root.panel.innerHTML, /25(?:\.0+)?%/);
   assert.match(root.panel.innerHTML, /Fa diyez/);
@@ -77,6 +78,7 @@ test("open string presentation does not invent a stopped-finger dot", async () =
 
   assert.match(root.panel.innerHTML, /Açık Re teli/);
   assert.doesNotMatch(root.panel.innerHTML, /class="violin-stop-marker"/);
+  assert.doesNotMatch(root.panel.innerHTML, /class="violin-stop-number"/);
 });
 
 test("unavailable or ambiguous snapshot clears active marker", async () => {
