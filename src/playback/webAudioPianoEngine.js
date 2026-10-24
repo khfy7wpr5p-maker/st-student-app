@@ -146,7 +146,9 @@ export function createWebAudioPianoEngine({
   let repeatMeasureIndex = null;
   let activeRange = null;
   let generation = 0;
+  let schedulingEpoch = 0;
   let currentPlaybackInstrument = null;
+  let currentPartInstruments = null;
   let currentSourceRevisionId = null;
   const activeSources = new Set();
   const positionListeners = new Set();
@@ -159,7 +161,11 @@ export function createWebAudioPianoEngine({
     );
   }
 
-  function isSupported(instrumentId = null) {
+  function isSupported(instrumentId = null, partInstruments = null) {
+    if (partInstruments !== null) {
+      const values = Object.values(partInstruments);
+      return values.length > 0 && values.every(id => isSupported(id));
+    }
     const audioBoundaryAvailable =
       audioContextSupported === null
         ? typeof audioContextFactory === "function"
@@ -204,6 +210,7 @@ export function createWebAudioPianoEngine({
   }
 
   function stopSources() {
+    schedulingEpoch += 1;
     try {
       scoreAudioVoice?.stopAll?.();
     } catch {
@@ -375,17 +382,18 @@ export function createWebAudioPianoEngine({
   }
 
   function scheduleSource(note, index, now, startBeat, duration) {
-    const when = usesScoreAudioVoice(currentPlaybackInstrument)
+    const instrumentId = instrumentFor(note, currentPlaybackInstrument, currentPartInstruments);
+    const when = usesScoreAudioVoice(instrumentId)
       ? Math.max(now + SCORE_AUDIO_MIN_LEAD_SECONDS, beatWhen(startBeat))
       : Math.max(now, beatWhen(startBeat));
     const end = when + duration;
-    if (usesScoreAudioVoice(currentPlaybackInstrument)) {
+    if (usesScoreAudioVoice(instrumentId)) {
       scoreAudioVoice.scheduleNote({
         requestId:
-          `${currentPlan.packageId}:${generation}:${index}:${startBeat}`,
+          `${currentPlan.packageId}:${generation}:${schedulingEpoch}:${index}:${startBeat}`,
         sourceRevisionId:
           currentSourceRevisionId ?? currentPlan.packageId,
-        instrumentId: currentPlaybackInstrument,
+        instrumentId,
         midi: note.midi,
         startTimeSeconds: when,
         durationSeconds: duration,
@@ -575,12 +583,29 @@ export function createWebAudioPianoEngine({
     }
   }
 
+  function instrumentFor(note, fallback, partInstruments) {
+    if (partInstruments === null) return fallback;
+    if (!Object.hasOwn(partInstruments, note.partId)) throw boundedError("audio playback unavailable");
+    return partInstruments[note.partId];
+  }
+
+  async function prepareVoices(plan, playbackInstrument, partInstruments) {
+    const groups = new Map();
+    for (const note of plan.notes) {
+      const instrumentId = instrumentFor(note, playbackInstrument, partInstruments);
+      if (!usesScoreAudioVoice(instrumentId)) throw boundedError("audio playback unavailable");
+      if (!groups.has(instrumentId)) groups.set(instrumentId, []);
+      groups.get(instrumentId).push(note.midi);
+    }
+    await Promise.all([...groups].map(([instrumentId, pitches]) => scoreAudioVoice.prepare({ instrumentId, pitches })));
+  }
+
   return Object.freeze({
     isSupported,
 
-    async prepare({ playbackInstrument = null } = {}) {
+    async prepare({ playbackInstrument = null, partInstruments = null } = {}) {
       if (usesScoreAudioVoice(playbackInstrument)) {
-        return isSupported(playbackInstrument);
+        return isSupported(playbackInstrument, partInstruments);
       }
       if (
         typeof sampleBank?.initialize !== "function"
@@ -602,6 +627,7 @@ export function createWebAudioPianoEngine({
       tempoBpm,
       playbackInstrument = null,
       sourceRevisionId = null,
+      partInstruments = null,
     } = {}) {
       if (
         plan === null ||
@@ -620,10 +646,7 @@ export function createWebAudioPianoEngine({
       }
 
       if (usesScoreAudioVoice(playbackInstrument)) {
-        await scoreAudioVoice.prepare({
-          instrumentId: playbackInstrument,
-          pitches: plan.notes.map((note) => note.midi),
-        });
+        await prepareVoices(plan, playbackInstrument, partInstruments);
       } else {
         await sampleBank.load(nextContext);
       }
@@ -643,12 +666,14 @@ export function createWebAudioPianoEngine({
 
       if (
         currentPlan !== plan ||
-        currentPlaybackInstrument !== playbackInstrument
+        currentPlaybackInstrument !== playbackInstrument ||
+        currentPartInstruments !== partInstruments
       ) {
         clearScheduler();
         stopSources();
         currentPlan = plan;
         currentPlaybackInstrument = playbackInstrument;
+        currentPartInstruments = partInstruments;
         currentSourceRevisionId = sourceRevisionId;
         pausedBeat = 0;
         repeatMeasureIndex = null;
@@ -671,6 +696,7 @@ export function createWebAudioPianoEngine({
       endBeat,
       playbackInstrument = null,
       sourceRevisionId = null,
+      partInstruments = null,
     } = {}) {
       if (
         plan === null ||
@@ -690,10 +716,7 @@ export function createWebAudioPianoEngine({
       }
 
       if (usesScoreAudioVoice(playbackInstrument)) {
-        await scoreAudioVoice.prepare({
-          instrumentId: playbackInstrument,
-          pitches: plan.notes.map((note) => note.midi),
-        });
+        await prepareVoices(plan, playbackInstrument, partInstruments);
       } else {
         await sampleBank.load(nextContext);
       }
@@ -711,6 +734,7 @@ export function createWebAudioPianoEngine({
 
       currentPlan = plan;
       currentPlaybackInstrument = playbackInstrument;
+      currentPartInstruments = partInstruments;
       currentSourceRevisionId = sourceRevisionId;
       selectedTempoBpm = tempoBpm;
       activeRange = Object.freeze({ startBeat, endBeat });
@@ -848,6 +872,7 @@ export function createWebAudioPianoEngine({
       stopSources();
       currentPlan = null;
       currentPlaybackInstrument = null;
+      currentPartInstruments = null;
       currentSourceRevisionId = null;
       selectedTempoBpm = null;
       repeatMeasureIndex = null;

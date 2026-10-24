@@ -1,5 +1,5 @@
 const CACHE_NAME = "st-student-shell-v18";
-const SHELL_CACHE_NAME = "st-student-shell-v45";
+const SHELL_CACHE_NAME = "st-student-shell-v46";
 const SAMPLE_CACHE_NAME = "st-student-samples-v1";
 const SAMPLE_CACHE_LIMIT = 96;
 const ACTIVE_CACHE_NAMES = new Set([
@@ -87,6 +87,7 @@ const SHELL_ASSETS = Object.freeze([
   "./src/playback/webAudioPianoEngine.js",
   "./src/playback/scoreAudioVoiceAdapter.js",
   "./src/playback/studentPlaybackPort.js",
+  "./src/playback/playbackPartRouting.js",
   "./vendor/st-score-audio/st-score-audio-engine.js",
   "./vendor/st-score-audio/runtime-manifest.json",
   "./vendor/st-score-runtime/browser-bootstrap.mjs",
