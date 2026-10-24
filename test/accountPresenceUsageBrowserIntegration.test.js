@@ -59,7 +59,7 @@ test("v39 offline shell contains account lifecycle modules and pinned Firebase D
     "utf8",
   );
 
-  assert.match(source, /st-student-shell-v46/);
+  assert.match(source, /st-student-shell-v47/);
   assert.match(source, /firebasejs\/12\.19\.0\/firebase-database\.js/);
   for (const asset of [
     "src/providers/firebase/firebasePresenceWriter.js",

@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-test("SES-190 shell refresh invariants remain covered by the newer v46 shell", async () => {
+test("SES-190 shell refresh invariants remain covered by the newer v47 shell", async () => {
   const source = await readFile(
     new URL("../service-worker.js", import.meta.url),
     "utf8",
@@ -10,7 +10,7 @@ test("SES-190 shell refresh invariants remain covered by the newer v46 shell", a
 
   assert.match(
     source,
-    /const SHELL_CACHE_NAME = "st-student-shell-v46"/,
+    /const SHELL_CACHE_NAME = "st-student-shell-v47"/,
   );
   assert.match(source, /src\/ui\/renderStudentApp\.js/);
   assert.match(source, /src\/ui\/studentAppController\.js/);

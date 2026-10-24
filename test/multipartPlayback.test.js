@@ -196,3 +196,15 @@ test('a referenced accompaniment instrument without a MIDI declaration is ambigu
     .replace(/(<part id="bass">[\s\S]*?<duration>1<\/duration>)/, '$1<instrument id="bass-unmapped"/>');
   assert.equal(h.port.canPlayPackage(h.pkg), false);
 });
+
+test('an explicitly assigned guitar accompaniment uses its real samples on the existing violin transport', async () => {
+  const h = setup({ program: 25 });
+  h.pkg.content.score.data = h.pkg.content.score.data.replace('<part-list>', '<identification><miscellaneous><miscellaneous-field name="seslitab-part-instruments-version">1</miscellaneous-field></miscellaneous></identification><part-list>');
+  await h.port.playPackage(h.pkg);await flush();
+  assert.equal(h.sources.length, 2);
+  assert.ok(h.sources.some(s => s.buffer.url.includes('Solo%20Violin')));
+  assert.ok(h.sources.some(s => s.buffer.url.includes('spanish-classical-guitar') && s.buffer.url.endsWith('/D3.flac')));
+  assert.equal(h.intervals.size, 1);
+  h.port.disposePackage(h.pkg);
+  assert.equal(h.intervals.size, 0);
+});
