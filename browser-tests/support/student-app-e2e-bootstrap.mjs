@@ -148,11 +148,19 @@ const violinFingerboardPresentation =
     root,
   });
 
+const violinSnapshots = [];
 const violinFollowCoordinator =
   createViolinFollowCoordinator({
     playbackPort,
     presentationPort:
-      violinFingerboardPresentation,
+      {
+        show(snapshot) {
+          violinSnapshots.push(snapshot);
+          if (violinSnapshots.length > 256) violinSnapshots.shift();
+          return violinFingerboardPresentation.show(snapshot);
+        },
+        clear: () => violinFingerboardPresentation.clear(),
+      },
   });
 
 const {
@@ -237,4 +245,4 @@ document.documentElement
     "true",
   );
 
-export { controller, playbackPort, playbackEngine, audioContextFactory };
+export { controller, playbackPort, playbackEngine, audioContextFactory, violinSnapshots };

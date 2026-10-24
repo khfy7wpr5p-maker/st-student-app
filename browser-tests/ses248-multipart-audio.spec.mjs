@@ -69,6 +69,9 @@ test('SES-248 selected violin and piano pilot produce native audio with current 
     assert.ok(sampleUrls.some(url => url.includes('/Solo%20Violin/')));
     assert.ok(sampleUrls.some(url => url.includes('/salamander/')));
     await page.locator('[data-violin-fingerboard] [data-playing="true"]').waitFor();
+    const violinEvents = await page.evaluate(() => globalThis.__SES248__.violinSnapshots.map(s => s.eventId));
+    assert.ok(violinEvents.length > 0);
+    assert.ok(violinEvents.every(id => id.startsWith('P1:')), 'piano events never drive the violin board');
     await page.getByRole('button', { name: 'Duraklat', exact: true }).click();
     const paused = await page.evaluate(() => globalThis.__SES248__.playbackEngine.getCurrentBeat());
     await page.waitForTimeout(150);
@@ -76,13 +79,37 @@ test('SES-248 selected violin and piano pilot produce native audio with current 
     await page.locator('[data-practice-tempo]').fill('72');
     await page.getByRole('button', { name: 'Tempoyu uygula', exact: true }).click();
     await page.locator('[data-action="set-measure-repeat"]').check();
+    await page.evaluate(() => {
+      globalThis.__SES248_POSITIONS__ = [];
+      const t = globalThis.__SES248__;
+      t.playbackPort.subscribePositionForPackage(t.controller.getScoreFollowSource().pkg,
+        position => globalThis.__SES248_POSITIONS__.push({ beat: position.beat, playing: position.playing }));
+    });
+    const startsBeforeRestart = await page.evaluate(() => globalThis.__SES248_AUDIO__.starts.length);
     await page.getByRole('button', { name: 'Baştan', exact: true }).click();
-    await page.waitForFunction(() => globalThis.__SES248__.playbackEngine.getCurrentBeat() > 0);
+    await page.waitForFunction(before => globalThis.__SES248_AUDIO__.starts.length >= before + 2 &&
+      globalThis.__SES248__.playbackEngine.getCurrentBeat() > 0.05, startsBeforeRestart);
+    const timingBefore = await page.evaluate(() => ({ time: globalThis.__SES248__.audioContextFactory().currentTime,
+      beat: globalThis.__SES248__.playbackEngine.getCurrentBeat() }));
+    await page.waitForFunction(time => globalThis.__SES248__.audioContextFactory().currentTime >= time + 0.35, timingBefore.time);
+    const timingAfter = await page.evaluate(() => ({ time: globalThis.__SES248__.audioContextFactory().currentTime,
+      beat: globalThis.__SES248__.playbackEngine.getCurrentBeat() }));
+    const beatsPerSecond = (timingAfter.beat - timingBefore.beat) / (timingAfter.time - timingBefore.time);
+    assert.ok(Math.abs(beatsPerSecond - 1.2) < 0.1, `72 BPM advances at 1.2 beats/sec: ${beatsPerSecond}`);
+    await page.waitForFunction(() => globalThis.__SES248_POSITIONS__.some((p, i, all) =>
+      i > 0 && p.playing && all[i - 1].playing && all[i - 1].beat > 2.7 && p.beat < 0.3));
     assert.equal(await page.getByText('Dinleme kullanılamadı.', { exact: true }).count(), 0);
     await page.getByRole('button', { name: 'Duraklat', exact: true }).click();
+    const beforeResume = await page.evaluate(() => ({ starts: globalThis.__SES248_AUDIO__.starts.length,
+      beat: globalThis.__SES248__.playbackEngine.getCurrentBeat() }));
     await context.setOffline(true);
     await page.getByRole('button', { name: 'Dinle', exact: true }).click();
-    await page.waitForFunction(() => globalThis.__SES248__.playbackEngine.getCurrentBeat() > 0);
+    await page.waitForFunction(before => globalThis.__SES248_AUDIO__.starts.length > before.starts &&
+      globalThis.__SES248__.playbackEngine.getCurrentBeat() > before.beat + 0.05 &&
+      globalThis.__SES248_AUDIO__.analysers.filter(analyser => {
+        const values = new Float32Array(analyser.fftSize); analyser.getFloatTimeDomainData(values);
+        return values.some(v => Math.abs(v) > 0.00001);
+      }).length >= 2, beforeResume);
     assert.equal(await page.getByText('Dinleme kullanılamadı.', { exact: true }).count(), 0);
     await context.setOffline(false);
     assert.deepEqual(errors, []);

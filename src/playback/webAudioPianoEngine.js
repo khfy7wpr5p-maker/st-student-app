@@ -146,6 +146,7 @@ export function createWebAudioPianoEngine({
   let repeatMeasureIndex = null;
   let activeRange = null;
   let generation = 0;
+  let schedulingEpoch = 0;
   let currentPlaybackInstrument = null;
   let currentPartInstruments = null;
   let currentSourceRevisionId = null;
@@ -209,6 +210,7 @@ export function createWebAudioPianoEngine({
   }
 
   function stopSources() {
+    schedulingEpoch += 1;
     try {
       scoreAudioVoice?.stopAll?.();
     } catch {
@@ -388,7 +390,7 @@ export function createWebAudioPianoEngine({
     if (usesScoreAudioVoice(instrumentId)) {
       scoreAudioVoice.scheduleNote({
         requestId:
-          `${currentPlan.packageId}:${generation}:${index}:${startBeat}`,
+          `${currentPlan.packageId}:${generation}:${schedulingEpoch}:${index}:${startBeat}`,
         sourceRevisionId:
           currentSourceRevisionId ?? currentPlan.packageId,
         instrumentId,

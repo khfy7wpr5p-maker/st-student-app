@@ -33,7 +33,7 @@ function setup(options = {}) {
     },
   };
   const clock = { setInterval(fn) { intervals.set(++intervalId, fn); return intervalId; }, clearInterval(id) { intervals.delete(id); } };
-  const voice = createScoreAudioVoiceAdapter({ runtime: globalThis.STScoreAudioEngine,
+  const voice = createScoreAudioVoiceAdapter({ runtime: options.runtime ?? globalThis.STScoreAudioEngine,
     audioContextFactory: () => context,
     fetchImpl: async url => ({ ok: true, status: 200, arrayBuffer: async () => new TextEncoder().encode(url).buffer }),
   });
@@ -142,4 +142,57 @@ test("the corrected 24-measure pilot keeps all 69 violin and 120 piano events", 
   assert.equal(h.sources.filter(s => s.buffer.url.includes('Solo%20Violin')).length, 69);
   assert.equal(h.sources.filter(s => s.buffer.url.includes('/salamander/')).length, 120);
   h.port.disposePackage(h.pkg);
+});
+
+for (const [name, reschedule] of [
+  ['restart', h => h.port.restartPackage(h.pkg)],
+  ['tempo', h => h.port.setTempoForPackage(h.pkg, 120)],
+  ['repeat', h => h.port.setMeasureRepeatEnabledForPackage(h.pkg, true)],
+]) {
+  test(`a late old violin voice cannot stop its replacement after ${name}`, async () => {
+    let release, hold = false, first = true;
+    const runtime = { ...globalThis.STScoreAudioEngine, createAudioEngine(options) {
+      const p = options.sampleProvider;
+      const sampleProvider = {
+        prepare: p.prepare.bind(p), prepareDecoded: p.prepareDecoded.bind(p),
+        async resolve(...args) {
+          const value = await p.resolve(...args);
+          if (hold && args[0] === 'VIOLIN') { hold = false; await new Promise(resolve => { release = resolve; }); }
+          return value;
+        },
+      };
+      const native = globalThis.STScoreAudioEngine.createAudioEngine({ ...options, sampleProvider });
+      const schedule = native.scheduleNote.bind(native);
+      native.scheduleNote = request => {
+        if (first && request.instrumentId === 'VIOLIN') { first = false; hold = true; }
+        return schedule(request);
+      };
+      return native;
+    } };
+    const h = setup({ runtime });
+    await h.port.playPackage(h.pkg); await flush();
+    assert.equal(typeof release, 'function');
+    await reschedule(h); await flush();
+    const replacement = h.sources.find(s => s.buffer.url.includes('Solo%20Violin'));
+    assert.equal(replacement.stops.length, 1);
+    release(); await flush();
+    assert.equal(replacement.stops.length, 1, 'late old work must preserve the replacement voice');
+    h.port.disposePackage(h.pkg);
+  });
+}
+
+test('a multipart score with a rest-only violin still requires an explicit violin target', () => {
+  const h = setup();
+  h.pkg.content.score.data = h.pkg.content.score.data.replace(/<part id="lead">[\s\S]*?<\/part>/,
+    '<part id="lead"><measure number="1"><attributes><divisions>1</divisions><time><beats>3</beats><beat-type>4</beat-type></time></attributes><note><rest/><duration>3</duration><voice>1</voice></note></measure></part>');
+  delete h.pkg.content.violin;
+  assert.equal(h.port.canPlayPackage(h.pkg), false);
+});
+
+test('a referenced accompaniment instrument without a MIDI declaration is ambiguous', () => {
+  const h = setup();
+  h.pkg.content.score.data = h.pkg.content.score.data
+    .replace('<midi-instrument id="bass-I">', '<score-instrument id="bass-unmapped"><instrument-name>Unknown</instrument-name></score-instrument><midi-instrument id="bass-I">')
+    .replace(/(<part id="bass">[\s\S]*?<duration>1<\/duration>)/, '$1<instrument id="bass-unmapped"/>');
+  assert.equal(h.port.canPlayPackage(h.pkg), false);
 });

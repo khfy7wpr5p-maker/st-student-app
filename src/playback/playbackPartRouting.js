@@ -1,20 +1,40 @@
 import { readViolinConfiguration } from "../practice/practiceCapabilities.js";
-import { childrenNamed, createBrowserMusicXmlParser, firstChildNamed, hasDescendantNamed, textOf } from "./musicXmlPlaybackDom.js";
+import { childrenNamed, createBrowserMusicXmlParser, elementChildren, firstChildNamed, hasDescendantNamed, localNameOf, textOf } from "./musicXmlPlaybackDom.js";
+
+function hasOnlyDeclaredPianoInstruments(entry, body) {
+  const declarations = childrenNamed(entry, "score-instrument");
+  const midi = childrenNamed(entry, "midi-instrument");
+  const ids = declarations.map(node => node.getAttribute("id"));
+  const midiIds = midi.map(node => node.getAttribute("id"));
+  if (ids.length === 0 || ids.some(id => typeof id !== "string" || !id.trim()) ||
+      new Set(ids).size !== ids.length || new Set(midiIds).size !== midiIds.length ||
+      ids.length !== midiIds.length || midiIds.some(id => !ids.includes(id)) ||
+      midi.some(node => childrenNamed(node, "midi-program").length !== 1 ||
+        Number(textOf(firstChildNamed(node, "midi-program"))) !== 1) ||
+      hasDescendantNamed(body, "midi-instrument")) return false;
+  const pending = [body];
+  while (pending.length) {
+    const node = pending.pop();
+    if (localNameOf(node) === "instrument" && !ids.includes(node.getAttribute("id"))) return false;
+    pending.push(...elementChildren(node));
+  }
+  return true;
+}
 
 export function resolvePlaybackPartInstruments(pkg, plan) {
   if (pkg?.playbackInstrument !== "VIOLIN") return null;
   const noteParts = new Set(plan.notes.map(note => note.partId));
   const violin = readViolinConfiguration(pkg);
-  if (noteParts.size <= 1 && violin === null) return null;
   const fail = () => { throw new Error("ambiguous playback part instruments"); };
-  if (violin === null) return fail();
   const doc = createBrowserMusicXmlParser().parse(pkg?.content?.score?.data);
   const root = doc?.documentElement;
+  const lists = root?.localName === "score-partwise" ? childrenNamed(root, "part-list") : [];
+  const bodies = root?.localName === "score-partwise" ? childrenNamed(root, "part") : [];
+  const entries = lists.flatMap(list => childrenNamed(list, "score-part"));
+  if (noteParts.size <= 1 && violin === null && entries.length <= 1 && bodies.length <= 1) return null;
+  if (violin === null) return fail();
   if (root?.localName !== "score-partwise") return fail();
-  const lists = childrenNamed(root, "part-list");
   if (lists.length !== 1) return fail();
-  const entries = childrenNamed(lists[0], "score-part");
-  const bodies = childrenNamed(root, "part");
   if (entries.length !== bodies.length) return fail();
   const ids = entries.map(entry => entry.getAttribute("id"));
   if (new Set(ids).size !== ids.length || !ids.includes(violin.targetPartId) ||
@@ -28,11 +48,7 @@ export function resolvePlaybackPartInstruments(pkg, plan) {
       instruments[id] = "VIOLIN";
       continue;
     }
-    const midi = childrenNamed(entry, "midi-instrument");
-    if (midi.length === 0 || midi.some(node =>
-      childrenNamed(node, "midi-program").length !== 1 ||
-      Number(textOf(firstChildNamed(node, "midi-program"))) !== 1) ||
-      hasDescendantNamed(bodies[index], "midi-instrument")) return fail();
+    if (!hasOnlyDeclaredPianoInstruments(entry, bodies[index])) return fail();
     instruments[id] = "GRAND_PIANO";
   }
   return Object.freeze(instruments);
