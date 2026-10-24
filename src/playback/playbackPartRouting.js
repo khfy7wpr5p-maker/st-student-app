@@ -1,4 +1,5 @@
 import { readViolinConfiguration } from "../practice/practiceCapabilities.js";
+import { readDeclaredPartInstruments } from "./declaredPartInstruments.js";
 import { childrenNamed, createBrowserMusicXmlParser, elementChildren, firstChildNamed, hasDescendantNamed, localNameOf, textOf } from "./musicXmlPlaybackDom.js";
 
 function hasOnlyDeclaredPianoInstruments(entry, body) {
@@ -22,6 +23,8 @@ function hasOnlyDeclaredPianoInstruments(entry, body) {
 }
 
 export function resolvePlaybackPartInstruments(pkg, plan) {
+  const declared = readDeclaredPartInstruments(pkg, plan);
+  if (declared !== null) return declared;
   if (pkg?.playbackInstrument !== "VIOLIN") return null;
   const noteParts = new Set(plan.notes.map(note => note.partId));
   const violin = readViolinConfiguration(pkg);
