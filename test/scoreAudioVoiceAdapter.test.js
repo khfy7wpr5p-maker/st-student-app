@@ -121,3 +121,28 @@ test("adapter fails closed for an unpinned runtime or unsupported instrument", (
   assert.equal(harness().adapter.isSupported("GRAND_PIANO"), true);
   assert.equal(harness().adapter.isSupported("RANDOM_INSTRUMENT"), false);
 });
+
+test("late native scheduling after stop cancels only its old request", async () => {
+  let finish;
+  const stopped = [], released = [];
+  const engine = {
+    async setInstrument() {}, async prepare() {},
+    async unlockFromUserGesture() { return { ok: true }; },
+    async preparePitches() { return { ok: true }; },
+    scheduleNote(request) {
+      return request.requestId === "old" ? new Promise(resolve => { finish = resolve; }) : Promise.resolve({ ok: true });
+    },
+    stopAll() { stopped.push("all"); },
+    noteOff(id) { released.push(id); },
+  };
+  const adapter = createScoreAudioVoiceAdapter({ runtime: { version: "0.2.0", createAudioEngine() { return engine; } }, audioContextFactory() {} });
+  await adapter.prepare({ instrumentId: "VIOLIN", pitches: [60] });
+  const note = { instrumentId: "VIOLIN", midi: 60, sourceRevisionId: "rev-a", startTimeSeconds: 1, durationSeconds: 1 };
+  adapter.scheduleNote({ ...note, requestId: "old" });
+  adapter.stopAll();
+  adapter.scheduleNote({ ...note, requestId: "new" });
+  finish({ ok: true });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(released, ["old"]);
+  assert.deepEqual(stopped, ["all"]);
+});

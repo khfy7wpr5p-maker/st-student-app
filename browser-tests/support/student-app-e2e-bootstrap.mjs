@@ -37,6 +37,7 @@ import {
 import {
   createWebAudioPianoEngine,
 } from "../../src/playback/webAudioPianoEngine.js";
+import { createScoreAudioVoiceAdapter } from "../../src/playback/scoreAudioVoiceAdapter.js";
 import {
   createStudentAppController,
 } from "../../src/ui/studentAppController.js";
@@ -116,16 +117,18 @@ const AudioContextCtor =
   globalThis.webkitAudioContext;
 const audioContextSupported =
   typeof AudioContextCtor === "function";
-const audioContextFactory = () =>
-  typeof AudioContextCtor === "function"
-    ? new AudioContextCtor()
-    : null;
+let sharedAudioContext = null;
+const audioContextFactory = () => {
+  if (sharedAudioContext === null && typeof AudioContextCtor === "function") sharedAudioContext = new AudioContextCtor();
+  return sharedAudioContext;
+};
 
 const playbackEngine =
   createWebAudioPianoEngine({
     audioContextFactory,
     audioContextSupported,
     sampleBank,
+    scoreAudioVoice: createScoreAudioVoiceAdapter({ runtime: globalThis.STScoreAudioEngine, audioContextFactory }),
   });
 
 const playbackPort =
@@ -233,3 +236,5 @@ document.documentElement
     "data-ses13-e2e-ready",
     "true",
   );
+
+export { controller, playbackPort, playbackEngine, audioContextFactory };

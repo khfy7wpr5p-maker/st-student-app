@@ -14,8 +14,9 @@ export function createScoreAudioVoiceAdapter({
   audioContextFactory,
   fetchImpl = globalThis.fetch,
 } = {}) {
-  let engine = null;
-  let activeInstrument = null;
+  const engines = new Map();
+  let sampleProvider = null;
+  let generation = 0;
 
   function runtimeReady() {
     return (
@@ -25,12 +26,13 @@ export function createScoreAudioVoiceAdapter({
     );
   }
 
-  function getEngine() {
+  function getEngine(instrumentId) {
     if (!runtimeReady()) throw unavailable();
-    if (engine !== null) return engine;
+    if (engines.has(instrumentId)) return engines.get(instrumentId);
     const options = {
       audioContextFactory,
       audioContextOwnership: "external",
+      defaultInstrument: instrumentId,
     };
     const manifests = [
       runtime?.SALAMANDER_GRAND_PIANO_MANIFEST,
@@ -42,14 +44,16 @@ export function createScoreAudioVoiceAdapter({
       manifests.every((manifest) => manifest !== undefined) &&
       typeof fetchImpl === "function"
     ) {
-      options.sampleProvider = new runtime.ManifestSampleProvider(
+      sampleProvider ??= new runtime.ManifestSampleProvider(
         manifests,
         {
           fetcher: (url) => fetchImpl(url.replace(/#/g, "%23")),
         },
       );
+      options.sampleProvider = sampleProvider;
     }
-    engine = runtime.createAudioEngine(options);
+    const engine = runtime.createAudioEngine(options);
+    engines.set(instrumentId, engine);
     return engine;
   }
 
@@ -66,9 +70,8 @@ export function createScoreAudioVoiceAdapter({
         throw unavailable();
       }
 
-      const target = getEngine();
+      const target = getEngine(instrumentId);
       await target.setInstrument(instrumentId);
-      activeInstrument = instrumentId;
       await target.prepare();
       const unlocked = await target.unlockFromUserGesture();
       if (unlocked?.ok !== true) throw unavailable();
@@ -92,13 +95,15 @@ export function createScoreAudioVoiceAdapter({
       startTimeSeconds,
       durationSeconds,
     } = {}) {
-      if (engine === null || activeInstrument !== instrumentId) {
+      const engine = engines.get(instrumentId);
+      if (engine === undefined) {
         throw unavailable();
       }
       const durationMs = Math.max(
         20,
         Math.min(10_000, Math.round(durationSeconds * 1000)),
       );
+      const requestGeneration = generation;
       void engine.scheduleNote({
         requestId,
         sourceRevisionId,
@@ -107,14 +112,19 @@ export function createScoreAudioVoiceAdapter({
         startTimeSeconds,
         durationMs,
       }).then((result) => {
+        if (requestGeneration !== generation) {
+          engine.noteOff?.(requestId);
+          return;
+        }
         if (result?.ok !== true) engine?.stopAll?.();
       }).catch(() => {
-        engine?.stopAll?.();
+        if (requestGeneration === generation) engine.stopAll?.();
       });
     },
 
     stopAll() {
-      engine?.stopAll?.();
+      generation += 1;
+      for (const engine of engines.values()) engine.stopAll?.();
     },
   });
 }
