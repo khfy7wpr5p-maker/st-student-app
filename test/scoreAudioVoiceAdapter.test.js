@@ -1,12 +1,13 @@
+import '../vendor/st-score-audio/st-score-audio-engine.js';
 import test from "node:test";
 import assert from "node:assert/strict";
 
 import { createScoreAudioVoiceAdapter } from "../src/playback/scoreAudioVoiceAdapter.js";
 
-function harness({ version = "0.2.0", withSampleProvider = false } = {}) {
+function harness({ version = "0.3.0", withSampleProvider = false } = {}) {
   const calls = [];
   const fetched = [];
-  const context = { currentTime: 12 };
+  const context = { currentTime: 12, destination: {}, createDynamicsCompressor() { return { threshold: {}, knee: {}, ratio: {}, attack: {}, release: {}, connect() {} }; }, createGain() { return { context: this, gain: { value: 1 }, connect() {} }; } };
   const engine = {
     async setInstrument(value) { calls.push(["instrument", value]); },
     async prepare() { calls.push(["prepare"]); },
@@ -25,6 +26,7 @@ function harness({ version = "0.2.0", withSampleProvider = false } = {}) {
     stopAll() { calls.push(["stopAll"]); },
   };
   const runtime = {
+    ...globalThis.STScoreAudioEngine,
     version,
     createAudioEngine(options) {
       calls.push(["create", options]);
@@ -37,9 +39,9 @@ function harness({ version = "0.2.0", withSampleProvider = false } = {}) {
         calls.push(["provider", manifests, options]);
       }
     };
-    runtime.SALAMANDER_GRAND_PIANO_MANIFEST = { id: "piano" };
-    runtime.FREEPATS_CLASSICAL_GUITAR_MANIFEST = { id: "guitar" };
-    runtime.VSCO2CE_SOLO_VIOLIN_ARCO_VIB_MANIFEST = { id: "violin" };
+
+
+
   }
   return {
     calls,
@@ -56,7 +58,7 @@ function harness({ version = "0.2.0", withSampleProvider = false } = {}) {
   };
 }
 
-test("adapter pins runtime 0.2.0 and binds the external shared AudioContext", async () => {
+test("adapter pins runtime 0.3.0 and binds the external shared AudioContext", async () => {
   const { adapter, calls, context } = harness();
   assert.equal(adapter.isSupported("VIOLIN"), true);
 
@@ -103,6 +105,24 @@ test("adapter forwards absolute schedule time and bounded duration", async () =>
   );
 });
 
+test('adapter forwards explicit musical velocity including zero', async()=>{
+ const {adapter,calls}=harness();await adapter.prepare({instrumentId:'VIOLIN',pitches:[60]});
+ for(const velocity of [0,.3,1]){
+  adapter.scheduleNote({requestId:String(velocity),sourceRevisionId:'rev',instrumentId:'VIOLIN',midi:60,startTimeSeconds:14,durationSeconds:.5,velocity});
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(calls.filter(([name])=>name==='note').at(-1)[1].velocity,velocity);
+ }
+});
+
+test('all calibrated lanes share a host output stage with measured overload protection',async()=>{
+ const {adapter,calls}=harness();
+ await adapter.prepare({instrumentId:'VIOLIN',pitches:[60]});
+ await adapter.prepare({instrumentId:'GRAND_PIANO',pitches:[60]});
+ const options=calls.filter(([name])=>name==='create').map(([,v])=>v);
+ assert.equal(options[0].outputNode,options[1].outputNode);
+ assert.equal(options[0].outputNode.gain.value,0.23534927701368785);
+});
+
 test("adapter percent-encodes sharp sample filenames at the runtime fetch boundary", async () => {
   const { adapter, calls, fetched } = harness({ withSampleProvider: true });
 
@@ -135,7 +155,7 @@ test("late native scheduling after stop cancels only its old request", async () 
     stopAll() { stopped.push("all"); },
     noteOff(id) { released.push(id); },
   };
-  const adapter = createScoreAudioVoiceAdapter({ runtime: { version: "0.2.0", createAudioEngine() { return engine; } }, audioContextFactory() {} });
+  const adapter = createScoreAudioVoiceAdapter({ runtime: { ...globalThis.STScoreAudioEngine, version: "0.3.0", createAudioEngine() { return engine; } }, audioContextFactory() { return { destination:{}, createDynamicsCompressor() { return { threshold: {}, knee: {}, ratio: {}, attack: {}, release: {}, connect() {} }; }, createGain() {return {gain:{value:1},connect(){}};} }; } });
   await adapter.prepare({ instrumentId: "VIOLIN", pitches: [60] });
   const note = { instrumentId: "VIOLIN", midi: 60, sourceRevisionId: "rev-a", startTimeSeconds: 1, durationSeconds: 1 };
   adapter.scheduleNote({ ...note, requestId: "old" });

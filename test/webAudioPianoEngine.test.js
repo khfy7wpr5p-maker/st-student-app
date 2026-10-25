@@ -50,6 +50,26 @@ function makeClock() {
   };
 }
 
+test('scheduler forwards optional dynamics and legacy sample envelope applies zero',async()=>{
+ for(const playbackInstrument of ['VIOLIN',null]){
+  const context=makeAudioContext(),calls=[];
+  const engine=createWebAudioPianoEngine({audioContextFactory:()=>context,sampleBank:makeSampleBank(),clock:makeClock(),scoreAudioVoice:{isSupported:()=>true,prepare:async()=>true,scheduleNote:r=>calls.push(r),stopAll(){}}});
+  const plan={...makePlan(),notes:[{...makePlan().notes[0],velocity:0}]};
+  await engine.play({plan,tempoBpm:120,playbackInstrument});
+  if(playbackInstrument)assert.equal(calls[0].velocity,0);
+  else assert.ok(context.gains.slice(1).every(g=>g.events.every(([kind,value])=>value===0)));
+ }
+});
+
+test('pause during cold preparation invalidates play before any note starts',async()=>{
+ let finish;const context=makeAudioContext(),calls=[];
+ const preparing=new Promise(r=>{finish=r;});
+ const engine=createWebAudioPianoEngine({audioContextFactory:()=>context,sampleBank:makeSampleBank(),clock:makeClock(),scoreAudioVoice:{isSupported:()=>true,prepare:()=>preparing,scheduleNote:n=>calls.push(n),stopAll(){}}});
+ const play=engine.play({plan:makePlan(),tempoBpm:120,playbackInstrument:'VIOLIN'});
+ await new Promise(r=>setImmediate(r));engine.pause();finish(true);await play;
+ assert.equal(calls.length,0);assert.equal(engine.getCurrentBeat(),0);
+});
+
 function makeAudioContext() {
   const sources = [];
   const gains = [];

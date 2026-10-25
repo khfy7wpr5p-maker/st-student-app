@@ -10,7 +10,7 @@ test("SES-190 shell refresh invariants remain covered by the newer v47 shell", a
 
   assert.match(
     source,
-    /const SHELL_CACHE_NAME = "st-student-shell-v47"/,
+    /const SHELL_CACHE_NAME = "st-student-shell-v48"/,
   );
   assert.match(source, /src\/ui\/renderStudentApp\.js/);
   assert.match(source, /src\/ui\/studentAppController\.js/);

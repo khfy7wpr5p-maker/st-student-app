@@ -1,3 +1,4 @@
+import { enrichTrustedExpression } from './musicXmlDynamics.js';
 import {
   PLAYBACK_QUALITIES,
   assertPlaybackPlan,
@@ -94,6 +95,12 @@ export function createPlaybackPlanResolver({
           } catch {
             timingProvenance = null;
           }
+        }
+
+        if (timingProvenance !== null && /(?:dynamics|<[^>]*\b(?:pp|p|mp|mf|f|ff)\b)/.test(timingProvenance.musicXml)) {
+          try {
+            plan = assertPlaybackPlan(enrichTrustedExpression(plan, approximateCompiler(pkg)), { packageId, allowedQuality: PLAYBACK_QUALITIES.FULL });
+          } catch { /* Expression enrichment must never displace trusted timing. */ }
         }
 
         return Object.freeze({

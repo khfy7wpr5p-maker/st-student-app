@@ -1,0 +1,842 @@
+[
+  {
+    "instrument": "GRAND_PIANO",
+    "rootMidi": 21,
+    "gain": 0.616770829,
+    "offsetSeconds": 0,
+    "sourceSeconds": 24.999455782312925,
+    "rawPeak": 0.40393227338790894,
+    "url": "https://raw.githubusercontent.com/Tonejs/audio/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/A0.mp3",
+    "git_blob_sha1": "0f8ccd9719dcad3fc5999b8cb3fd21486dfafd6a"
+  },
+  {
+    "instrument": "GRAND_PIANO",
+    "rootMidi": 24,
+    "gain": 0.67491001,
+    "offsetSeconds": 0,
+    "sourceSeconds": 23.619297052154195,
+    "rawPeak": 0.40516889095306396,
+    "url": "https://raw.githubusercontent.com/Tonejs/audio/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/C1.mp3",
+    "git_blob_sha1": "2b840fc55266201f40769bbfb3c721c7f6ed55fc"
+  },
+  {
+    "instrument": "GRAND_PIANO",
+    "rootMidi": 27,
+    "gain": 0.566418839,
+    "offsetSeconds": 0,
+    "sourceSeconds": 24.274739229024945,
+    "rawPeak": 0.4155316650867462,
+    "url": "https://raw.githubusercontent.com/Tonejs/audio/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/Ds1.mp3",
+    "git_blob_sha1": "a5d68f53d927dfdd405828984bd65dd6792c36d7"
+  },
+  {
+    "instrument": "GRAND_PIANO",
+    "rootMidi": 30,
+    "gain": 0.545538679,
+    "offsetSeconds": 0,
+    "sourceSeconds": 23.3475283446712,
+    "rawPeak": 0.4453519880771637,
+    "url": "https://raw.githubusercontent.com/Tonejs/audio/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/Fs1.mp3",
+    "git_blob_sha1": "254ecc45bc5d91d6667095e9aa8f29e05b4a3fac"
+  },
+  {
+    "instrument": "GRAND_PIANO",
+    "rootMidi": 33,
+    "gain": 0.621320387,
+    "offsetSeconds": 0,
+    "sourceSeconds": 23.304897959183673,
+    "rawPeak": 0.3757651448249817,
+    "url": "https://raw.githubusercontent.com/Tonejs/audio/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/A1.mp3",
+    "git_blob_sha1": "0b2ff3a2688c890f3aaa6b98805cb8959d997890"
+  },
+  {
+    "instrument": "GRAND_PIANO",
+    "rootMidi": 36,
+    "gain": 0.789529259,
+    "offsetSeconds": 0,
+    "sourceSeconds": 22.31907029478458,
+    "rawPeak": 0.388868510723114,
+    "url": "https://raw.githubusercontent.com/Tonejs/audio/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/C2.mp3",
+    "git_blob_sha1": "3fca8d06f2544e9203439b83fc609ffdf7ff7174"
+  },
+  {
+    "instrument": "GRAND_PIANO",
+    "rootMidi": 39,
+    "gain": 0.641565135,
+    "offsetSeconds": 0,
+    "sourceSeconds": 22.105918367346938,
+    "rawPeak": 0.37749427556991577,
+    "url": "https://raw.githubusercontent.com/Tonejs/audio/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/Ds2.mp3",
+    "git_blob_sha1": "9e7cf544f0656a3cb9fcebd2c6e9d4da4efb8eda"
+  },
+  {
+    "instrument": "GRAND_PIANO",
+    "rootMidi": 42,
+    "gain": 0.566664681,
+    "offsetSeconds": 0,
+    "sourceSeconds": 20.448662131519274,
+    "rawPeak": 0.3783503472805023,
+    "url": "https://raw.githubusercontent.com/Tonejs/audio/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/Fs2.mp3",
+    "git_blob_sha1": "3d1de69b4a8c8644512c775360561c0db6b6db35"
+  },
+  {
+    "instrument": "GRAND_PIANO",
+    "rootMidi": 45,
+    "gain": 0.807627151,
+    "offsetSeconds": 0,
+    "sourceSeconds": 15.935170068027212,
+    "rawPeak": 0.318987637758255,
+    "url": "https://raw.githubusercontent.com/Tonejs/audio/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/A2.mp3",
+    "git_blob_sha1": "c46996922c542f7a2ccf881a268e7a1ce008458b"
+  },
+  {
+    "instrument": "GRAND_PIANO",
+    "rootMidi": 48,
+    "gain": 0.802496775,
+    "offsetSeconds": 0,
+    "sourceSeconds": 15.999115646258504,
+    "rawPeak": 0.3558942675590515,
+    "url": "https://raw.githubusercontent.com/Tonejs/audio/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/C3.mp3",
+    "git_blob_sha1": "14daa30a2a796149883396b60ef84a3e16e48206"
+  },
+  {
+    "instrument": "GRAND_PIANO",
+    "rootMidi": 51,
+    "gain": 0.754889748,
+    "offsetSeconds": 0,
+    "sourceSeconds": 16.079047619047618,
+    "rawPeak": 0.3636278510093689,
+    "url": "https://raw.githubusercontent.com/Tonejs/audio/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/Ds3.mp3",
+    "git_blob_sha1": "ba3cc489b1fbde1fc14b5f5d6001bf76a3845721"
+  },
+  {
+    "instrument": "GRAND_PIANO",
+    "rootMidi": 54,
+    "gain": 0.92544548,
+    "offsetSeconds": 0,
+    "sourceSeconds": 16.127006802721088,
+    "rawPeak": 0.3155726194381714,
+    "url": "https://raw.githubusercontent.com/Tonejs/audio/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/Fs3.mp3",
+    "git_blob_sha1": "c0971905449a89cab35ec7c5d654ea344a9cb90b"
+  },
+  {
+    "instrument": "GRAND_PIANO",
+    "rootMidi": 57,
+    "gain": 1.092447482,
+    "offsetSeconds": 0,
+    "sourceSeconds": 15.615442176870749,
+    "rawPeak": 0.2634422779083252,
+    "url": "https://raw.githubusercontent.com/Tonejs/audio/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/A3.mp3",
+    "git_blob_sha1": "57924c5572fd136eca8e4dad444a8d8e22b7bbc5"
+  },
+  {
+    "instrument": "GRAND_PIANO",
+    "rootMidi": 60,
+    "gain": 0.787799698,
+    "offsetSeconds": 0,
+    "sourceSeconds": 16.18562358276644,
+    "rawPeak": 0.39715975522994995,
+    "url": "https://raw.githubusercontent.com/Tonejs/audio/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/C4.mp3",
+    "git_blob_sha1": "d5f5819d32641247e33a452df3c81bd3f71422e8"
+  },
+  {
+    "instrument": "GRAND_PIANO",
+    "rootMidi": 63,
+    "gain": 1.083452927,
+    "offsetSeconds": 0,
+    "sourceSeconds": 15.817936507936508,
+    "rawPeak": 0.360061377286911,
+    "url": "https://raw.githubusercontent.com/Tonejs/audio/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/Ds4.mp3",
+    "git_blob_sha1": "f13123332b689eaa5af6e15e8522c09b6823aeb0"
+  },
+  {
+    "instrument": "GRAND_PIANO",
+    "rootMidi": 66,
+    "gain": 1.01490445,
+    "offsetSeconds": 0,
+    "sourceSeconds": 14.688231292517006,
+    "rawPeak": 0.271985799074173,
+    "url": "https://raw.githubusercontent.com/Tonejs/audio/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/Fs4.mp3",
+    "git_blob_sha1": "780ba594653d6774b55ef1bcdc3d7513156b269d"
+  },
+  {
+    "instrument": "GRAND_PIANO",
+    "rootMidi": 69,
+    "gain": 0.998370907,
+    "offsetSeconds": 0,
+    "sourceSeconds": 13.32297052154195,
+    "rawPeak": 0.3085939288139343,
+    "url": "https://raw.githubusercontent.com/Tonejs/audio/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/A4.mp3",
+    "git_blob_sha1": "3b19af879f0e0bc07a02cff767b3ff4e95400884"
+  },
+  {
+    "instrument": "GRAND_PIANO",
+    "rootMidi": 72,
+    "gain": 1.093248801,
+    "offsetSeconds": 0,
+    "sourceSeconds": 15.56748299319728,
+    "rawPeak": 0.27840492129325867,
+    "url": "https://raw.githubusercontent.com/Tonejs/audio/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/C5.mp3",
+    "git_blob_sha1": "7064bc84bf13b14f2d8e7ec2dcfa69b2c80a8c06"
+  },
+  {
+    "instrument": "GRAND_PIANO",
+    "rootMidi": 75,
+    "gain": 1.266632889,
+    "offsetSeconds": 0,
+    "sourceSeconds": 12.945714285714285,
+    "rawPeak": 0.2486271858215332,
+    "url": "https://raw.githubusercontent.com/Tonejs/audio/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/Ds5.mp3",
+    "git_blob_sha1": "9a6a24b7076dbdf922a6540896dd058ab56841ec"
+  },
+  {
+    "instrument": "GRAND_PIANO",
+    "rootMidi": 78,
+    "gain": 1.070641505,
+    "offsetSeconds": 0,
+    "sourceSeconds": 11.911927437641724,
+    "rawPeak": 0.27522724866867065,
+    "url": "https://raw.githubusercontent.com/Tonejs/audio/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/Fs5.mp3",
+    "git_blob_sha1": "5d4fcac5facadbe2a449af7a066fe24fb6dea782"
+  },
+  {
+    "instrument": "GRAND_PIANO",
+    "rootMidi": 81,
+    "gain": 1.713460394,
+    "offsetSeconds": 0,
+    "sourceSeconds": 10.537120181405896,
+    "rawPeak": 0.27261078357696533,
+    "url": "https://raw.githubusercontent.com/Tonejs/audio/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/A5.mp3",
+    "git_blob_sha1": "d17d5532527d4af7fccfbc7638af3dbc1ec5e9f3"
+  },
+  {
+    "instrument": "GRAND_PIANO",
+    "rootMidi": 84,
+    "gain": 2.305081641,
+    "offsetSeconds": 0,
+    "sourceSeconds": 6.22609977324263,
+    "rawPeak": 0.29482191801071167,
+    "url": "https://raw.githubusercontent.com/Tonejs/audio/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/C6.mp3",
+    "git_blob_sha1": "c8e20f649bc1ab5d91803c2d97e4c279553496cc"
+  },
+  {
+    "instrument": "GRAND_PIANO",
+    "rootMidi": 87,
+    "gain": 1.32363195,
+    "offsetSeconds": 0,
+    "sourceSeconds": 6.699478458049887,
+    "rawPeak": 0.35313841700553894,
+    "url": "https://raw.githubusercontent.com/Tonejs/audio/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/Ds6.mp3",
+    "git_blob_sha1": "14b38cd4717f5f7cfa1c4748341dcf7de3fd294b"
+  },
+  {
+    "instrument": "GRAND_PIANO",
+    "rootMidi": 90,
+    "gain": 2.498646049,
+    "offsetSeconds": 0,
+    "sourceSeconds": 5.847755102040816,
+    "rawPeak": 0.24034659564495087,
+    "url": "https://raw.githubusercontent.com/Tonejs/audio/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/Fs6.mp3",
+    "git_blob_sha1": "ba3e062847ff431b0f9cafdcff6ce7f6ee5a46f2"
+  },
+  {
+    "instrument": "GRAND_PIANO",
+    "rootMidi": 93,
+    "gain": 2.646790279,
+    "offsetSeconds": 0,
+    "sourceSeconds": 6.806938775510204,
+    "rawPeak": 0.1967756152153015,
+    "url": "https://raw.githubusercontent.com/Tonejs/audio/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/A6.mp3",
+    "git_blob_sha1": "8464e29082f6ecff0491759b7c98ec424df60fda"
+  },
+  {
+    "instrument": "GRAND_PIANO",
+    "rootMidi": 96,
+    "gain": 3.158167358,
+    "offsetSeconds": 0,
+    "sourceSeconds": 4.07859410430839,
+    "rawPeak": 0.20595675706863403,
+    "url": "https://raw.githubusercontent.com/Tonejs/audio/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/C7.mp3",
+    "git_blob_sha1": "4cf780bba322f85942dadfeb08f55693028569c0"
+  },
+  {
+    "instrument": "GRAND_PIANO",
+    "rootMidi": 99,
+    "gain": 4.874390374,
+    "offsetSeconds": 0,
+    "sourceSeconds": 4.872585034013605,
+    "rawPeak": 0.1499556005001068,
+    "url": "https://raw.githubusercontent.com/Tonejs/audio/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/Ds7.mp3",
+    "git_blob_sha1": "ea3e885f21f330c7313350f74fd58911b5948777"
+  },
+  {
+    "instrument": "GRAND_PIANO",
+    "rootMidi": 102,
+    "gain": 4.679408977,
+    "offsetSeconds": 0,
+    "sourceSeconds": 4.829954648526077,
+    "rawPeak": 0.1976979374885559,
+    "url": "https://raw.githubusercontent.com/Tonejs/audio/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/Fs7.mp3",
+    "git_blob_sha1": "431195300fbb91e9dbc3332b48063e17d35d9066"
+  },
+  {
+    "instrument": "GRAND_PIANO",
+    "rootMidi": 105,
+    "gain": 7.170293303,
+    "offsetSeconds": 0,
+    "sourceSeconds": 4.0253061224489795,
+    "rawPeak": 0.11907437443733215,
+    "url": "https://raw.githubusercontent.com/Tonejs/audio/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/A7.mp3",
+    "git_blob_sha1": "5e5aa4dc53b2825684740467a194ee9ac6fd76b8"
+  },
+  {
+    "instrument": "GRAND_PIANO",
+    "rootMidi": 108,
+    "gain": 5.65769125,
+    "offsetSeconds": 0,
+    "sourceSeconds": 3.8814285714285712,
+    "rawPeak": 0.13326475024223328,
+    "url": "https://raw.githubusercontent.com/Tonejs/audio/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/C8.mp3",
+    "git_blob_sha1": "9297538c383fddc416b618a37697180e302d5b14"
+  },
+  {
+    "instrument": "CLASSICAL_GUITAR",
+    "rootMidi": 40,
+    "gain": 0.303324341,
+    "offsetSeconds": 0,
+    "sourceSeconds": 4.998503401360544,
+    "rawPeak": 0.6981082558631897,
+    "url": "https://raw.githubusercontent.com/freepats/spanish-classical-guitar/6f4eb1b092acc88f5448cea1a0001bd07b971af8/samples/E2.flac",
+    "git_blob_sha1": "d0b515ea8affac0f06354acc0d2b91663d81c484"
+  },
+  {
+    "instrument": "CLASSICAL_GUITAR",
+    "rootMidi": 41,
+    "gain": 0.40390923,
+    "offsetSeconds": 0,
+    "sourceSeconds": 5.350498866213152,
+    "rawPeak": 0.6981729865074158,
+    "url": "https://raw.githubusercontent.com/freepats/spanish-classical-guitar/6f4eb1b092acc88f5448cea1a0001bd07b971af8/samples/F2.flac",
+    "git_blob_sha1": "33486a4a40c1560f5faf9927adfed70a89f9958b"
+  },
+  {
+    "instrument": "CLASSICAL_GUITAR",
+    "rootMidi": 43,
+    "gain": 0.387994005,
+    "offsetSeconds": 0,
+    "sourceSeconds": 5.2332199546485265,
+    "rawPeak": 0.6988850831985474,
+    "url": "https://raw.githubusercontent.com/freepats/spanish-classical-guitar/6f4eb1b092acc88f5448cea1a0001bd07b971af8/samples/G2.flac",
+    "git_blob_sha1": "c39dcd501de73c732476585a42a3c8f331e265d3"
+  },
+  {
+    "instrument": "CLASSICAL_GUITAR",
+    "rootMidi": 45,
+    "gain": 0.427347305,
+    "offsetSeconds": 0,
+    "sourceSeconds": 5.628662131519274,
+    "rawPeak": 0.698906660079956,
+    "url": "https://raw.githubusercontent.com/freepats/spanish-classical-guitar/6f4eb1b092acc88f5448cea1a0001bd07b971af8/samples/A2.flac",
+    "git_blob_sha1": "5ab5bd25523876cbfb0008a2e21c390607fc8c1b"
+  },
+  {
+    "instrument": "CLASSICAL_GUITAR",
+    "rootMidi": 47,
+    "gain": 0.431525816,
+    "offsetSeconds": 0,
+    "sourceSeconds": 3.86734693877551,
+    "rawPeak": 0.6994677186012268,
+    "url": "https://raw.githubusercontent.com/freepats/spanish-classical-guitar/6f4eb1b092acc88f5448cea1a0001bd07b971af8/samples/B2.flac",
+    "git_blob_sha1": "5d67d7da076023bf83139f5b27e4db714ffb052d"
+  },
+  {
+    "instrument": "CLASSICAL_GUITAR",
+    "rootMidi": 48,
+    "gain": 0.441576224,
+    "offsetSeconds": 0,
+    "sourceSeconds": 4.29578231292517,
+    "rawPeak": 0.69884192943573,
+    "url": "https://raw.githubusercontent.com/freepats/spanish-classical-guitar/6f4eb1b092acc88f5448cea1a0001bd07b971af8/samples/C3.flac",
+    "git_blob_sha1": "94ff16cf7d242593f072b4085ddcb7918d9de808"
+  },
+  {
+    "instrument": "CLASSICAL_GUITAR",
+    "rootMidi": 50,
+    "gain": 0.39295564,
+    "offsetSeconds": 0,
+    "sourceSeconds": 5.285918367346939,
+    "rawPeak": 0.6873618364334106,
+    "url": "https://raw.githubusercontent.com/freepats/spanish-classical-guitar/6f4eb1b092acc88f5448cea1a0001bd07b971af8/samples/D3.flac",
+    "git_blob_sha1": "f5e14aa01cb13159f5ae2a0705eac779b108fb9c"
+  },
+  {
+    "instrument": "CLASSICAL_GUITAR",
+    "rootMidi": 52,
+    "gain": 0.378546012,
+    "offsetSeconds": 0,
+    "sourceSeconds": 4.75015873015873,
+    "rawPeak": 0.6986693143844604,
+    "url": "https://raw.githubusercontent.com/freepats/spanish-classical-guitar/6f4eb1b092acc88f5448cea1a0001bd07b971af8/samples/E3.flac",
+    "git_blob_sha1": "79fc198f6f0cc9a88c7c1bedac2a13f07e36e0f2"
+  },
+  {
+    "instrument": "CLASSICAL_GUITAR",
+    "rootMidi": 53,
+    "gain": 0.340828417,
+    "offsetSeconds": 0,
+    "sourceSeconds": 4.196916099773243,
+    "rawPeak": 0.6990577578544617,
+    "url": "https://raw.githubusercontent.com/freepats/spanish-classical-guitar/6f4eb1b092acc88f5448cea1a0001bd07b971af8/samples/F3.flac",
+    "git_blob_sha1": "c7958261a495bf7b387ab4c53dd915f2d6bb2cc9"
+  },
+  {
+    "instrument": "CLASSICAL_GUITAR",
+    "rootMidi": 54,
+    "gain": 0.248415013,
+    "offsetSeconds": 0,
+    "sourceSeconds": 3.912562358276644,
+    "rawPeak": 0.7004819512367249,
+    "url": "https://raw.githubusercontent.com/freepats/spanish-classical-guitar/6f4eb1b092acc88f5448cea1a0001bd07b971af8/samples/F%233.flac",
+    "git_blob_sha1": "4eb33a23e38bfc55692be717bfc647c836a01f47"
+  },
+  {
+    "instrument": "CLASSICAL_GUITAR",
+    "rootMidi": 55,
+    "gain": 0.443248861,
+    "offsetSeconds": 0,
+    "sourceSeconds": 4.661292517006803,
+    "rawPeak": 0.6983887553215027,
+    "url": "https://raw.githubusercontent.com/freepats/spanish-classical-guitar/6f4eb1b092acc88f5448cea1a0001bd07b971af8/samples/G3.flac",
+    "git_blob_sha1": "d9f84c6fc2296cc1bb431506138afaef51da87f0"
+  },
+  {
+    "instrument": "CLASSICAL_GUITAR",
+    "rootMidi": 56,
+    "gain": 0.32036425,
+    "offsetSeconds": 0,
+    "sourceSeconds": 3.338979591836735,
+    "rawPeak": 0.6990577578544617,
+    "url": "https://raw.githubusercontent.com/freepats/spanish-classical-guitar/6f4eb1b092acc88f5448cea1a0001bd07b971af8/samples/G%233.flac",
+    "git_blob_sha1": "e295efa8f7a624a5890c9f4f244ef6537359f1e6"
+  },
+  {
+    "instrument": "CLASSICAL_GUITAR",
+    "rootMidi": 57,
+    "gain": 0.394289882,
+    "offsetSeconds": 0,
+    "sourceSeconds": 2.525374149659864,
+    "rawPeak": 0.6986693143844604,
+    "url": "https://raw.githubusercontent.com/freepats/spanish-classical-guitar/6f4eb1b092acc88f5448cea1a0001bd07b971af8/samples/A3.flac",
+    "git_blob_sha1": "a36282fd9dcde60e007814d6d43ca5ed141f1121"
+  },
+  {
+    "instrument": "CLASSICAL_GUITAR",
+    "rootMidi": 58,
+    "gain": 0.32974097,
+    "offsetSeconds": 0,
+    "sourceSeconds": 2.4896598639455783,
+    "rawPeak": 0.6983887553215027,
+    "url": "https://raw.githubusercontent.com/freepats/spanish-classical-guitar/6f4eb1b092acc88f5448cea1a0001bd07b971af8/samples/A%233.flac",
+    "git_blob_sha1": "536873cab570df32812eef6ac7dd852ffbaeb47e"
+  },
+  {
+    "instrument": "CLASSICAL_GUITAR",
+    "rootMidi": 59,
+    "gain": 0.321677296,
+    "offsetSeconds": 0,
+    "sourceSeconds": 2.2705442176870747,
+    "rawPeak": 0.6988635063171387,
+    "url": "https://raw.githubusercontent.com/freepats/spanish-classical-guitar/6f4eb1b092acc88f5448cea1a0001bd07b971af8/samples/B3.flac",
+    "git_blob_sha1": "fb2490277b241d4bf6c558f5497631a3066df7c4"
+  },
+  {
+    "instrument": "CLASSICAL_GUITAR",
+    "rootMidi": 60,
+    "gain": 0.553299663,
+    "offsetSeconds": 0,
+    "sourceSeconds": 2.417845804988662,
+    "rawPeak": 0.6985830068588257,
+    "url": "https://raw.githubusercontent.com/freepats/spanish-classical-guitar/6f4eb1b092acc88f5448cea1a0001bd07b971af8/samples/C4.flac",
+    "git_blob_sha1": "0f11f4dee54189c58ca7f0553ff392036ea41773"
+  },
+  {
+    "instrument": "CLASSICAL_GUITAR",
+    "rootMidi": 61,
+    "gain": 0.429411679,
+    "offsetSeconds": 0,
+    "sourceSeconds": 2.889750566893424,
+    "rawPeak": 0.6996835470199585,
+    "url": "https://raw.githubusercontent.com/freepats/spanish-classical-guitar/6f4eb1b092acc88f5448cea1a0001bd07b971af8/samples/C%234.flac",
+    "git_blob_sha1": "67e6f208f4b0ac45a78d91a881f328b09ca2eaad"
+  },
+  {
+    "instrument": "CLASSICAL_GUITAR",
+    "rootMidi": 62,
+    "gain": 0.399941088,
+    "offsetSeconds": 0,
+    "sourceSeconds": 3.0576190476190477,
+    "rawPeak": 0.6998130083084106,
+    "url": "https://raw.githubusercontent.com/freepats/spanish-classical-guitar/6f4eb1b092acc88f5448cea1a0001bd07b971af8/samples/D4.flac",
+    "git_blob_sha1": "0bdd9cd74d451cb5528e8bc6e8656c1249ff12ce"
+  },
+  {
+    "instrument": "CLASSICAL_GUITAR",
+    "rootMidi": 63,
+    "gain": 0.313736114,
+    "offsetSeconds": 0,
+    "sourceSeconds": 3.1257369614512474,
+    "rawPeak": 0.6985830068588257,
+    "url": "https://raw.githubusercontent.com/freepats/spanish-classical-guitar/6f4eb1b092acc88f5448cea1a0001bd07b971af8/samples/D%234.flac",
+    "git_blob_sha1": "d379a7dda68750077cc88197341da48ae1df0b76"
+  },
+  {
+    "instrument": "CLASSICAL_GUITAR",
+    "rootMidi": 64,
+    "gain": 0.487813477,
+    "offsetSeconds": 0,
+    "sourceSeconds": 3.7493650793650795,
+    "rawPeak": 0.6865633726119995,
+    "url": "https://raw.githubusercontent.com/freepats/spanish-classical-guitar/6f4eb1b092acc88f5448cea1a0001bd07b971af8/samples/E4.flac",
+    "git_blob_sha1": "739df9c58bccaf4da7ee731f267d095da374f8a4"
+  },
+  {
+    "instrument": "CLASSICAL_GUITAR",
+    "rootMidi": 65,
+    "gain": 0.443900446,
+    "offsetSeconds": 0,
+    "sourceSeconds": 3.1099773242630384,
+    "rawPeak": 0.6991872191429138,
+    "url": "https://raw.githubusercontent.com/freepats/spanish-classical-guitar/6f4eb1b092acc88f5448cea1a0001bd07b971af8/samples/F4.flac",
+    "git_blob_sha1": "76d2aa5e825d950953a6de3da6d34a072abdba53"
+  },
+  {
+    "instrument": "CLASSICAL_GUITAR",
+    "rootMidi": 66,
+    "gain": 0.380893058,
+    "offsetSeconds": 0,
+    "sourceSeconds": 3.1442630385487527,
+    "rawPeak": 0.7019062042236328,
+    "url": "https://raw.githubusercontent.com/freepats/spanish-classical-guitar/6f4eb1b092acc88f5448cea1a0001bd07b971af8/samples/F%234.flac",
+    "git_blob_sha1": "c506d56d5aebf7cdaf60ccef684720751382d7c8"
+  },
+  {
+    "instrument": "CLASSICAL_GUITAR",
+    "rootMidi": 67,
+    "gain": 0.406365219,
+    "offsetSeconds": 0,
+    "sourceSeconds": 2.410090702947846,
+    "rawPeak": 0.7006545662879944,
+    "url": "https://raw.githubusercontent.com/freepats/spanish-classical-guitar/6f4eb1b092acc88f5448cea1a0001bd07b971af8/samples/G4.flac",
+    "git_blob_sha1": "e46be3503f9052055ee0c300efba40cbf20794e2"
+  },
+  {
+    "instrument": "CLASSICAL_GUITAR",
+    "rootMidi": 69,
+    "gain": 0.247769507,
+    "offsetSeconds": 0,
+    "sourceSeconds": 4.115396825396825,
+    "rawPeak": 0.7024456858634949,
+    "url": "https://raw.githubusercontent.com/freepats/spanish-classical-guitar/6f4eb1b092acc88f5448cea1a0001bd07b971af8/samples/A4.flac",
+    "git_blob_sha1": "b2616e0f9b51dde21ce108562af9932bd0675037"
+  },
+  {
+    "instrument": "CLASSICAL_GUITAR",
+    "rootMidi": 70,
+    "gain": 0.74623311,
+    "offsetSeconds": 0,
+    "sourceSeconds": 2.3699092970521543,
+    "rawPeak": 0.6959503293037415,
+    "url": "https://raw.githubusercontent.com/freepats/spanish-classical-guitar/6f4eb1b092acc88f5448cea1a0001bd07b971af8/samples/A%234.flac",
+    "git_blob_sha1": "c8c2f7d057cb566ef77e043cee80e85a451094d1"
+  },
+  {
+    "instrument": "CLASSICAL_GUITAR",
+    "rootMidi": 71,
+    "gain": 0.438070405,
+    "offsetSeconds": 0,
+    "sourceSeconds": 1.9004308390022675,
+    "rawPeak": 0.6968782544136047,
+    "url": "https://raw.githubusercontent.com/freepats/spanish-classical-guitar/6f4eb1b092acc88f5448cea1a0001bd07b971af8/samples/B4.flac",
+    "git_blob_sha1": "79badb5eea01ac9921e12e93bb73f4f384c955c9"
+  },
+  {
+    "instrument": "CLASSICAL_GUITAR",
+    "rootMidi": 72,
+    "gain": 0.740682371,
+    "offsetSeconds": 0,
+    "sourceSeconds": 1.5629478458049886,
+    "rawPeak": 0.6951950788497925,
+    "url": "https://raw.githubusercontent.com/freepats/spanish-classical-guitar/6f4eb1b092acc88f5448cea1a0001bd07b971af8/samples/C5.flac",
+    "git_blob_sha1": "d23dee240a0ed597eaf5ae9fc2986e56b55a70d6"
+  },
+  {
+    "instrument": "CLASSICAL_GUITAR",
+    "rootMidi": 73,
+    "gain": 0.383971524,
+    "offsetSeconds": 0,
+    "sourceSeconds": 1.75437641723356,
+    "rawPeak": 0.69884192943573,
+    "url": "https://raw.githubusercontent.com/freepats/spanish-classical-guitar/6f4eb1b092acc88f5448cea1a0001bd07b971af8/samples/C%235.flac",
+    "git_blob_sha1": "ac8277d61ec24d7aba9b067aa213f78770b3002d"
+  },
+  {
+    "instrument": "CLASSICAL_GUITAR",
+    "rootMidi": 74,
+    "gain": 0.455494613,
+    "offsetSeconds": 0,
+    "sourceSeconds": 1.2624943310657597,
+    "rawPeak": 0.6974393129348755,
+    "url": "https://raw.githubusercontent.com/freepats/spanish-classical-guitar/6f4eb1b092acc88f5448cea1a0001bd07b971af8/samples/D5.flac",
+    "git_blob_sha1": "15bf44ff7b4e2bf7bc906f397bd861914970a427"
+  },
+  {
+    "instrument": "CLASSICAL_GUITAR",
+    "rootMidi": 75,
+    "gain": 0.749844871,
+    "offsetSeconds": 0,
+    "sourceSeconds": 1.2569614512471656,
+    "rawPeak": 0.7009782791137695,
+    "url": "https://raw.githubusercontent.com/freepats/spanish-classical-guitar/6f4eb1b092acc88f5448cea1a0001bd07b971af8/samples/D%235.flac",
+    "git_blob_sha1": "7ce29409138c59c7cc72cf99af880fe6c52c0d50"
+  },
+  {
+    "instrument": "CLASSICAL_GUITAR",
+    "rootMidi": 76,
+    "gain": 0.803338848,
+    "offsetSeconds": 0,
+    "sourceSeconds": 1.3392290249433108,
+    "rawPeak": 0.6952598094940186,
+    "url": "https://raw.githubusercontent.com/freepats/spanish-classical-guitar/6f4eb1b092acc88f5448cea1a0001bd07b971af8/samples/E5.flac",
+    "git_blob_sha1": "265c2487341039d8f40e4f217e730adbb12a557b"
+  },
+  {
+    "instrument": "CLASSICAL_GUITAR",
+    "rootMidi": 77,
+    "gain": 0.522967351,
+    "offsetSeconds": 0,
+    "sourceSeconds": 1.545827664399093,
+    "rawPeak": 0.6832401752471924,
+    "url": "https://raw.githubusercontent.com/freepats/spanish-classical-guitar/6f4eb1b092acc88f5448cea1a0001bd07b971af8/samples/F5.flac",
+    "git_blob_sha1": "f07c96b6c274eb06da5158a33f759c9c332b7292"
+  },
+  {
+    "instrument": "CLASSICAL_GUITAR",
+    "rootMidi": 78,
+    "gain": 0.584095253,
+    "offsetSeconds": 0,
+    "sourceSeconds": 1.3834013605442177,
+    "rawPeak": 0.6677463054656982,
+    "url": "https://raw.githubusercontent.com/freepats/spanish-classical-guitar/6f4eb1b092acc88f5448cea1a0001bd07b971af8/samples/F%235.flac",
+    "git_blob_sha1": "5aee65d2157a2c828c8396622eb86c85b41e878b"
+  },
+  {
+    "instrument": "CLASSICAL_GUITAR",
+    "rootMidi": 79,
+    "gain": 0.391776246,
+    "offsetSeconds": 0,
+    "sourceSeconds": 1.4243537414965985,
+    "rawPeak": 0.6871891617774963,
+    "url": "https://raw.githubusercontent.com/freepats/spanish-classical-guitar/6f4eb1b092acc88f5448cea1a0001bd07b971af8/samples/G5.flac",
+    "git_blob_sha1": "70113d48e744df040233ad2d92e11c72c2e35192"
+  },
+  {
+    "instrument": "CLASSICAL_GUITAR",
+    "rootMidi": 80,
+    "gain": 0.421151081,
+    "offsetSeconds": 0,
+    "sourceSeconds": 0.9495918367346938,
+    "rawPeak": 0.6960150599479675,
+    "url": "https://raw.githubusercontent.com/freepats/spanish-classical-guitar/6f4eb1b092acc88f5448cea1a0001bd07b971af8/samples/G%235.flac",
+    "git_blob_sha1": "171c3b19e840182e3a0c5a9ef20df85aa5b93736"
+  },
+  {
+    "instrument": "CLASSICAL_GUITAR",
+    "rootMidi": 81,
+    "gain": 0.441113894,
+    "offsetSeconds": 0,
+    "sourceSeconds": 1.6310204081632653,
+    "rawPeak": 0.7012156248092651,
+    "url": "https://raw.githubusercontent.com/freepats/spanish-classical-guitar/6f4eb1b092acc88f5448cea1a0001bd07b971af8/samples/A5.flac",
+    "git_blob_sha1": "786f4f0f580c18d88809579949218eefbfee2f57"
+  },
+  {
+    "instrument": "CLASSICAL_GUITAR",
+    "rootMidi": 82,
+    "gain": 0.527397518,
+    "offsetSeconds": 0,
+    "sourceSeconds": 1.3135827664399093,
+    "rawPeak": 0.6865849494934082,
+    "url": "https://raw.githubusercontent.com/freepats/spanish-classical-guitar/6f4eb1b092acc88f5448cea1a0001bd07b971af8/samples/A%235.flac",
+    "git_blob_sha1": "b8cdde34883ea2dfc376b48b6b4640cc747d8239"
+  },
+  {
+    "instrument": "CLASSICAL_GUITAR",
+    "rootMidi": 83,
+    "gain": 0.778914584,
+    "offsetSeconds": 0,
+    "sourceSeconds": 0.9809070294784581,
+    "rawPeak": 0.6990577578544617,
+    "url": "https://raw.githubusercontent.com/freepats/spanish-classical-guitar/6f4eb1b092acc88f5448cea1a0001bd07b971af8/samples/B5.flac",
+    "git_blob_sha1": "b9a28a12638b57ec77e8ea643bab140ca146365c"
+  },
+  {
+    "instrument": "CLASSICAL_GUITAR",
+    "rootMidi": 84,
+    "gain": 0.978108573,
+    "offsetSeconds": 0,
+    "sourceSeconds": 0.8948979591836734,
+    "rawPeak": 0.6795501708984375,
+    "url": "https://raw.githubusercontent.com/freepats/spanish-classical-guitar/6f4eb1b092acc88f5448cea1a0001bd07b971af8/samples/C6.flac",
+    "git_blob_sha1": "3735ee73ce026a6f14034a13939ca07d1e271e42"
+  },
+  {
+    "instrument": "VIOLIN",
+    "rootMidi": 55,
+    "gain": 1.044939347,
+    "offsetSeconds": 0,
+    "sourceSeconds": 16.648775510204082,
+    "rawPeak": 0.236175537109375,
+    "url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/1.1.0/Strings/Solo%20Violin/Arco%20Vib/LLVln_ArcoVib_G3_f.wav",
+    "git_blob_sha1": "a09b038528097878ad6b12d30da4ac1a227d5a98"
+  },
+  {
+    "instrument": "VIOLIN",
+    "rootMidi": 57,
+    "gain": 1.537576716,
+    "offsetSeconds": 0,
+    "sourceSeconds": 16.23829931972789,
+    "rawPeak": 0.165740966796875,
+    "url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/1.1.0/Strings/Solo%20Violin/Arco%20Vib/LLVln_ArcoVib_A3_f.wav",
+    "git_blob_sha1": "82964f15bb0ca3d34dbdfdd43ad0148f9d8767af"
+  },
+  {
+    "instrument": "VIOLIN",
+    "rootMidi": 60,
+    "gain": 0.607121042,
+    "offsetSeconds": 0,
+    "sourceSeconds": 13.231995464852607,
+    "rawPeak": 0.36083984375,
+    "url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/1.1.0/Strings/Solo%20Violin/Arco%20Vib/LLVln_ArcoVib_C4_f.wav",
+    "git_blob_sha1": "8a700075b7ae2f19c1c56108738324dfba6959e8"
+  },
+  {
+    "instrument": "VIOLIN",
+    "rootMidi": 64,
+    "gain": 0.931495273,
+    "offsetSeconds": 0,
+    "sourceSeconds": 13.699092970521543,
+    "rawPeak": 0.335052490234375,
+    "url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/1.1.0/Strings/Solo%20Violin/Arco%20Vib/LLVln_ArcoVib_E4_f.wav",
+    "git_blob_sha1": "6b1bcdf57513dd089a2172adc0ddbac4a335b3a0"
+  },
+  {
+    "instrument": "VIOLIN",
+    "rootMidi": 67,
+    "gain": 1.389030216,
+    "offsetSeconds": 0,
+    "sourceSeconds": 13.412721088435374,
+    "rawPeak": 0.17523193359375,
+    "url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/1.1.0/Strings/Solo%20Violin/Arco%20Vib/LLVln_ArcoVib_G4_f.wav",
+    "git_blob_sha1": "f9c1a5547a7e062eb34ee6bef09e559d3839f46e"
+  },
+  {
+    "instrument": "VIOLIN",
+    "rootMidi": 69,
+    "gain": 1.049915947,
+    "offsetSeconds": 0,
+    "sourceSeconds": 14.107029478458049,
+    "rawPeak": 0.304962158203125,
+    "url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/1.1.0/Strings/Solo%20Violin/Arco%20Vib/LLVln_ArcoVib_A4_f.wav",
+    "git_blob_sha1": "3155c72c1f9ea1518ddb6c1a20eb5c0a094bd537"
+  },
+  {
+    "instrument": "VIOLIN",
+    "rootMidi": 72,
+    "gain": 0.785103324,
+    "offsetSeconds": 0,
+    "sourceSeconds": 14.160680272108843,
+    "rawPeak": 0.341094970703125,
+    "url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/1.1.0/Strings/Solo%20Violin/Arco%20Vib/LLVln_ArcoVib_C5_f.wav",
+    "git_blob_sha1": "93e9a2cf8106acc5e49ba18dab112c947473917f"
+  },
+  {
+    "instrument": "VIOLIN",
+    "rootMidi": 76,
+    "gain": 1.211426407,
+    "offsetSeconds": 0,
+    "sourceSeconds": 13.407755102040817,
+    "rawPeak": 0.252655029296875,
+    "url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/1.1.0/Strings/Solo%20Violin/Arco%20Vib/LLVln_ArcoVib_E5_f.wav",
+    "git_blob_sha1": "269658d510e82345227ac10d22f928cfae428c99"
+  },
+  {
+    "instrument": "VIOLIN",
+    "rootMidi": 79,
+    "gain": 0.98674901,
+    "offsetSeconds": 0,
+    "sourceSeconds": 12.59671201814059,
+    "rawPeak": 0.259368896484375,
+    "url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/1.1.0/Strings/Solo%20Violin/Arco%20Vib/LLVln_ArcoVib_G5_f.wav",
+    "git_blob_sha1": "f8745db337ebf8e82d59f90cea7c0f060a3615ce"
+  },
+  {
+    "instrument": "VIOLIN",
+    "rootMidi": 81,
+    "gain": 0.621852256,
+    "offsetSeconds": 0,
+    "sourceSeconds": 11.26297052154195,
+    "rawPeak": 0.345001220703125,
+    "url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/1.1.0/Strings/Solo%20Violin/Arco%20Vib/LLVln_ArcoVib_A5_f.wav",
+    "git_blob_sha1": "eebb9f220dc2a93557acc849d5dd3273b8f0ff8f"
+  },
+  {
+    "instrument": "VIOLIN",
+    "rootMidi": 84,
+    "gain": 0.737629024,
+    "offsetSeconds": 0,
+    "sourceSeconds": 12.260362811791383,
+    "rawPeak": 0.423919677734375,
+    "url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/1.1.0/Strings/Solo%20Violin/Arco%20Vib/LLVln_ArcoVib_C6_f.wav",
+    "git_blob_sha1": "89f48f37313800df4c5901dc76b49b1c5c69e396"
+  },
+  {
+    "instrument": "VIOLIN",
+    "rootMidi": 88,
+    "gain": 1.712883833,
+    "offsetSeconds": 0,
+    "sourceSeconds": 13.398571428571428,
+    "rawPeak": 0.212127685546875,
+    "url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/1.1.0/Strings/Solo%20Violin/Arco%20Vib/LLVln_ArcoVib_E6_f.wav",
+    "git_blob_sha1": "26855bca28a7be29386cbd6db56d2ae6f7c3b66c"
+  },
+  {
+    "instrument": "VIOLIN",
+    "rootMidi": 91,
+    "gain": 1.308528929,
+    "offsetSeconds": 0,
+    "sourceSeconds": 12.267460317460317,
+    "rawPeak": 0.278717041015625,
+    "url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/1.1.0/Strings/Solo%20Violin/Arco%20Vib/LLVln_ArcoVib_G6_f.wav",
+    "git_blob_sha1": "9bd2b0d9d6e5505a0c0ce0722bd10db7913ee97d"
+  },
+  {
+    "instrument": "VIOLIN",
+    "rootMidi": 93,
+    "gain": 1.412700048,
+    "offsetSeconds": 0,
+    "sourceSeconds": 11.633832199546486,
+    "rawPeak": 0.256622314453125,
+    "url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/1.1.0/Strings/Solo%20Violin/Arco%20Vib/LLVln_ArcoVib_A6_f.wav",
+    "git_blob_sha1": "c296065592b8adf9e12f51af9d003b7259ecc6e2"
+  },
+  {
+    "instrument": "VIOLIN",
+    "rootMidi": 96,
+    "gain": 1.653369175,
+    "offsetSeconds": 0,
+    "sourceSeconds": 12.338095238095239,
+    "rawPeak": 0.17803955078125,
+    "url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/1.1.0/Strings/Solo%20Violin/Arco%20Vib/LLVln_ArcoVib_C7_f.wav",
+    "git_blob_sha1": "2348056e211ef9b6d309f3718d8e4e49471f65ce"
+  }
+]
