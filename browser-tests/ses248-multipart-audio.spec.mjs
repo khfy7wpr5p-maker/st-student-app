@@ -8,10 +8,19 @@ test('SES-248 selected violin and piano pilot produce native audio with current 
   const server = await startRepositoryStaticServer();
   let browser;
   try {
-    browser = await ({ chromium, webkit }[process.env.ST_BROWSER ?? 'chromium']).launch({ headless: true });
+    browser = await ({ chromium, webkit }[process.env.ST_BROWSER ?? 'chromium']).launch({ headless: true, ...(process.env.ST_BROWSER_EXECUTABLE_PATH ? { executablePath: process.env.ST_BROWSER_EXECUTABLE_PATH } : {}) });
     const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const page = await context.newPage();
     const errors = [], sampleUrls = [];
+    if (process.env.ST_AUDIO_SAMPLE_DIRECTORY) {
+      const assets = JSON.parse(await readFile(process.env.ST_AUDIO_SAMPLE_DIRECTORY + '/production-root-inputs.json', 'utf8'));
+      const files = new Map(assets.map(a => [a.url, a.path]));
+      await page.route('https://raw.githubusercontent.com/**', async route => {
+        const path = files.get(route.request().url());
+        if (!path) return route.abort();
+        await route.fulfill({ status: 200, body: await readFile(path), headers: { 'access-control-allow-origin': '*' } });
+      });
+    }
     page.on('pageerror', e => errors.push(e.message));
     page.on('request', req => { if (req.url().startsWith('https://raw.githubusercontent.com/')) sampleUrls.push(req.url()); });
     await page.addInitScript(() => {
@@ -19,7 +28,8 @@ test('SES-248 selected violin and piano pilot produce native audio with current 
       globalThis.__SES248_AUDIO__ = proof;
       const connect = AudioNode.prototype.connect;
       AudioNode.prototype.connect = function(destination, ...args) {
-        if (destination === this.context.destination) {
+        // Observe native stems as well as the new shared output.
+        if (this instanceof AudioBufferSourceNode || destination === this.context.destination) {
           const analyser = this.context.createAnalyser();
           connect.call(this, analyser); connect.call(analyser, destination);
           proof.analysers.push(analyser); return destination;

@@ -146,6 +146,7 @@ export function createWebAudioPianoEngine({
   let repeatMeasureIndex = null;
   let activeRange = null;
   let generation = 0;
+  let preparationEpoch = 0;
   let schedulingEpoch = 0;
   let currentPlaybackInstrument = null;
   let currentPartInstruments = null;
@@ -395,6 +396,7 @@ export function createWebAudioPianoEngine({
           currentSourceRevisionId ?? currentPlan.packageId,
         instrumentId,
         midi: note.midi,
+        ...(note.velocity === undefined ? {} : { velocity: note.velocity }),
         startTimeSeconds: when,
         durationSeconds: duration,
       });
@@ -412,13 +414,14 @@ export function createWebAudioPianoEngine({
 
     gain.gain.setValueAtTime(0, when);
     const attackEnd = Math.min(end, when + 0.005);
-    gain.gain.linearRampToValueAtTime(1, attackEnd);
+    const expressionGain = note.velocity === undefined ? 1 : note.velocity / 0.8;
+    gain.gain.linearRampToValueAtTime(expressionGain, attackEnd);
 
     const releaseStart = Math.max(
       attackEnd,
       end - 0.012,
     );
-    gain.gain.setValueAtTime(1, releaseStart);
+    gain.gain.setValueAtTime(expressionGain, releaseStart);
     gain.gain.linearRampToValueAtTime(0, end);
 
     source.start(when);
@@ -638,20 +641,26 @@ export function createWebAudioPianoEngine({
       }
 
       const requestGeneration = ++generation;
+      const requestPreparation = preparationEpoch;
       const nextContext = ensureContext();
       await resumeContext();
 
-      if (generation !== requestGeneration) {
+      if (generation !== requestGeneration || preparationEpoch !== requestPreparation) {
         return;
       }
 
-      if (usesScoreAudioVoice(playbackInstrument)) {
-        await prepareVoices(plan, playbackInstrument, partInstruments);
-      } else {
-        await sampleBank.load(nextContext);
+      try {
+        if (usesScoreAudioVoice(playbackInstrument)) {
+          await prepareVoices(plan, playbackInstrument, partInstruments);
+        } else {
+          await sampleBank.load(nextContext);
+        }
+      } catch (error) {
+        if (generation !== requestGeneration || preparationEpoch !== requestPreparation) return;
+        throw error;
       }
 
-      if (generation !== requestGeneration) {
+      if (generation !== requestGeneration || preparationEpoch !== requestPreparation) {
         return;
       }
 
@@ -708,20 +717,26 @@ export function createWebAudioPianoEngine({
       }
 
       const requestGeneration = ++generation;
+      const requestPreparation = preparationEpoch;
       const nextContext = ensureContext();
       await resumeContext();
 
-      if (generation !== requestGeneration) {
+      if (generation !== requestGeneration || preparationEpoch !== requestPreparation) {
         return;
       }
 
-      if (usesScoreAudioVoice(playbackInstrument)) {
-        await prepareVoices(plan, playbackInstrument, partInstruments);
-      } else {
-        await sampleBank.load(nextContext);
+      try {
+        if (usesScoreAudioVoice(playbackInstrument)) {
+          await prepareVoices(plan, playbackInstrument, partInstruments);
+        } else {
+          await sampleBank.load(nextContext);
+        }
+      } catch (error) {
+        if (generation !== requestGeneration || preparationEpoch !== requestPreparation) return;
+        throw error;
       }
 
-      if (generation !== requestGeneration) {
+      if (generation !== requestGeneration || preparationEpoch !== requestPreparation) {
         return;
       }
 
@@ -755,7 +770,10 @@ export function createWebAudioPianoEngine({
     },
 
     pause() {
+      preparationEpoch += 1;
       if (currentPlan === null || context === null) {
+        clearScheduler();
+        stopSources();
         return;
       }
 

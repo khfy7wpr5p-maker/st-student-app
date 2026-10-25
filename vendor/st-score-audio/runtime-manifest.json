@@ -1,13 +1,14 @@
 {
   "schemaVersion": 1,
-  "runtimeVersion": "0.2.0",
+  "runtimeVersion": "0.3.0",
   "publicContractVersion": "0.2.0",
   "sourceRepository": "khfy7wpr5p-maker/st-score-audio-engine",
-  "sourceRevision": "4f5d78a3e54a6f005a4c4d810e8ff404a988b0a5",
+  "sourceRevision": "4abe08aff6a945b75593eb4070741b7d07302333",
   "bundle": {
     "file": "st-score-audio-engine.js",
-    "bytes": 23520,
-    "sha256": "f2b1a299b35845bd089db7db32942c9a4315e31acbab3eefc4ce91054f048476"
+    "bytes": 25170,
+    "sha256": "4118ae3ab1bd9f842e94b9b38b806e8d036ac137dbeb92858b7aab05c15b487a"
   },
-  "sampleDelivery": "qualified upstream manifests; existing local piano fallback remains unchanged"
+  "sampleDelivery": "qualified upstream manifests; existing local piano fallback remains unchanged",
+  "sourceState": "committed-candidate"
 }

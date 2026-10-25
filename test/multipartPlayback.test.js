@@ -26,7 +26,7 @@ function setup(options = {}) {
     state: "running", currentTime: 0, destination: {},
     async resume() { this.state = "running"; },
     async decodeAudioData(bytes) { return { url: new TextDecoder().decode(bytes), duration: 20 }; },
-    createGain() { return { connect() {}, gain: { value: 1, setValueAtTime() {}, cancelScheduledValues() {}, linearRampToValueAtTime() {} } }; },
+    createDynamicsCompressor() { return { threshold: {}, knee: {}, ratio: {}, attack: {}, release: {}, connect() {} }; }, createGain() { return { context: this, connect() {}, gain: { value: 1, setValueAtTime() {}, cancelScheduledValues() {}, linearRampToValueAtTime() {} } }; },
     createBufferSource() {
       const node = { buffer: null, starts: [], stops: [], connect() {}, playbackRate: { setValueAtTime() {} }, start(t) { this.starts.push(t); }, stop(t) { this.stops.push(t); } };
       sources.push(node); return node;

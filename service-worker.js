@@ -1,5 +1,5 @@
 const CACHE_NAME = "st-student-shell-v18";
-const SHELL_CACHE_NAME = "st-student-shell-v47";
+const SHELL_CACHE_NAME = "st-student-shell-v48";
 const SAMPLE_CACHE_NAME = "st-student-samples-v1";
 const SAMPLE_CACHE_LIMIT = 96;
 const ACTIVE_CACHE_NAMES = new Set([
@@ -86,6 +86,8 @@ const SHELL_ASSETS = Object.freeze([
   "./src/playback/pianoSampleBank.js",
   "./src/playback/webAudioPianoEngine.js",
   "./src/playback/scoreAudioVoiceAdapter.js",
+  "./src/playback/audioCalibration.js",
+  "./src/playback/musicXmlDynamics.js",
   "./src/playback/studentPlaybackPort.js",
   "./src/playback/playbackPartRouting.js",
   "./src/playback/declaredPartInstruments.js",
