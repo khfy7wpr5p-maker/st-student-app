@@ -13,6 +13,8 @@ import {
 
 export function createSecureDeliveryStatusService({
   apiClient,
+  isSessionCurrent = () => true,
+  getSessionEpoch = () => 0,
 } = {}) {
   if (
     typeof apiClient?.getStudentAssignment !==
@@ -80,10 +82,7 @@ export function createSecureDeliveryStatusService({
     }
   }
 
-  return Object.freeze({
-    getPieceStatus,
-
-    async getAccessStatus({
+  async function getAccessStatus({
       accessRef,
     } = {}) {
       const ref =
@@ -139,6 +138,28 @@ export function createSecureDeliveryStatusService({
 
         throw error;
       }
-    },
+  }
+
+  const pending = new Map();
+  function singleFlight(kind, args, read) {
+    const epoch = getSessionEpoch();
+    const current = () => (args.session === undefined || isSessionCurrent(args.session)) && epoch === getSessionEpoch();
+    const key = JSON.stringify([args.session?.studentId ?? null, epoch, kind,
+      kind === "piece" ? args.pieceAssignmentId : args.accessRef]);
+    if (pending.has(key)) return pending.get(key);
+    const result = Promise.resolve().then(() => {
+      if (!current()) throw new Error("stale offline session");
+      return read(args);
+    }).then((value) => {
+      if (!current()) throw new Error("stale offline session");
+      return value;
+    }).finally(() => pending.delete(key));
+    pending.set(key, result);
+    return result;
+  }
+
+  return Object.freeze({
+    getPieceStatus: (args = {}) => singleFlight("piece", args, getPieceStatus),
+    getAccessStatus: (args = {}) => singleFlight("access", args, getAccessStatus),
   });
 }

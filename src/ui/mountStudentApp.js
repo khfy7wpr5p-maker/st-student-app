@@ -904,7 +904,7 @@ export function mountStudentApp({
     if (button) return onClick({ target: button, preventDefault() {} });
   }
 
-  function onConnectivityChange(nextState) {
+  function onConnectivityChange(nextState, recoverPlayback = true) {
     if (destroyed) {
       return;
     }
@@ -916,6 +916,7 @@ export function mountStudentApp({
           ? CONNECTIVITY_STATES.ONLINE
           : connectivityState;
 
+    const beforeSync = controller.getState();
     let syncResult;
 
     if (
@@ -929,11 +930,23 @@ export function mountStudentApp({
       }
     }
 
-    Promise.resolve(syncResult)
+    return Promise.resolve(syncResult)
+      .catch(() => null)
+      .then(async () => {
+        const current = controller.getState();
+        if (!destroyed && connectivityState === CONNECTIVITY_STATES.ONLINE &&
+            beforeSync.screen === STUDENT_APP_SCREENS.MY_WORK &&
+            current.screen === STUDENT_APP_SCREENS.MY_WORK &&
+            beforeSync.session?.studentId === current.session?.studentId &&
+            beforeSync.assignmentState === current.assignmentState &&
+            !controller.isNavigationPending?.() && typeof controller.showMyWork === "function") {
+          await controller.showMyWork(current.assignmentState);
+        }
+      })
       .catch(() => null)
       .then(() => {
         if (
-          destroyed ||
+          !recoverPlayback || destroyed ||
           connectivityState !==
             CONNECTIVITY_STATES.ONLINE ||
           typeof controller
@@ -952,11 +965,18 @@ export function mountStudentApp({
       })
       .catch(() => null)
       .finally(() => {
-        if (!destroyed) {
+        if (!destroyed && (recoverPlayback || controller.getState().screen === STUDENT_APP_SCREENS.MY_WORK)) {
           return render();
         }
       })
       .catch(() => {});
+  }
+
+  function revalidateOfflineSession() {
+    if (controller.getState().session && connectivityState === CONNECTIVITY_STATES.ONLINE) {
+      return onConnectivityChange(CONNECTIVITY_STATES.ONLINE, false);
+    }
+    return Promise.resolve();
   }
 
   if (typeof connectivityPort?.subscribe === "function") {
@@ -972,9 +992,11 @@ export function mountStudentApp({
   root.addEventListener("input", onInput);
   root.addEventListener("submit", onSubmit);
   void render().catch(() => {});
+  void revalidateOfflineSession();
 
   return Object.freeze({
     render,
+    revalidateOfflineSession,
 
     destroy() {
       if (destroyed) {

@@ -17,6 +17,8 @@ export function createStudent08Composition({
   fetchImpl = globalThis.fetch,
   connectivityPort,
   offlineRepository,
+  isSessionCurrent = () => true,
+  getSessionEpoch = () => 0,
 } = {}) {
   if (config?.enabled !== true) {
     return Object.freeze({
@@ -57,6 +59,7 @@ export function createStudent08Composition({
       apiClient,
     });
 
+  const secureDeliveryStatusService = createSecureDeliveryStatusService({ apiClient, isSessionCurrent, getSessionEpoch });
   const student08ReadService =
     offlineRepository === null ||
     offlineRepository === undefined
@@ -65,13 +68,13 @@ export function createStudent08Composition({
           onlineReadService,
           offlineRepository,
           connectivityPort,
+          secureDeliveryStatusService,
+          isSessionCurrent,
+          getSessionEpoch,
         });
 
   return Object.freeze({
     student08ReadService,
-    secureDeliveryStatusService:
-      createSecureDeliveryStatusService({
-        apiClient,
-      }),
+    secureDeliveryStatusService,
   });
 }
