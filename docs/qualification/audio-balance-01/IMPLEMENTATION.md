@@ -1,6 +1,6 @@
 # AUDIO-BALANCE-01 implementation checkpoint — 2026-10-25
 
-Status: local implementation verified; release qualification PARTIAL. No commit, push, PR, merge or deployment performed. The user accepted the B audition timbre/attack before integration.
+Status: implementation published in draft Student PR #104 and engine PR #21; release qualification PARTIAL. No merge or deployment performed. The user accepted the B audition timbre/attack before integration.
 
 ## Implemented behavior
 
@@ -15,7 +15,7 @@ Status: local implementation verified; release qualification PARTIAL. No commit,
 ## Fresh evidence on final source
 
 - Student: npm test — 817 passed, zero failed/skipped.
-- Upstream runtime: npm test — 64 passed, zero failed; npm run typecheck/build/build:browser passed.
+- Upstream runtime: npm test — 67 passed, zero failed; npm run typecheck/build/build:browser passed.
 - Chromium 140 / headless shell build1187: two real browser cases passed (native audio measurement and existing SES-248 full Student transport/board/tempo/repeat/pause/offline-resume pilot). This was an explicit executable override because repository-pinned Playwright1.62 Chromium download failed. It is not a run on the repository's default Chromium build.
 - Native OfflineAudioContext uses real decoders, nodes, summing and compression. Its unlock-state getter is overridden for offline rendering; it does not prove real-device user-gesture unlock. p RMS0.00929970 vs f0.01743693 gives1.875 (90/48); zero output peak0; 72 simultaneous voices at velocity1 produced peak0.65503323 (about -3.68dBFS). This is a corpus measurement, not a universal clipping guarantee.
 - New critical-path tests observed RED→GREEN: missing expression/forwarding, quiet-sample calibration, invalid profiles/output ownership, preparation readiness, old-bank offline fallback, incomplete runtime exports and pending-Pause cancellation. Service-worker migration also seeds a v47 p sample and verifies preservation and serving under v48.
@@ -27,19 +27,19 @@ Fresh independent review identified offline old-bank loss, incomplete runtime ex
 
 Ruling: retain immutable sample cache v1 instead of clearing all instrument downloads solely for a bank URL change; explicit old-bank fallback handles v47 readiness.
 Ruling: preserve audition master gain and use measured shared protection rather than lowering every solo instrument to an extreme coherent-polyphony bound. Device audition remains a release gate because Web Audio compressor behavior affects absolute level.
-Ruling: vendor an explicit source overlay and hashes while keeping sourceRevision as the honest baseline. The modified upstream source is not represented as a committed revision; promotion needs real upstream/Student review and CI.
+Ruling: vendor the bundle with an exact published upstream commit and verified hashes. The temporary source overlay has been removed; promotion requires both PRs and release qualification.
 
 ## Remaining release gates
 
-WebKit cannot launch in this host due missing GTK/GStreamer and related native libraries. Physical iPhone Safari/VoiceOver, cold offline-upgrade listening and final mixed-instrument loudness/timbre acceptance remain unverified. Full browser suite and remote CI have not run. Continuous crescendo/decrescendo, MIDI-volume controllers, dynamic changes inside a held tie and artificial sustain/looping are outside this initial feature. Plucked recordings naturally decay or end; they are not looped to force ten-second sustain.
+WebKit cannot launch in this host due missing GTK/GStreamer and related native libraries. Physical iPhone Safari/VoiceOver, cold offline-upgrade listening and final mixed-instrument loudness/timbre acceptance remain unverified. Student CI run40158288923 passed test, renderer-runtime, Chromium and WebKit jobs on the previous Student commit; the pin-only update triggers a fresh run. Continuous crescendo/decrescendo, MIDI-volume controllers, dynamic changes inside a held tie and artificial sustain/looping are outside this initial feature. Plucked recordings naturally decay or end; they are not looped to force ten-second sustain.
 
 ## Reproduce
 
 Student: npm ci --ignore-scripts; npm test.
-Upstream baseline4f5d78a plus vendor source overlay: npm install --package-lock=false --ignore-scripts; npm run build; npm test; npm run typecheck; npm run build:browser.
+Upstream commit34637d92b8c8a7c56f0e6850449e747e7e4ef711: npm install --package-lock=false --ignore-scripts; npm run build; npm test; npm run typecheck; npm run build:browser.
 Browser: ST_BROWSER_EXECUTABLE_PATH=<compatible headless Chromium> ST_AUDIO_SAMPLE_DIRECTORY=<pinned assets directory with production-root-inputs.json> node --test browser-tests/audio-balance.spec.mjs browser-tests/ses248-multipart-audio.spec.mjs.
 Without the sample-directory override the tests use the actual pinned remote assets. Paths in local input metadata are environment-specific and must be regenerated on another host.
 
 ## PR preparation checkpoint
 
-The user authorized PR creation and CI on 2026-10-25. Upstream was rebased onto aaab7b14c8b90d59c43bad78e0db7389cd266b94, preserving the existing sharp-URL fix. Its local committed candidate is 4abe08aff6a945b75593eb4070741b7d07302333. Student now pins that exact commit and the rebuilt bundle; the temporary uncommitted source overlay was removed. Upstream has 67 passing tests on the current main baseline. GitHub API tree creation returned403 Resource not accessible by integration, and no local Git write credential is available; remote publication remains blocked. This does not claim the pin is remotely available yet. Historical v0.1.1 main-triggered release automation should be reviewed before a future merge; no release workflow was changed or triggered for this PR-preparation task.
+The user authorized PR creation and CI on 2026-10-25. Upstream was rebased onto aaab7b14c8b90d59c43bad78e0db7389cd266b94, preserving the sharp-URL fix. After repository access was granted, the exact tested tree1511ca5d0ade8a306733560f84c6289aaf3508f5 was published as commit34637d92b8c8a7c56f0e6850449e747e7e4ef711 in draft engine PR #21: https://github.com/khfy7wpr5p-maker/st-score-audio-engine/pull/21. Student draft PR #104 now pins that published commit; bundle bytes remain unchanged. Upstream has 67 freshly passing unit tests. Student CI run40158288923 passed all required jobs, including Chromium and WebKit; fresh CI is required for the updated pin. Historical v0.1.1 main-triggered release automation should be reviewed before a future merge. No release workflow was changed, and no merge or deployment was performed.

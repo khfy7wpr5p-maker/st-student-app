@@ -3,7 +3,7 @@
   "runtimeVersion": "0.3.0",
   "publicContractVersion": "0.2.0",
   "sourceRepository": "khfy7wpr5p-maker/st-score-audio-engine",
-  "sourceRevision": "4abe08aff6a945b75593eb4070741b7d07302333",
+  "sourceRevision": "34637d92b8c8a7c56f0e6850449e747e7e4ef711",
   "bundle": {
     "file": "st-score-audio-engine.js",
     "bytes": 25170,

@@ -17,7 +17,7 @@ test("vendored Score Audio runtime is exact 0.3.0 pinned source evidence", async
   assert.equal(manifest.publicContractVersion, "0.2.0");
   assert.equal(
     manifest.sourceRevision,
-    "4abe08aff6a945b75593eb4070741b7d07302333",
+    "34637d92b8c8a7c56f0e6850449e747e7e4ef711",
   );
   assert.equal(manifest.sourceState, 'committed-candidate');
   assert.equal(bundle.byteLength, manifest.bundle.bytes);
