@@ -1,5 +1,25 @@
 # ST Student App v1 Mimari Sözleşmesi
 
+## Güncel mimari ve kayıt eşitleme — 26 Ekim 2026
+
+Bu bölüm aşağıdaki tarihsel sürüm ve açık iş anlatımlarından önceliklidir. İnceleme kaynak-main ve görev kayıtları üzerinden yapıldı; bu çalışma yeni üretim dağıtımı veya fiziksel cihaz testi değildir.
+
+- Teacher kaynak baseline: `6c6ae9d652e02d295a65af586a6f91121f1685d7` (PR #376). Kalıcı öğretmen araçları/güvenli MusicXML navigasyonu #375; dosyasız Nota Düzenle ve bağımsız XML oturum izolasyonu #376 ile main'de.
+- Student kaynak baseline: `60a17cd9213aa9ae085165ecad77c9987e852dd5` (PR #105). Kaynak Service Worker shell `st-student-shell-v49`; bu değer kurulu cihazın yükseldiğinin kanıtı değildir.
+- Çok partili aktarım: Teacher #374 ve Student #103 açık part-enstrüman eşlemesini taşır. Student #102 ayrı keman/piyano seslerini mevcut tek transport üzerinden yönlendirir. Fingerboard yalnız açık hedef keman partisini izler; piyano eşliği parmaklama otoritesi değildir. Legacy tek enstrüman paketleri korunur.
+- Student #104 ses kalibrasyonu ve MusicXML dinamik aktarımını içerir. Vendored ses runtime 0.3.0, public contract 0.2.0; manifest sourceRevision `34637d92b8c8a7c56f0e6850449e747e7e4ef711`. pp/p/mp/mf/f/ff ve sayısal dinamik desteği uygulama kapsamındadır; ayrı p/f dinleme kabulü iddia edilmez.
+- Student #105 çevrimdışı çalışmanın geri çekilmesini uzlaştırır; müzikal playback davranışı değişikliği değildir. Private paketler IndexedDB, statik shell/runtime Service Worker sınırında kalır.
+- SES-248/249/250/251 Done; 250 ve 251 için 26 Ekim kullanıcı PASS/kapatma kaydı vardır. SES-247 ana görevindeki eski “T2/T3/T4 henüz yapılmadı” ifadeleri güncel değildir.
+- SES-256 ses dengesi kullanıcı kabulü 25 Ekim PASS. Bu kabul tüm platform/VoiceOver/offline matrisine genişletilmez.
+- SES-243/245/246 Done; eski pending GET/404, npm-audit ve Sonar C ifadeleri tarihsel bulgulardır. Yeni bir audit/Sonar çalıştırıldığı iddia edilmez.
+- SES-242 genel PWA/cihaz ve ertelenmiş Nota/TAB tel–perde VoiceOver kabulü açık. Eser İste round-trip ve temel VoiceOver gezinmesi önceki kullanıcı PASS kayıtlarıdır.
+- Havuz içerik yayınlama tasarımı yeni uygulama tamamlandı diye kaydedilmez. GitHub #187/#191 ve eski açık PR'lar güncel kodla ayrı karşılaştırılmadan kapatılmaz; açık kayıt sayısı güncel hata sayısı değildir.
+- Kalıcı uçlar: https://st-student-app.onrender.com ve https://st-student-api.onrender.com/api/secure-delivery/v1. Öğretmen/backend atama ve lifecycle otoritesini; Student salt okunur paket tüketimini; StudentPlaybackPort tek müzikal zaman kaynağını korur.
+
+Takip: [Mimari rapor](https://app.notion.com/p/4002be2e566481b48afbf46d3a9647a2), [SES-37](https://linear.app/seslitab/issue/SES-37), [SES-242](https://linear.app/seslitab/issue/SES-242).
+
+## Önceki tarihli mimari kayıtlar
+
 ## Güncel uygulama sınırı — 21 Ekim 2026
 
 Güncel ve tarihli kaynak: [Student/Teacher arayüz kapanışı ve uyumluluk incelemesi](student-teacher-ui-compatibility-2026-10-21.md). Aşağıdaki numaralı geliştirme aşamaları tarihsel kararları da içerir; eski commit/cache değerleri güncel sürümün yerine kullanılmaz.
