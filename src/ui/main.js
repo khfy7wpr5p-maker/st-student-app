@@ -136,12 +136,20 @@ async function startStandardStudentApp() {
 
   const secureDeliveryConfig = createSecureDeliveryConfig();
 
+  let baseController = null;
+  let offlineSessionEpoch = 0;
+  let offlineStudentId = initialSession?.studentId ?? null;
+  const isOfflineSessionCurrent = (session) =>
+    (baseController === null ? initialSession : baseController.getState().session)?.studentId === session?.studentId;
+
   const student08Composition = createStudent08Composition({
     config: secureDeliveryConfig,
     authAdapter: firebaseRuntime.authAdapter,
     fetchImpl: globalThis.fetch,
     connectivityPort: offlineInfrastructure.connectivityPort,
     offlineRepository: offlineInfrastructure.offlineRepository,
+    isSessionCurrent: isOfflineSessionCurrent,
+    getSessionEpoch: () => offlineSessionEpoch,
   });
 
   const perfASharingService = createStudentPerfASharingService(
@@ -159,10 +167,13 @@ async function startStandardStudentApp() {
           publicationStatusService: firebaseRuntime.sharingService,
           secureDeliveryStatusService:
             student08Composition.secureDeliveryStatusService,
+          getCachedAccessRefs: (args) => student08Composition.student08ReadService?.listCachedAccessRefs?.(args) ?? [],
+          isSessionCurrent: isOfflineSessionCurrent,
+          getSessionEpoch: () => offlineSessionEpoch,
         })
       : null;
 
-  const baseController = createStudentAppController({
+  baseController = createStudentAppController({
     sharingService: perfASharingService,
     student08ReadService: perfAReadService,
     initialSession,
@@ -200,6 +211,11 @@ async function startStandardStudentApp() {
   }).catch(() => {});
 
   firebaseRuntime.authAdapter.subscribe((session) => {
+    const offlineSessionChanged = offlineStudentId !== (session?.studentId ?? null);
+    if (offlineSessionChanged) {
+      offlineSessionEpoch += 1;
+      offlineStudentId = session?.studentId ?? null;
+    }
     void accountLifecycle.handleSession(session).catch(() => {
       // Presence and usage are informational; never block auth or expose provider errors.
     });
@@ -217,6 +233,7 @@ async function startStandardStudentApp() {
       controller.attachSession(session);
       void mounted.render().catch(() => {});
     }
+    if (offlineSessionChanged) void mounted.revalidateOfflineSession?.()?.catch(() => {});
   });
 }
 

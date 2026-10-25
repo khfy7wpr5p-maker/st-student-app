@@ -15,6 +15,7 @@ import {
 
 const STORE_NAME = "practicePackages";
 const PIECE_STORE_NAME = "pieceManifests";
+const REVOCATION_STORE_NAME = "accessRevocations";
 
 const hasText = (value) =>
   typeof value === "string" && value.trim().length > 0;
@@ -336,7 +337,7 @@ function newestActivePerAccess(records) {
 export function createIndexedDbOfflineRepository({
   indexedDB,
   dbName = "st-student-app",
-  dbVersion = 3,
+  dbVersion = 4,
 }) {
   if (
     indexedDB === null ||
@@ -367,6 +368,9 @@ export function createIndexedDbOfflineRepository({
           (event) => {
             const db =
               request.result;
+            if (!db.objectStoreNames.contains(REVOCATION_STORE_NAME)) {
+              db.createObjectStore(REVOCATION_STORE_NAME, { keyPath: "studentAccessKey" });
+            }
             let store;
 
             if (
@@ -526,10 +530,42 @@ export function createIndexedDbOfflineRepository({
                 { unique: false },
               );
             }
+            if (event.oldVersion < 4) {
+              const revocations = request.transaction.objectStore(REVOCATION_STORE_NAME);
+              const remember = (studentId, accessRef, lastVerifiedAt) => {
+                if (hasText(studentId)) revocations.put({
+                  studentAccessKey: studentAccessKey({ studentId, accessRef }), lastVerifiedAt,
+                });
+              };
+              for (const [source, isPiece] of [[store, false], [pieceStore, true]]) {
+                const scan = source.openCursor();
+                scan.onsuccess = () => {
+                  const cursor = scan.result;
+                  if (!cursor) return;
+                  const value = cursor.value;
+                  if (value.accessState === OFFLINE_ACCESS_STATES.REVOKED) {
+                    if (isPiece) {
+                      for (const deliveryId of [value.piece?.contentRefs?.scoreAssignmentId,
+                        ...(value.piece?.contentRefs?.chordAssignmentIds ?? [])].filter(hasText)) {
+                        remember(value.studentId, { kind: "SECURE_DELIVERY", deliveryId }, value.lastVerifiedAt);
+                      }
+                    } else {
+                      const accessRef = value.accessRef ?? (hasText(value.publicationId)
+                        ? { kind: "PUBLICATION", publicationId: value.publicationId } : null);
+                      if (accessRef) remember(value.studentId, accessRef, value.lastVerifiedAt);
+                    }
+                  }
+                  cursor.continue();
+                };
+              }
+            }
           };
 
-        request.onsuccess = () =>
-          resolve(request.result);
+        request.onsuccess = () => {
+          const db = request.result;
+          db.onversionchange = () => { db.close(); dbPromise = null; };
+          resolve(db);
+        };
 
         request.onerror = () => {
           dbPromise = null;
@@ -567,10 +603,7 @@ export function createIndexedDbOfflineRepository({
         storeName,
         mode,
       );
-    const store =
-      transaction.objectStore(
-        storeName,
-      );
+    const store = Array.isArray(storeName) ? transaction : transaction.objectStore(storeName);
     const done =
       transactionDone(transaction);
 
@@ -648,9 +681,12 @@ export function createIndexedDbOfflineRepository({
         accessRef,
       );
 
-    return withStore(
-      "readonly",
-      async (store) => {
+    return withNamedStore(
+      [STORE_NAME, REVOCATION_STORE_NAME], "readonly",
+      async (transaction) => {
+        const store = transaction.objectStore(STORE_NAME);
+        if (await requestResult(transaction.objectStore(REVOCATION_STORE_NAME)
+          .get(studentAccessKey({ studentId, accessRef: ref })))) return null;
         const stored =
           await recordsForAccess(
             store,
@@ -726,13 +762,8 @@ export function createIndexedDbOfflineRepository({
           );
         }
 
-        await requestResult(
-          store.put(
-            toPieceStorageRecord(
-              incoming,
-            ),
-          ),
-        );
+        if (existing?.accessState === OFFLINE_ACCESS_STATES.REVOKED) return existing;
+        await requestResult(store.put(toPieceStorageRecord(incoming)));
         return incoming;
       },
     );
@@ -877,6 +908,53 @@ export function createIndexedDbOfflineRepository({
   }
 
   return Object.freeze({
+    async isPieceRevoked({ studentId, pieceAssignmentId }) {
+      requireText(studentId, "studentId");
+      requireText(pieceAssignmentId, "pieceAssignmentId");
+      return withPieceStore("readonly", async (store) => {
+        const stored = await requestResult(store.get(pieceCacheKey({ studentId, pieceAssignmentId })));
+        return stored?.accessState === OFFLINE_ACCESS_STATES.REVOKED;
+      });
+    },
+    async isAccessRevoked({ studentId, accessRef }) {
+      requireText(studentId, "studentId");
+      const ref = createPracticeAccessRef(accessRef);
+      return withNamedStore([STORE_NAME, REVOCATION_STORE_NAME], "readonly", async (transaction) => {
+        const tombstone = await requestResult(transaction.objectStore(REVOCATION_STORE_NAME)
+          .get(studentAccessKey({ studentId, accessRef: ref })));
+        if (tombstone) return true;
+        const stored = await recordsForAccess(transaction.objectStore(STORE_NAME), studentId, ref);
+        return stored.some((record) => record.accessState === OFFLINE_ACCESS_STATES.REVOKED);
+      });
+    },
+    async revokePieceAccess({ studentId, pieceAssignmentId, lastVerifiedAt }) {
+      requireText(studentId, "studentId");
+      requireText(pieceAssignmentId, "pieceAssignmentId");
+      return withNamedStore([STORE_NAME, PIECE_STORE_NAME, REVOCATION_STORE_NAME], "readwrite", async (transaction) => {
+        const pieceStore = transaction.objectStore(PIECE_STORE_NAME);
+        const key = pieceCacheKey({ studentId, pieceAssignmentId });
+        const current = fromPieceStorageRecord(await requestResult(pieceStore.get(key)));
+        if (!current) return null;
+        const replacement = createPieceOfflineRecord({ ...current, lastVerifiedAt,
+          accessState: OFFLINE_ACCESS_STATES.REVOKED });
+        const packageStore = transaction.objectStore(STORE_NAME);
+        for (const deliveryId of [current.piece.contentRefs.scoreAssignmentId,
+          ...current.piece.contentRefs.chordAssignmentIds].filter(Boolean)) {
+          const accessRef = { kind: "SECURE_DELIVERY", deliveryId };
+          await requestResult(transaction.objectStore(REVOCATION_STORE_NAME).put({
+            studentAccessKey: studentAccessKey({ studentId, accessRef }), lastVerifiedAt,
+          }));
+          for (const stored of await recordsForAccess(packageStore, studentId, accessRef)) {
+            const record = fromStorageRecord(stored);
+            const revoked = createOfflineRecord({ studentId, ...recordInput(record),
+              cachedAt: record.cachedAt, lastVerifiedAt, accessState: OFFLINE_ACCESS_STATES.REVOKED });
+            await requestResult(packageStore.put(toStorageRecord(revoked)));
+          }
+        }
+        await requestResult(pieceStore.put(toPieceStorageRecord(replacement)));
+        return replacement;
+      });
+    },
     putPieceManifest,
     getActivePieceManifest,
     listActivePieceManifests,
@@ -900,9 +978,15 @@ export function createIndexedDbOfflineRepository({
             OFFLINE_ACCESS_STATES.ACTIVE,
         });
 
-      return withStore(
+      return withNamedStore(
+        [STORE_NAME, REVOCATION_STORE_NAME],
         "readwrite",
-        async (store) => {
+        async (transaction) => {
+          const store = transaction.objectStore(STORE_NAME);
+          const revoked = await requestResult(transaction.objectStore(REVOCATION_STORE_NAME)
+            .get(studentAccessKey(incoming)));
+          if (revoked) return createOfflineRecord({ studentId, ...recordInput(incoming), cachedAt,
+            lastVerifiedAt, accessState: OFFLINE_ACCESS_STATES.REVOKED });
           const existingRecords =
             (
               await recordsForAccess(
@@ -919,6 +1003,10 @@ export function createIndexedDbOfflineRepository({
                   record !== null,
               );
 
+          if (existingRecords.some((record) => record.accessState === OFFLINE_ACCESS_STATES.REVOKED)) {
+            return createOfflineRecord({ studentId, ...recordInput(incoming), cachedAt,
+              lastVerifiedAt, accessState: OFFLINE_ACCESS_STATES.REVOKED });
+          }
           const scopeConflict =
             existingRecords.find(
               (record) =>
@@ -993,9 +1081,10 @@ export function createIndexedDbOfflineRepository({
         "studentId",
       );
 
-      return withStore(
-        "readonly",
-        async (store) => {
+      return withNamedStore(
+        [STORE_NAME, REVOCATION_STORE_NAME], "readonly",
+        async (transaction) => {
+          const store = transaction.objectStore(STORE_NAME);
           const stored =
             scope === null
               ? await requestResult(
@@ -1020,11 +1109,13 @@ export function createIndexedDbOfflineRepository({
                     ),
                 );
 
-          return newestActivePerAccess(
-            stored.map(
-              fromStorageRecord,
-            ),
-          );
+          const candidates = newestActivePerAccess(stored.map(fromStorageRecord));
+          const active = [];
+          for (const record of candidates) {
+            if (!await requestResult(transaction.objectStore(REVOCATION_STORE_NAME)
+              .get(studentAccessKey(record)))) active.push(record);
+          }
+          return active;
         },
       );
     },
@@ -1190,9 +1281,14 @@ export function createIndexedDbOfflineRepository({
           publicationId,
         });
 
-      return withStore(
+      return withNamedStore(
+        [STORE_NAME, REVOCATION_STORE_NAME],
         "readwrite",
-        async (store) => {
+        async (transaction) => {
+          const store = transaction.objectStore(STORE_NAME);
+          await requestResult(transaction.objectStore(REVOCATION_STORE_NAME).put({
+            studentAccessKey: studentAccessKey({ studentId, accessRef: ref }), lastVerifiedAt,
+          }));
           const stored =
             await recordsForAccess(
               store,

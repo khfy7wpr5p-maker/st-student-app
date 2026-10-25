@@ -140,6 +140,9 @@ function recordInput(record) {
 export function createInMemoryOfflineRepository() {
   const records = new Map();
   const pieceRecords = new Map();
+  const revocations = new Set();
+  const revocationKey = (studentId, accessRef) =>
+    `${studentId}\u0000${practiceAccessKey(accessRef)}`;
 
   function matchingRecords(
     studentId,
@@ -240,6 +243,7 @@ export function createInMemoryOfflineRepository() {
       );
     }
 
+    if (existing?.accessState === OFFLINE_ACCESS_STATES.REVOKED) return existing;
     pieceRecords.set(key, incoming);
     return incoming;
   }
@@ -326,7 +330,47 @@ export function createInMemoryOfflineRepository() {
     return replacement;
   }
 
+  async function markRevoked({ studentId, accessRef, publicationId, lastVerifiedAt }) {
+    requireStudentId(studentId);
+    const ref = resolveAccessRef({ accessRef, publicationId });
+    revocations.add(revocationKey(studentId, ref));
+    const replacements = matchingRecords(studentId, ref).map((record) =>
+      replaceRecord(record, OFFLINE_ACCESS_STATES.REVOKED, lastVerifiedAt));
+    for (const replacement of replacements) records.set(cacheKey(replacement), replacement);
+    return newestRecord(replacements);
+  }
+
   return Object.freeze({
+    async isPieceRevoked({ studentId, pieceAssignmentId }) {
+      requireStudentId(studentId);
+      return pieceRecords.get(pieceKey(studentId, pieceAssignmentId))?.accessState === OFFLINE_ACCESS_STATES.REVOKED;
+    },
+    async isAccessRevoked({ studentId, accessRef }) {
+      requireStudentId(studentId);
+      return revocations.has(revocationKey(studentId, accessRef)) ||
+        matchingRecords(studentId, accessRef).some((record) => record.accessState === OFFLINE_ACCESS_STATES.REVOKED);
+    },
+    async revokePieceAccess({ studentId, pieceAssignmentId, lastVerifiedAt }) {
+      requireStudentId(studentId);
+      const current = pieceRecords.get(pieceKey(studentId, pieceAssignmentId));
+      if (!current) return null;
+      // All changes below are synchronous: readers cannot observe a partial graph.
+      const childIds = [current.piece.contentRefs.scoreAssignmentId,
+        ...current.piece.contentRefs.chordAssignmentIds].filter(Boolean);
+      const replacement = createPieceOfflineRecord({ ...current, lastVerifiedAt,
+        accessState: OFFLINE_ACCESS_STATES.REVOKED });
+      for (const deliveryId of childIds) {
+        const accessRef = { kind: "SECURE_DELIVERY", deliveryId };
+        revocations.add(revocationKey(studentId, accessRef));
+        for (const record of matchingRecords(studentId, accessRef)) {
+          const revoked = replaceRecord(record, OFFLINE_ACCESS_STATES.REVOKED, lastVerifiedAt);
+          records.set(cacheKey(revoked), revoked);
+        }
+      }
+      pieceRecords.set(pieceKey(studentId, pieceAssignmentId), replacement);
+      return replacement;
+    },
+    markRevoked,
     putPieceManifest,
     getActivePieceManifest,
     listActivePieceManifests,
@@ -367,6 +411,12 @@ export function createInMemoryOfflineRepository() {
         throw new Error(
           "student access scope changed unexpectedly",
         );
+      }
+
+      if (revocations.has(revocationKey(studentId, incoming.accessRef)) ||
+          conflicts.some((record) => record.accessState === OFFLINE_ACCESS_STATES.REVOKED)) {
+        return createOfflineRecord({ studentId, ...recordInput(incoming), cachedAt,
+          lastVerifiedAt, accessState: OFFLINE_ACCESS_STATES.REVOKED });
       }
 
       const key = cacheKey(incoming);
@@ -521,51 +571,5 @@ export function createInMemoryOfflineRepository() {
       return replacement;
     },
 
-    async markRevoked({
-      studentId,
-      accessRef,
-      publicationId,
-      lastVerifiedAt,
-    }) {
-      requireStudentId(studentId);
-      const ref = resolveAccessRef({
-        accessRef,
-        publicationId,
-      });
-
-      const matching =
-        matchingRecords(
-          studentId,
-          ref,
-        );
-
-      if (matching.length === 0) {
-        return null;
-      }
-
-      const replacements =
-        matching.map(
-          (current) =>
-            replaceRecord(
-              current,
-              OFFLINE_ACCESS_STATES.REVOKED,
-              lastVerifiedAt,
-            ),
-        );
-
-      for (
-        const replacement
-        of replacements
-      ) {
-        records.set(
-          cacheKey(replacement),
-          replacement,
-        );
-      }
-
-      return newestRecord(
-        replacements,
-      );
-    },
   });
 }

@@ -143,6 +143,9 @@ export function createForegroundSyncCoordinator({
   offlineRepository,
   publicationStatusService,
   secureDeliveryStatusService = null,
+  getCachedAccessRefs = () => [],
+  isSessionCurrent = () => true,
+  getSessionEpoch = () => 0,
   clock = () =>
     new Date().toISOString(),
 }) {
@@ -215,8 +218,10 @@ export function createForegroundSyncCoordinator({
       });
   }
 
-  return Object.freeze({
-    async sync({ session }) {
+  const pending = new Map();
+  async function synchronize({ session }) {
+      const epoch = getSessionEpoch();
+      const current = () => isSessionCurrent(session) && getSessionEpoch() === epoch;
       const studentId =
         requireStudentId(session);
       const records =
@@ -224,10 +229,16 @@ export function createForegroundSyncCoordinator({
           .listAllForStudent({
             studentId,
           });
-      const groups =
-        activeAccessGroups(
-          records,
-        );
+      const groups = activeAccessGroups(records);
+      const known = new Set(groups.map((group) => JSON.stringify(group.accessRef)));
+      for (const accessRef of await getCachedAccessRefs({ session })) {
+        const ref = createPracticeAccessRef(accessRef);
+        if (known.has(JSON.stringify(ref))) continue;
+        if (typeof offlineRepository.isAccessRevoked === "function" &&
+            await offlineRepository.isAccessRevoked({ studentId, accessRef: ref })) continue;
+        known.add(JSON.stringify(ref));
+        groups.push({ accessRef: ref, scope: "student_private", records: [] });
+      }
       const pieceRecords =
         typeof offlineRepository
           .listActivePieceManifests === "function"
@@ -244,6 +255,7 @@ export function createForegroundSyncCoordinator({
       for (
         const group of groups
       ) {
+        if (!current()) { failed += 1; break; }
         checked += 1;
 
         try {
@@ -253,8 +265,8 @@ export function createForegroundSyncCoordinator({
               session,
             );
 
-          const verifiedAt =
-            clock();
+          if (!current()) { failed += 1; break; }
+          const verifiedAt = clock();
 
           if (
             status?.state ===
@@ -313,6 +325,7 @@ export function createForegroundSyncCoordinator({
       for (
         const record of pieceRecords
       ) {
+        if (!current()) { failed += 1; break; }
         checked += 1;
 
         try {
@@ -338,12 +351,19 @@ export function createForegroundSyncCoordinator({
                 pieceAssignmentId:
                   record.pieceAssignmentId,
               });
+          if (!current()) { failed += 1; break; }
           const verifiedAt = clock();
 
           if (
             status?.state ===
             "REVOKED"
           ) {
+            if (typeof offlineRepository.revokePieceAccess === "function") {
+              await offlineRepository.revokePieceAccess({ studentId,
+                pieceAssignmentId: record.pieceAssignmentId, lastVerifiedAt: verifiedAt });
+              revoked += 1;
+              continue;
+            }
             for (
               const deliveryId of
               pieceChildDeliveryIds(
@@ -408,6 +428,16 @@ export function createForegroundSyncCoordinator({
         revoked,
         failed,
       });
+  }
+
+  return Object.freeze({
+    sync({ session }) {
+      const studentId = requireStudentId(session);
+      const key = `${studentId}\u0000${getSessionEpoch()}`;
+      if (pending.has(key)) return pending.get(key);
+      const result = synchronize({ session }).finally(() => pending.delete(key));
+      pending.set(key, result);
+      return result;
     },
   });
 }

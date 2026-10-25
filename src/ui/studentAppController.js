@@ -1378,6 +1378,7 @@ export function createStudentAppController({
       }
 
       const session = requireCurrentSession();
+      const generation = sessionGeneration;
       setSyncState(SYNC_STATES.SYNCING);
 
       let result;
@@ -1389,6 +1390,7 @@ export function createStudentAppController({
       }
 
       const applyResult = (outcome) => {
+        if (!sessionRequestIsCurrent(session, generation)) return state;
         const allowed = [
           SYNC_STATES.SYNCED,
           SYNC_STATES.SYNC_ERROR,
@@ -1403,7 +1405,8 @@ export function createStudentAppController({
       if (result !== null && typeof result?.then === "function") {
         return Promise.resolve(result)
           .then(applyResult)
-          .catch(() => setSyncState(SYNC_STATES.SYNC_ERROR));
+          .catch(() => sessionRequestIsCurrent(session, generation)
+            ? setSyncState(SYNC_STATES.SYNC_ERROR) : state);
       }
 
       return applyResult(result);
