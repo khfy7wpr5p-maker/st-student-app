@@ -1,0 +1,18 @@
+{
+  "sourceFiles": 52,
+  "measurementCases": 364,
+  "candidate": "Existing forte layer, static gain per sampled root; reference first-1s RMS -27dBFS at velocity0.8; offset0",
+  "candidateGainRange": [
+    0.24776950654179883,
+    5.65769125042522
+  ],
+  "auditionSeconds": 44.39995464852608,
+  "BstartsAtSeconds": 22.69997732426304,
+  "sameMasterGainBothSections": 0.23534927701368785,
+  "worstTestedMixedPeakDbFS": -4.0,
+  "auditionPeakDbFS": -14.591633488321191,
+  "exhaustedCases": 32,
+  "browserTested": false,
+  "deviceTested": false,
+  "auditionAccepted": false
+}

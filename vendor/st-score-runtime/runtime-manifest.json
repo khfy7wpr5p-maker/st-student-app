@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "rendererSourceRevision": "13aa0843158257a207afe062879743d58048cc6d",
+  "rendererSourceRevision": "a015f9049149037c48ac764ab30ed2bcbbe200d3",
   "scoreRendererContractVersion": "0.2.0",
   "packages": {
     "contracts": "0.1.0",
@@ -23,8 +23,8 @@
     },
     {
       "path": "browser-bootstrap.mjs",
-      "bytes": 11700,
-      "sha256": "69816ec4c59ae64e9cd145d4152c4c3d3666079e9984b8321d486eba8c16614b"
+      "bytes": 13784,
+      "sha256": "a7d13d24c78d3c14602ce9ea5dc2ffb2d34f948cf36bdbff6a20f36fe9c427c5"
     },
     {
       "path": "index.html",
@@ -38,13 +38,13 @@
     },
     {
       "path": "modules/adapter-osmd.js",
-      "bytes": 35432,
-      "sha256": "cf6be0699d07f714994199b0d1da37612d617fdf42e5fc546bb4647437ec2411"
+      "bytes": 43468,
+      "sha256": "2d02f73ae1a112d4c4a1942050cafa50c09e76eb15d511331862d918020a7b2f"
     },
     {
       "path": "modules/browser-host.js",
-      "bytes": 20606,
-      "sha256": "954db3e3737ffeaa0f4165f1df0595104edf1262ae6643bc41415250616ecf5b"
+      "bytes": 21497,
+      "sha256": "c39061e2cd5bf0f82cf9c6637edc1023d2f472f3c2bd9ab51cf1f1e608d8bc04"
     },
     {
       "path": "modules/contracts.js",

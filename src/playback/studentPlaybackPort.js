@@ -1,3 +1,5 @@
+import { resolvePlaybackPartInstruments } from "./playbackPartRouting.js";
+
 const MIN_TEMPO_BPM = 20;
 const MAX_TEMPO_BPM = 300;
 const PLAYBACK_QUALITIES = new Set(["FULL", "APPROXIMATE"]);
@@ -21,6 +23,19 @@ function tempoInRange(value) {
 
 function bounded(message) {
   return new Error(message);
+}
+
+function playbackInstrumentOf(pkg) {
+  return typeof pkg?.playbackInstrument === "string"
+    ? pkg.playbackInstrument
+    : null;
+}
+
+function sourceRevisionIdOf(pkg) {
+  return typeof pkg?.approvedRevision?.revisionId === "string" &&
+    pkg.approvedRevision.revisionId.length > 0
+    ? pkg.approvedRevision.revisionId
+    : packageIdOf(pkg);
 }
 
 export function createStudentPlaybackPort({
@@ -69,6 +84,7 @@ export function createStudentPlaybackPort({
         ) {
           context = Object.freeze({
             plan: resolved.plan,
+            partInstruments: resolvePlaybackPartInstruments(pkg, resolved.plan),
             timingProvenance:
               resolved.timingProvenance ?? null,
           });
@@ -80,6 +96,7 @@ export function createStudentPlaybackPort({
         if (validPlanForPackage(plan, packageId)) {
           context = Object.freeze({
             plan,
+            partInstruments: resolvePlaybackPartInstruments(pkg, plan),
             timingProvenance: null,
           });
         }
@@ -96,9 +113,12 @@ export function createStudentPlaybackPort({
     return resolveContext(pkg)?.plan ?? null;
   }
 
-  function engineSupported() {
+  function engineSupported(pkg) {
     try {
-      return engine?.isSupported?.() === true;
+      return engine?.isSupported?.(
+        playbackInstrumentOf(pkg),
+        resolveContext(pkg)?.partInstruments ?? null,
+      ) === true;
     } catch {
       return false;
     }
@@ -106,7 +126,12 @@ export function createStudentPlaybackPort({
 
   function playablePlan(pkg) {
     const plan = resolve(pkg);
-    return plan !== null && engineSupported() ? plan : null;
+    return plan !== null && engineSupported(pkg) ? plan : null;
+  }
+
+  function partRouting(pkg) {
+    const partInstruments = resolveContext(pkg)?.partInstruments;
+    return partInstruments ? { partInstruments } : {};
   }
 
   function requirePlayable(pkg) {
@@ -213,8 +238,12 @@ export function createStudentPlaybackPort({
       }
 
       try {
-        const prepared =
-          await engine.prepare();
+        const prepared = await engine.prepare({
+          ...partRouting(pkg),
+          plan: resolve(pkg),
+          playbackInstrument: playbackInstrumentOf(pkg),
+          sourceRevisionId: sourceRevisionIdOf(pkg),
+        });
         return (
           prepared === true &&
           playablePlan(pkg) !== null
@@ -280,10 +309,13 @@ export function createStudentPlaybackPort({
 
       try {
         await engine.playRange({
+          ...partRouting(pkg),
           plan,
           tempoBpm: tempo,
           startBeat,
           endBeat,
+          playbackInstrument: playbackInstrumentOf(pkg),
+          sourceRevisionId: sourceRevisionIdOf(pkg),
         });
       } catch {
         if (activePackageId === packageId) {
@@ -371,7 +403,13 @@ export function createStudentPlaybackPort({
       activePackageId = packageId;
 
       try {
-        await engine.play({ plan, tempoBpm: tempo });
+        await engine.play({
+          ...partRouting(pkg),
+          plan,
+          tempoBpm: tempo,
+          playbackInstrument: playbackInstrumentOf(pkg),
+          sourceRevisionId: sourceRevisionIdOf(pkg),
+        });
 
         if (repeatEnabled.get(packageId) === true) {
           engine.setMeasureRepeatEnabled(true);

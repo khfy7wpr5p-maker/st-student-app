@@ -1,3 +1,4 @@
+import { applyExpressions, directionExpression, noteExpression } from './musicXmlDynamics.js';
 import {
   MAX_PLAYBACK_MEASURES,
   MAX_PLAYBACK_NOTES,
@@ -165,6 +166,7 @@ function compilePartMeasure({
   let extent = 0;
   const notes = [];
   const tempos = [];
+  const expressions = [];
   const previousNonChordOnsetByVoice = new Map();
 
   for (const child of elementChildren(measure)) {
@@ -200,6 +202,8 @@ function compilePartMeasure({
     }
 
     if (name === "direction" || name === "sound") {
+      const expression = directionExpression(child, cursor, part.divisions);
+      if (expression !== null) expressions.push(expression);
       const sounds =
         name === "sound"
           ? [child]
@@ -269,6 +273,8 @@ function compilePartMeasure({
             measureIndex,
             partId: part.partId,
             voice,
+            expressionStaff: textOf(firstChildNamed(child, "staff")) || "1",
+            localVelocity: noteExpression(child),
             tieStart: tie.start,
             tieStop: tie.stop,
           });
@@ -299,6 +305,7 @@ function compilePartMeasure({
     durationBeats: extent,
     notes,
     tempos,
+    expressions,
   };
 }
 
@@ -320,6 +327,7 @@ function publicNote(note) {
     measureIndex: note.measureIndex,
     partId: note.partId,
     voice: note.voice,
+    ...(note.velocity === undefined ? {} : { velocity: note.velocity }),
   };
 }
 
@@ -502,6 +510,7 @@ export function compileApproximateMusicXmlPlayback(
 
   const rawNotes = [];
   const rawTempoEvents = [];
+  const rawExpressions = [];
   const measures = [];
   let globalBeat = 0;
   let tempoOrder = 0;
@@ -542,6 +551,8 @@ export function compileApproximateMusicXmlPlayback(
         });
       }
 
+      for (const e of compiled.expressions) rawExpressions.push({ ...e, partId: part.partId, beat: globalBeat + e.beat });
+
       for (const tempo of compiled.tempos) {
         measureTempos.push({
           beat: globalBeat + tempo.relativeBeat,
@@ -579,6 +590,7 @@ export function compileApproximateMusicXmlPlayback(
     return null;
   }
 
+  applyExpressions(rawNotes, rawExpressions);
   const notes = mergeTies(rawNotes);
 
   if (notes.length === 0 || notes.length > MAX_PLAYBACK_NOTES) {

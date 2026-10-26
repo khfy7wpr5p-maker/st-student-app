@@ -50,6 +50,26 @@ function makeClock() {
   };
 }
 
+test('scheduler forwards optional dynamics and legacy sample envelope applies zero',async()=>{
+ for(const playbackInstrument of ['VIOLIN',null]){
+  const context=makeAudioContext(),calls=[];
+  const engine=createWebAudioPianoEngine({audioContextFactory:()=>context,sampleBank:makeSampleBank(),clock:makeClock(),scoreAudioVoice:{isSupported:()=>true,prepare:async()=>true,scheduleNote:r=>calls.push(r),stopAll(){}}});
+  const plan={...makePlan(),notes:[{...makePlan().notes[0],velocity:0}]};
+  await engine.play({plan,tempoBpm:120,playbackInstrument});
+  if(playbackInstrument)assert.equal(calls[0].velocity,0);
+  else assert.ok(context.gains.slice(1).every(g=>g.events.every(([kind,value])=>value===0)));
+ }
+});
+
+test('pause during cold preparation invalidates play before any note starts',async()=>{
+ let finish;const context=makeAudioContext(),calls=[];
+ const preparing=new Promise(r=>{finish=r;});
+ const engine=createWebAudioPianoEngine({audioContextFactory:()=>context,sampleBank:makeSampleBank(),clock:makeClock(),scoreAudioVoice:{isSupported:()=>true,prepare:()=>preparing,scheduleNote:n=>calls.push(n),stopAll(){}}});
+ const play=engine.play({plan:makePlan(),tempoBpm:120,playbackInstrument:'VIOLIN'});
+ await new Promise(r=>setImmediate(r));engine.pause();finish(true);await play;
+ assert.equal(calls.length,0);assert.equal(engine.getCurrentBeat(),0);
+});
+
 function makeAudioContext() {
   const sources = [];
   const gains = [];
@@ -174,6 +194,89 @@ test("tempo map schedules beat 0/2/4/6 at 0/1/2/4 seconds", async () => {
   clock.tick();
   assert.equal(context.sources.length, 4);
   assert.equal(context.sources[3].starts[0][0], 4);
+});
+
+test("selected violin uses the shared transport clock through the score-audio voice lane", async () => {
+  const context = makeAudioContext();
+  const clock = makeClock();
+  const calls = [];
+  const scoreAudioVoice = {
+    isSupported(value) {
+      return value === "VIOLIN";
+    },
+    async prepare(value) {
+      calls.push(["prepare", value]);
+      return true;
+    },
+    scheduleNote(value) {
+      calls.push(["note", value]);
+    },
+    stopAll() {
+      calls.push(["stopAll"]);
+    },
+  };
+  const sampleBank = makeSampleBank();
+  const engine = createWebAudioPianoEngine({
+    audioContextFactory: () => context,
+    sampleBank,
+    scoreAudioVoice,
+    clock,
+  });
+
+  assert.equal(engine.isSupported("VIOLIN"), true);
+  await engine.play({
+    plan: makePlan(),
+    tempoBpm: 120,
+    playbackInstrument: "VIOLIN",
+    sourceRevisionId: "rev-a",
+  });
+
+  assert.equal(sampleBank.loadCount, 0);
+  assert.equal(context.sources.length, 0);
+  assert.deepEqual(calls[0], ["prepare", {
+    instrumentId: "VIOLIN",
+    pitches: [60, 62, 64, 65],
+  }]);
+  const first = calls.find(([name]) => name === "note")[1];
+  assert.equal(first.startTimeSeconds, 0.02);
+  assert.equal(first.instrumentId, "VIOLIN");
+  assert.equal(first.sourceRevisionId, "rev-a");
+
+  context.currentTime = 0.8;
+  clock.tick();
+  const notes = calls.filter(([name]) => name === "note");
+  assert.equal(notes[1][1].startTimeSeconds, 1);
+});
+
+test("explicit grand piano uses the score-audio voice lane", async () => {
+  const context = makeAudioContext();
+  const sampleBank = makeSampleBank();
+  const scoreAudioCalls = [];
+  const engine = createWebAudioPianoEngine({
+    audioContextFactory: () => context,
+    sampleBank,
+    scoreAudioVoice: {
+      isSupported() { return true; },
+      async prepare(value) { scoreAudioCalls.push(value); },
+      scheduleNote(value) { scoreAudioCalls.push(value); },
+      stopAll() {},
+    },
+    clock: makeClock(),
+  });
+
+  await engine.play({
+    plan: makePlan(),
+    tempoBpm: 120,
+    playbackInstrument: "GRAND_PIANO",
+  });
+
+  assert.equal(sampleBank.loadCount, 0);
+  assert.equal(context.sources.length, 0);
+  assert.deepEqual(scoreAudioCalls[0], {
+    instrumentId: "GRAND_PIANO",
+    pitches: [60, 62, 64, 65],
+  });
+  assert.equal(scoreAudioCalls[1].instrumentId, "GRAND_PIANO");
 });
 
 test("selected tempo scales timing without changing sample playbackRate", async () => {

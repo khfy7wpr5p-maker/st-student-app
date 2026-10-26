@@ -565,8 +565,9 @@ export function createStudentPerfAController({
       return invalidateAndCall("showHome", args);
     },
 
-    showWorkRequestForm(...args) {
-      return invalidateAndCall("showWorkRequestForm", args);
+    showWorkRequestForm() {
+      const returnState = getState().assignmentState ?? ASSIGNMENT_STATES.ACTIVE;
+      return invalidateAndCall("showWorkRequestForm", [returnState]);
     },
 
     openPoolItem(...args) {

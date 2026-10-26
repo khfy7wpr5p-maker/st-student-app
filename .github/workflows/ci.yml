@@ -34,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      RENDERER_SHA: 13aa0843158257a207afe062879743d58048cc6d
+      RENDERER_SHA: a015f9049149037c48ac764ab30ed2bcbbe200d3
     steps:
       - name: Checkout Student App CI metadata
         uses: actions/checkout@v5
@@ -94,7 +94,7 @@ jobs:
           path: vendor/st-score-runtime
       - name: Verify runtime provenance
         env:
-          RENDERER_SHA: 13aa0843158257a207afe062879743d58048cc6d
+          RENDERER_SHA: a015f9049149037c48ac764ab30ed2bcbbe200d3
         run: |
           node -e 'const m=require("./vendor/st-score-runtime/runtime-manifest.json"); if(m.runtimeTarget!=="browser" || m.rendererSourceRevision!==process.env.RENDERER_SHA || m.scoreRendererContractVersion!=="0.2.0") process.exit(1)'
       - name: Install browser
@@ -103,3 +103,44 @@ jobs:
         env:
           ST_BROWSER: ${{ matrix.browser }}
         run: npm run test:browser
+      - name: Upload compact violin screen evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ses252-screens-${{ matrix.browser }}
+          path: test-results/ses252/
+          if-no-files-found: ignore
+
+  deploy-pages:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [test, renderer-runtime, tab-browser]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - name: Checkout current main
+        uses: actions/checkout@v5
+      - name: Prepare exact static site
+        run: |
+          mkdir _site
+          cp index.html service-worker.js _site/
+          cp -R src vendor _site/
+          touch _site/.nojekyll
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+      - name: Upload current Student App
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - name: Deploy current Student App
+        id: deployment
+        uses: actions/deploy-pages@v4

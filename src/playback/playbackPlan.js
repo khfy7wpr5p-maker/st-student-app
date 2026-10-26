@@ -163,6 +163,10 @@ export function validatePlaybackPlan(
         fail(errors, "notes must be ordered");
       }
       previousNoteStart = note.startBeat;
+      if (note.velocity !== undefined && (!finite(note.velocity) || note.velocity < 0 || note.velocity > 1)) {
+        fail(errors, "velocity invalid");
+        continue;
+      }
       notes.push({
         startBeat: note.startBeat,
         durationBeats: note.durationBeats,
@@ -170,6 +174,7 @@ export function validatePlaybackPlan(
         measureIndex: note.measureIndex,
         partId: note.partId,
         voice: note.voice,
+        ...(note.velocity === undefined ? {} : { velocity: note.velocity }),
       });
     }
   }

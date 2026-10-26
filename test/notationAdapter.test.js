@@ -462,3 +462,18 @@ test("render failure invalidates previously active interaction evidence", async 
     null,
   );
 });
+
+test("explicit runtime interaction rejection is not reported as success", async () => {
+  const runtime = {
+    async renderMusicXml() { return { sourceId: "runtime-a", renderEpoch: "render-1" }; },
+    async dispose() {},
+    async moveCursor() { return false; },
+    async highlight() { return false; },
+    async clearHighlights() { return false; },
+  };
+  const adapter = createStNotationAdapter({ getRuntime: () => runtime });
+  await adapter.render({ musicXml: "<score-partwise/>", sourceId: "pkg-a" });
+  assert.equal(await adapter.moveCursor({ partId: "P1", measureIndex: 0 }), false);
+  assert.equal(await adapter.highlight({ partId: "P1", measureIndex: 0, noteIndex: 0 }), false);
+  assert.equal(await adapter.clearHighlights(), false);
+});

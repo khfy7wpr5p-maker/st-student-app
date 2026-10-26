@@ -516,10 +516,20 @@
         vector-effect: non-scaling-stroke;
       }
 
+      .violin-stop-number {
+        fill: var(--st-surface-raised);
+        font-size: 12px;
+        font-weight: 800;
+        text-anchor: middle;
+        pointer-events: none;
+      }
+
       .violin-fingering-text {
         margin: var(--st-space-2) 0 0;
         font-weight: 700;
       }
+
+      .violin-compact-label { display: none; }
 
       .violin-fingerboard-empty .violin-fingering-text {
         color: var(--st-text-muted);
@@ -835,6 +845,9 @@
         }
       }
     </style>
+    <link rel="stylesheet" href="./src/ui/student-home-fusion.css">
+    <link rel="stylesheet" href="./src/ui/student-work-fusion.css">
+    <link rel="stylesheet" href="./src/ui/piece-workspace-fusion.css">
   </head>
   <body>
     <div id="app"></div>
@@ -849,6 +862,7 @@
       }
     }
     </script>
+    <script src="./vendor/st-score-audio/st-score-audio-engine.js"></script>
     <script type="module" src="./src/ui/main.js"></script>
   </body>
 </html>

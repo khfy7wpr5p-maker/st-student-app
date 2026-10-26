@@ -69,6 +69,9 @@ export function createSecureDeliveryOfflineReadService({
   offlineRepository,
   connectivityPort,
   clock = () => new Date().toISOString(),
+  secureDeliveryStatusService = null,
+  isSessionCurrent = () => true,
+  getSessionEpoch = () => 0,
 } = {}) {
   if (
     onlineReadService === null ||
@@ -104,7 +107,33 @@ export function createSecureDeliveryOfflineReadService({
     );
   }
 
+  // Guard the authenticated read boundary, including token/account changes while awaiting it.
+  function sessionBound(service) {
+    if (service === null) return null;
+    const wrapped = {};
+    for (const name of Object.keys(service)) {
+      Object.defineProperty(wrapped, name, { enumerable: true, get() {
+        const method = service[name];
+        if (typeof method !== "function") return method;
+        return async (args) => {
+          const epoch = getSessionEpoch();
+          if (!isSessionCurrent(args.session)) throw new Error("stale offline session");
+          const result = await method.call(service, args);
+          if (!isSessionCurrent(args.session) || epoch !== getSessionEpoch()) {
+            throw new Error("stale offline session");
+          }
+          return result;
+        };
+      } });
+    }
+    return wrapped;
+  }
+  onlineReadService = sessionBound(onlineReadService);
+  secureDeliveryStatusService = sessionBound(secureDeliveryStatusService);
+
   const assignmentViews = new Map();
+  const revokedAssignments = new Set();
+  const revokedPieces = new Set();
 
   const isOffline = () =>
     connectivityPort.getState() ===
@@ -115,6 +144,90 @@ export function createSecureDeliveryOfflineReadService({
     assignmentId,
   ) =>
     `${studentId}\u0000${assignmentId}`;
+
+  async function accessRevoked(studentId, assignmentId) {
+    if (revokedAssignments.has(assignmentKey(studentId, assignmentId))) return true;
+    if (typeof offlineRepository.isAccessRevoked !== "function") return false;
+    try {
+      return await offlineRepository.isAccessRevoked({ studentId,
+        accessRef: { kind: "SECURE_DELIVERY", deliveryId: assignmentId } });
+    } catch (error) {
+      if (isOffline()) throw error;
+      return false; // Local persistence failure cannot veto authorized online reads.
+    }
+  }
+
+  async function assertAccess(studentId, assignmentId) {
+    if (await accessRevoked(studentId, assignmentId)) throw new Error(isOffline() ? "offline practice unavailable" : "assignment access revoked");
+  }
+
+  async function pieceRevoked(studentId, pieceAssignmentId) {
+    if (revokedPieces.has(assignmentKey(studentId, pieceAssignmentId))) return true;
+    if (typeof offlineRepository.isPieceRevoked !== "function") return false;
+    try { return await offlineRepository.isPieceRevoked({ studentId, pieceAssignmentId }); }
+    catch (error) { if (isOffline()) throw error; return false; }
+  }
+
+  async function authorizedAssignments(studentId, items) {
+    const result = [];
+    for (const item of items) {
+      if (await accessRevoked(studentId, item.assignmentId)) {
+        assignmentViews.delete(assignmentKey(studentId, item.assignmentId));
+      } else result.push(item);
+    }
+    return Object.freeze(result);
+  }
+
+  async function reconcileMissingAssignments(session, previous, current) {
+    if (typeof secureDeliveryStatusService?.getAccessStatus !== "function") return;
+    const studentId = requireStudentId(session);
+    const present = new Set(current.map((item) => item.assignmentId));
+    for (const item of previous) {
+      if (present.has(item.assignmentId)) continue;
+      try {
+        const accessRef = { kind: "SECURE_DELIVERY", deliveryId: item.assignmentId };
+        const status = await secureDeliveryStatusService.getAccessStatus({ session, accessRef });
+        if (status?.state === "REVOKED") {
+          revokedAssignments.add(assignmentKey(studentId, item.assignmentId));
+          assignmentViews.delete(assignmentKey(studentId, item.assignmentId));
+          await offlineRepository.markRevoked({ studentId, accessRef, lastVerifiedAt: clock() });
+        } else if (status?.state === "ACTIVE" && !await accessRevoked(studentId, item.assignmentId)) {
+          const updated = await onlineReadService.getAssignment({ session, assignmentId: item.assignmentId });
+          if (updated?.assignmentId === item.assignmentId && !await accessRevoked(studentId, item.assignmentId)) {
+            cacheAssignment(studentId, updated);
+          }
+        }
+      } catch {
+        // List absence and transient failures are never revocation evidence.
+      }
+    }
+  }
+
+  async function reconcileMissingPieces(session, previous, current) {
+    if (typeof secureDeliveryStatusService?.getPieceStatus !== "function") return;
+    const studentId = requireStudentId(session);
+    const present = new Set(current.map((item) => item.pieceAssignmentId));
+    for (const record of previous) {
+      const pieceAssignmentId = record.pieceAssignmentId;
+      if (present.has(pieceAssignmentId)) continue;
+      try {
+        const status = await secureDeliveryStatusService.getPieceStatus({ session, pieceAssignmentId });
+        if (status?.state === "REVOKED") {
+          revokedPieces.add(assignmentKey(studentId, pieceAssignmentId));
+          for (const id of [record.piece.contentRefs.scoreAssignmentId,
+            ...record.piece.contentRefs.chordAssignmentIds].filter(Boolean)) {
+            revokedAssignments.add(assignmentKey(studentId, id));
+          }
+          const revoke = offlineRepository.revokePieceAccess ?? offlineRepository.markPieceManifestRevoked;
+          await revoke({ studentId, pieceAssignmentId, lastVerifiedAt: clock() });
+        } else if (status?.state === "ACTIVE" && status.piece?.pieceAssignmentId === pieceAssignmentId) {
+          await cachePieceManifest(studentId, status.piece);
+        }
+      } catch {
+        // Retain usable snapshots when the exact status cannot be learned.
+      }
+    }
+  }
 
   function cacheAssignment(
     studentId,
@@ -205,16 +318,17 @@ export function createSecureDeliveryOfflineReadService({
 
     if (isOffline()) {
       return Object.freeze(
-        cachedAssignmentsForStudent(
+        await authorizedAssignments(studentId, cachedAssignmentsForStudent(
           studentId,
         ).filter(
           (item) =>
             state === undefined ||
             item.state === state,
-        ),
+        )),
       );
     }
 
+    const previous = cachedAssignmentsForStudent(studentId).filter((item) => state === undefined || item.state === state);
     const items =
       await onlineReadService.listAssignments({
         session,
@@ -227,14 +341,16 @@ export function createSecureDeliveryOfflineReadService({
       );
     }
 
-    for (const item of items) {
+    await reconcileMissingAssignments(session, previous, items);
+    const authorized = await authorizedAssignments(studentId, items);
+    for (const item of authorized) {
       cacheAssignment(
         studentId,
         item,
       );
     }
 
-    return items;
+    return authorized;
   }
 
   async function getAssignment({
@@ -248,6 +364,7 @@ export function createSecureDeliveryOfflineReadService({
         assignmentId,
       );
 
+    await assertAccess(studentId, id);
     if (isOffline()) {
       const cached =
         assignmentViews.get(
@@ -280,6 +397,7 @@ export function createSecureDeliveryOfflineReadService({
       );
     }
 
+    await assertAccess(studentId, id);
     return cacheAssignment(
       studentId,
       item,
@@ -304,6 +422,7 @@ export function createSecureDeliveryOfflineReadService({
         deliveryId: id,
       });
 
+    await assertAccess(studentId, id);
     if (isOffline()) {
       const record =
         await offlineRepository
@@ -354,10 +473,12 @@ export function createSecureDeliveryOfflineReadService({
       );
     }
 
+    await assertAccess(studentId, id);
     const now = clock();
+    let saved;
 
     try {
-      await offlineRepository
+      saved = await offlineRepository
         .putAuthorized({
           studentId,
           practiceItem: item,
@@ -365,12 +486,12 @@ export function createSecureDeliveryOfflineReadService({
           lastVerifiedAt: now,
         });
 
-      return annotate(
-        item,
-        "online",
-        true,
-      );
-    } catch {
+      if (saved?.accessState === "REVOKED") throw new Error("assignment access revoked");
+      await assertAccess(studentId, id);
+      return annotate(item, "online", true);
+    } catch (error) {
+      if (saved?.accessState === "REVOKED") throw error;
+      await assertAccess(studentId, id);
       return annotate(
         item,
         "online",
@@ -477,13 +598,14 @@ export function createSecureDeliveryOfflineReadService({
             state,
           });
       return Object.freeze(
-        records.map(
-          (record) => record.piece,
-        ),
+        records.filter((record) => !revokedPieces.has(assignmentKey(studentId, record.pieceAssignmentId)))
+          .map((record) => record.piece),
       );
     }
 
     requireOnlinePieceService();
+    let previous = [];
+    try { previous = await offlineRepository.listActivePieceManifests({ studentId, state }); } catch {}
     const pieces =
       await onlineReadService.listPieces({
         session,
@@ -496,18 +618,23 @@ export function createSecureDeliveryOfflineReadService({
       );
     }
 
+    await reconcileMissingPieces(session, previous, pieces);
+    const authorized = [];
     for (const piece of pieces) {
+      if (await pieceRevoked(studentId, piece.pieceAssignmentId)) continue;
       try {
-        await cachePieceManifest(
+        const record = await cachePieceManifest(
           studentId,
           piece,
         );
+        if (record?.accessState === "REVOKED") continue;
       } catch {
         // Online authority remains usable if local persistence fails.
       }
+      if (!await pieceRevoked(studentId, piece.pieceAssignmentId)) authorized.push(piece);
     }
 
-    return pieces;
+    return Object.freeze(authorized);
   }
 
   async function getPiece({
@@ -522,6 +649,7 @@ export function createSecureDeliveryOfflineReadService({
       );
     requirePieceRepository();
 
+    if (await pieceRevoked(studentId, id)) throw new Error(isOffline() ? "offline Piece manifest unavailable" : "Piece access revoked");
     if (isOffline()) {
       const record =
         await offlineRepository
@@ -563,6 +691,7 @@ export function createSecureDeliveryOfflineReadService({
       // Online authority remains usable if local persistence fails.
     }
 
+    if (await pieceRevoked(studentId, id)) throw new Error(isOffline() ? "offline Piece manifest unavailable" : "Piece access revoked");
     return piece;
   }
 
@@ -572,12 +701,13 @@ export function createSecureDeliveryOfflineReadService({
     pieceAssignmentId,
   }) {
     requirePieceRepository();
-    const cached =
-      await offlineRepository
-        .getActivePieceManifest({
-          studentId,
-          pieceAssignmentId,
-        });
+    let cached = null;
+    try {
+      cached = await offlineRepository.getActivePieceManifest({ studentId, pieceAssignmentId });
+    } catch (error) {
+      if (isOffline()) throw error;
+      // A blocked upgrade or failed local read must not prevent an authorized online open.
+    }
 
     if (cached !== null) {
       return cached.piece;
@@ -614,9 +744,11 @@ export function createSecureDeliveryOfflineReadService({
       );
     }
 
+    await assertAccess(studentId, expectedAssignmentId);
     const now = clock();
+    let saved;
     try {
-      await offlineRepository
+      saved = await offlineRepository
         .putAuthorized({
           studentId,
           practiceItem: item,
@@ -624,12 +756,16 @@ export function createSecureDeliveryOfflineReadService({
           lastVerifiedAt: now,
         });
 
+      if (saved?.accessState === "REVOKED") throw new Error("assignment access revoked");
+      await assertAccess(studentId, expectedAssignmentId);
       return annotate(
         item,
         "online",
         true,
       );
-    } catch {
+    } catch (error) {
+      if (saved?.accessState === "REVOKED") throw error;
+      await assertAccess(studentId, expectedAssignmentId);
       return annotate(
         item,
         "online",
@@ -763,6 +899,10 @@ export function createSecureDeliveryOfflineReadService({
   }
 
   return Object.freeze({
+    listCachedAccessRefs({ session }) {
+      const studentId = requireStudentId(session);
+      return cachedAssignmentsForStudent(studentId).map((item) => ({ kind: "SECURE_DELIVERY", deliveryId: item.assignmentId }));
+    },
     async listPoolItems({
       session,
     } = {}) {

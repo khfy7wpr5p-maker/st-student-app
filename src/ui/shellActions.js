@@ -28,6 +28,12 @@ export async function dispatchStudentAppAction({
     case "show-work-request":
       return controller.showWorkRequestForm();
 
+    case "back-from-work-request":
+      return controller.showMyWork(controller.getState().workRequestReturnState ?? "ACTIVE");
+
+    case "refresh-work-request-pool":
+      return controller.loadWorkRequestPool();
+
     case "submit-work-request":
       if (!hasText(workRequestTitle)) {
         throw new Error("work request title required");

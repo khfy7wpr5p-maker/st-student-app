@@ -54,15 +54,15 @@ function renderPieceTeacherNote(
   }
 
   return `
-    <aside
+    <details open
       class="piece-teacher-note"
       aria-label="Öğretmen notu"
     >
-      <strong>Öğretmen notu</strong>
+      <summary>Öğretmen notu</summary>
       <p>${escapeHtml(
         viewModel.teacherNote,
       )}</p>
-    </aside>
+    </details>
   `;
 }
 
@@ -103,6 +103,8 @@ function renderMusicPanel(viewModel) {
           showHomeAction: false,
           showTitle: false,
           notationHeading,
+          showNotationSizing: true,
+          compactViolin: true,
         },
       )}
     </div>
@@ -251,6 +253,7 @@ export function renderPieceWorkspace(
   return `
     <section
       class="piece-workspace"
+      data-focus-mode="false"
       aria-labelledby="piece-title"
     >
       <header class="piece-workspace-header">
@@ -259,6 +262,12 @@ export function renderPieceWorkspace(
           class="piece-back"
           data-action="back-from-piece"
         >← Geri</button>
+        <button
+          type="button"
+          class="piece-focus-toggle"
+          data-action="toggle-piece-focus"
+          aria-pressed="false"
+        >Odak</button>
         <h1 id="piece-title">${escapeHtml(
           viewModel.title,
         )}</h1>

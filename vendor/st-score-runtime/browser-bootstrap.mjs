@@ -269,6 +269,50 @@ const runtimeHost = Object.freeze({
       highlight.className === undefined ? { target } : { target, className: highlight.className },
     );
   },
+  async highlightMeasure(payload) {
+    if (renderInFlight) {
+      throw new BrowserScoreHostUnavailableError("Measure highlight is unavailable while rendering is in progress.");
+    }
+    if (activeHost === undefined) {
+      throw new BrowserScoreHostUnavailableError("A score must be rendered before measure highlight.");
+    }
+    const highlight = requirePlainInteractionObject(
+      payload,
+      "Score measure highlight payload",
+      new Set(["target", "className"]),
+    );
+    const target = requirePlainInteractionObject(
+      highlight.target,
+      "Score measure highlight target",
+      new Set(["partId", "measureIndex"]),
+    );
+    const partId = typeof target.partId === "string" ? target.partId : "";
+    if (!partId || partId.length > INTERACTION_PART_ID_MAX_LENGTH || partId !== partId.trim()) {
+      throw new TypeError("Score measure highlight partId must be a non-empty bounded string without surrounding whitespace.");
+    }
+    const measureIndex = target.measureIndex;
+    if (!Number.isSafeInteger(measureIndex) || measureIndex < 0) {
+      throw new RangeError("Score measure highlight measureIndex must be a non-negative safe integer.");
+    }
+    if (highlight.className !== undefined &&
+        (typeof highlight.className !== "string" || !HIGHLIGHT_CLASS_PATTERN.test(highlight.className))) {
+      throw new TypeError("Score measure highlight className must be one safe CSS class token of at most 64 characters.");
+    }
+    return activeHost.highlightMeasure(
+      highlight.className === undefined
+        ? { target: { partId, measureIndex } }
+        : { target: { partId, measureIndex }, className: highlight.className },
+    );
+  },
+  async clearMeasureHighlights() {
+    if (renderInFlight) {
+      throw new BrowserScoreHostUnavailableError("Measure highlight clearing is unavailable while rendering is in progress.");
+    }
+    if (activeHost === undefined) {
+      throw new BrowserScoreHostUnavailableError("A score must be rendered before measure highlight clearing.");
+    }
+    return activeHost.clearMeasureHighlights();
+  },
   async clearHighlights() {
     if (renderInFlight) {
       throw new BrowserScoreHostUnavailableError("Note highlight clearing is unavailable while rendering is in progress.");

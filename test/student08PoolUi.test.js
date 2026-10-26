@@ -86,3 +86,14 @@ test("S08-4B Pool visual hierarchy uses reusable responsive card and metadata st
     /\.pool-published-at,[\s\S]*?\.pool-detail-published-at\s*\{[^}]*font-size:\s*var\(--st-font-size-sm\)[^}]*color:\s*var\(--st-text-muted\)/s,
   );
 });
+
+test("Pool has full-width navigation and a neutral empty state without invented content", () => {
+  const html = renderStudentApp({ ...poolState(), items: [] });
+  assert.doesNotMatch(html, /<aside/);
+  assert.match(html, /data-action="go-home"/);
+  assert.match(html, /data-action="show-my-work"/);
+  assert.match(html, /data-action="sign-out"/);
+  assert.match(html, /Havuzda henüz içerik yok\./);
+  assert.match(html, /<img[^>]*pool-fusion-music\.svg[^>]*alt=""/);
+  assert.doesNotMatch(html, /Haftanın ritim çalışması|Birlikte dinleyelim|class="pool-card"/);
+});

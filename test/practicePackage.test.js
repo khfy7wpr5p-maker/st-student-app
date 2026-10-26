@@ -85,6 +85,29 @@ test("student-private package with recipient is valid", () => {
   assert.equal(result.ok, true);
 });
 
+test("playback instrument accepts the product enum, preserves legacy absence, and rejects unknown values", () => {
+  for (const playbackInstrument of [
+    "GRAND_PIANO",
+    "CLASSICAL_GUITAR",
+    "VIOLIN",
+  ]) {
+    assert.equal(
+      validatePracticePackage(
+        makePackage({ playbackInstrument }),
+      ).ok,
+      true,
+    );
+  }
+
+  assert.equal(validatePracticePackage(makePackage()).ok, true);
+
+  const invalid = validatePracticePackage(
+    makePackage({ playbackInstrument: "RANDOM_INSTRUMENT" }),
+  );
+  assert.equal(invalid.ok, false);
+  assert.match(invalid.errors.join("\n"), /playbackInstrument/);
+});
+
 test("non-approved revision cannot become a practice package", () => {
   const pkg = makePackage();
   pkg.approvedRevision.state = "teacher_corrected";

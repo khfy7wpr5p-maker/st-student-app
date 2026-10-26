@@ -12,6 +12,7 @@ function capabilityOf(practice, name) {
 function renderNotation(
   practice,
   notationHeading,
+  showNotationSizing,
 ) {
   const capability = capabilityOf(practice, "notation");
   const heading = escapeHtml(notationHeading);
@@ -20,6 +21,13 @@ function renderNotation(
     return `
       <section class="practice-notation practice-primary" aria-labelledby="notation-heading">
         <h2 id="notation-heading">${heading}</h2>
+        ${showNotationSizing ? `
+          <div class="piece-notation-sizing" role="group" aria-label="Nota boyutu">
+            <button type="button" data-action="decrease-piece-notation" aria-label="Notayı küçült">−</button>
+            <output data-piece-notation-size aria-label="Nota boyutu yüzdesi">100%</output>
+            <button type="button" data-action="increase-piece-notation" aria-label="Notayı büyüt">+</button>
+            <button type="button" data-action="fit-piece-notation">Genişliğe sığdır</button>
+          </div>` : ""}
         <div id="st-score-root" role="region" aria-label="${heading}"></div>
       </section>
     `;
@@ -42,8 +50,9 @@ function renderNotation(
   `;
 }
 
-function renderViolin(practice) {
+function renderViolin(practice, notationHeading, compact = false) {
   if (
+    notationHeading !== "Nota" ||
     capabilityOf(practice, "violin") !==
     PRACTICE_CAPABILITY_STATES.AVAILABLE
   ) {
@@ -51,8 +60,9 @@ function renderViolin(practice) {
   }
 
   return `
-    <section class="practice-violin practice-secondary" aria-labelledby="violin-heading">
-      <h2 id="violin-heading">Keman</h2>
+    <section class="practice-violin practice-secondary${compact ? ' practice-violin-compact' : ''}" aria-labelledby="violin-heading">
+      <h2 id="violin-heading"${compact ? ' class="violin-heading"' : ''}>Keman</h2>
+      ${compact ? '<button type="button" class="violin-detail-toggle" data-action="toggle-violin-detail" aria-expanded="false" aria-controls="violin-detail" aria-label="Keman klavyesini genişlet">↗</button>' : ''}
       <div
         class="violin-fingerboard-host"
         data-violin-fingerboard
@@ -63,6 +73,10 @@ function renderViolin(practice) {
           <p class="violin-fingering-text">Çalma başladığında tel ve parmak konumu burada gösterilir.</p>
         </div>
       </div>
+      ${compact ? `<div id="violin-detail" data-violin-detail hidden role="region" aria-label="Keman klavyesi ayrıntısı">
+        <button type="button" data-action="close-violin-detail" aria-label="Keman ayrıntısını kapat">Kapat</button>
+        <div data-violin-detail-state></div>
+      </div>` : ''}
     </section>
   `;
 }
@@ -181,6 +195,8 @@ export function renderPracticeWorkspace(
     showHomeAction = true,
     showTitle = true,
     notationHeading = "Nota",
+    showNotationSizing = false,
+    compactViolin = false,
   } = {},
 ) {
   if (practice === null || typeof practice !== "object") {
@@ -204,6 +220,8 @@ export function renderPracticeWorkspace(
   const sectionLabel = showTitle
     ? 'aria-labelledby="page-title"'
     : 'aria-label="Nota çalışması"';
+  const violin = renderViolin(practice, notationHeading, compactViolin);
+  const dock = compactViolin && violin.length > 0;
 
   return `
     <section class="practice-workspace" ${sectionLabel}>
@@ -213,9 +231,12 @@ export function renderPracticeWorkspace(
       ${renderNotation(
         practice,
         notationHeading,
+        showNotationSizing,
       )}
-      ${renderViolin(practice)}
-      ${renderPlayback(practice)}
+      ${dock ? '<section class="practice-dock" data-violin-dock aria-label="Keman ve dinleme">' : ''}
+        ${violin}
+        ${renderPlayback(practice)}
+      ${dock ? '</section>' : ''}
     </section>
   `;
 }

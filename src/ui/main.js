@@ -13,6 +13,7 @@ import { createPlaybackPlanResolver } from "../playback/playbackPlanResolver.js"
 import { createPianoSampleBank } from "../playback/pianoSampleBank.js";
 import { createWebAudioPianoEngine } from "../playback/webAudioPianoEngine.js";
 import { createStudentPlaybackPort } from "../playback/studentPlaybackPort.js";
+import { createScoreAudioVoiceAdapter } from "../playback/scoreAudioVoiceAdapter.js";
 import { createAccountServiceApiClient } from "../providers/accountService/accountServiceApiClient.js";
 import { createFirebaseBrowserRuntime } from "../providers/firebase/firebaseBrowserRuntime.js";
 import { createStudentAppController } from "./studentAppController.js";
@@ -50,24 +51,32 @@ async function startStandardStudentApp() {
     manifestUrl: "./vendor/st-piano/runtime-manifest.json",
   });
 
-  await sampleBank.initialize().catch(() => false);
+  const sampleBankReadiness = sampleBank.initialize().catch(() => false);
 
   const audioContextSupported =
     typeof (globalThis.AudioContext ?? globalThis.webkitAudioContext) === "function";
 
+  let sharedAudioContext = null;
   const audioContextFactory = () => {
     const AudioContextCtor =
       globalThis.AudioContext ?? globalThis.webkitAudioContext;
 
-    return typeof AudioContextCtor === "function"
-      ? new AudioContextCtor()
-      : null;
+    if (sharedAudioContext === null && typeof AudioContextCtor === "function") {
+      sharedAudioContext = new AudioContextCtor();
+    }
+    return sharedAudioContext;
   };
+
+  const scoreAudioVoice = createScoreAudioVoiceAdapter({
+    runtime: globalThis.STScoreAudioEngine ?? null,
+    audioContextFactory,
+  });
 
   const playbackEngine = createWebAudioPianoEngine({
     audioContextFactory,
     audioContextSupported,
     sampleBank,
+    scoreAudioVoice,
   });
   const playbackPort = createStudentPlaybackPort({
     playbackPlanResolver,
@@ -110,7 +119,9 @@ async function startStandardStudentApp() {
     usageReporter: accountUsageReporter,
   });
 
-  void accountLifecycle.handleSession(initialSession);
+  void accountLifecycle.handleSession(initialSession).catch(() => {
+    // Presence and usage are informational; never block auth or expose provider errors.
+  });
   globalThis.addEventListener?.(
     "pagehide",
     () => {
@@ -125,12 +136,20 @@ async function startStandardStudentApp() {
 
   const secureDeliveryConfig = createSecureDeliveryConfig();
 
+  let baseController = null;
+  let offlineSessionEpoch = 0;
+  let offlineStudentId = initialSession?.studentId ?? null;
+  const isOfflineSessionCurrent = (session) =>
+    (baseController === null ? initialSession : baseController.getState().session)?.studentId === session?.studentId;
+
   const student08Composition = createStudent08Composition({
     config: secureDeliveryConfig,
     authAdapter: firebaseRuntime.authAdapter,
     fetchImpl: globalThis.fetch,
     connectivityPort: offlineInfrastructure.connectivityPort,
     offlineRepository: offlineInfrastructure.offlineRepository,
+    isSessionCurrent: isOfflineSessionCurrent,
+    getSessionEpoch: () => offlineSessionEpoch,
   });
 
   const perfASharingService = createStudentPerfASharingService(
@@ -148,10 +167,13 @@ async function startStandardStudentApp() {
           publicationStatusService: firebaseRuntime.sharingService,
           secureDeliveryStatusService:
             student08Composition.secureDeliveryStatusService,
+          getCachedAccessRefs: (args) => student08Composition.student08ReadService?.listCachedAccessRefs?.(args) ?? [],
+          isSessionCurrent: isOfflineSessionCurrent,
+          getSessionEpoch: () => offlineSessionEpoch,
         })
       : null;
 
-  const baseController = createStudentAppController({
+  baseController = createStudentAppController({
     sharingService: perfASharingService,
     student08ReadService: perfAReadService,
     initialSession,
@@ -181,22 +203,37 @@ async function startStandardStudentApp() {
     },
   });
 
+  // A practice opened while the manifest was pending needs its capability refreshed.
+  void sampleBankReadiness.then(async (ready) => {
+    if (ready !== true) return;
+    await controller.recoverActivePracticePlayback();
+    await mounted.render();
+  }).catch(() => {});
+
   firebaseRuntime.authAdapter.subscribe((session) => {
-    void accountLifecycle.handleSession(session);
+    const offlineSessionChanged = offlineStudentId !== (session?.studentId ?? null);
+    if (offlineSessionChanged) {
+      offlineSessionEpoch += 1;
+      offlineStudentId = session?.studentId ?? null;
+    }
+    void accountLifecycle.handleSession(session).catch(() => {
+      // Presence and usage are informational; never block auth or expose provider errors.
+    });
     const currentSession = controller.getState().session;
 
     if (session === null) {
       if (currentSession !== null) {
         controller.signOut();
-        mounted.render();
+        void mounted.render().catch(() => {});
       }
       return;
     }
 
     if (currentSession?.studentId !== session.studentId) {
       controller.attachSession(session);
-      mounted.render();
+      void mounted.render().catch(() => {});
     }
+    if (offlineSessionChanged) void mounted.revalidateOfflineSession?.()?.catch(() => {});
   });
 }
 

@@ -101,7 +101,7 @@ export function createNotationRuntimeLoader({
 
       windowObject.addEventListener(READY_EVENT, onReady);
 
-      (async () => {
+      void (async () => {
         try {
           if (!vendorReady()) {
             await appendScript({ src: vendorUrl });

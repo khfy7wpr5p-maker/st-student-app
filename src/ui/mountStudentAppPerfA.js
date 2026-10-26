@@ -5,6 +5,7 @@ const IMMEDIATE_NAVIGATION_ACTIONS = new Set([
   "show-my-work",
   "show-work-folder",
   "show-shared-request-pool",
+  "back-from-work-request",
 ]);
 
 const LOADING_TEXT = "Yükleniyor…";

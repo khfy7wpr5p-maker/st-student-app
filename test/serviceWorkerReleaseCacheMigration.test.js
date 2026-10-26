@@ -22,7 +22,7 @@ function requestKey(request) {
   return request.url;
 }
 
-test("installed stale v20/v21/v22/v23/v24/v25 shells migrate atomically to v26 and reopen offline", async () => {
+test("installed stale v20–v48 shells migrate atomically to v49 and reopen offline", async () => {
   const source = await readFile(
     new URL("../service-worker.js", import.meta.url),
     "utf8",
@@ -32,6 +32,8 @@ test("installed stale v20/v21/v22/v23/v24/v25 shells migrate atomically to v26 a
   const deletedCacheNames = [];
   let claimCalls = 0;
   let skipWaitingCalls = 0;
+  let sampleCacheWriteFails = false;
+  let sampleCacheOpenFails = false;
 
   function entriesFor(name) {
     if (!cacheEntries.has(name)) {
@@ -57,6 +59,9 @@ test("installed stale v20/v21/v22/v23/v24/v25 shells migrate atomically to v26 a
         entries.set(key, makeResponse(`runtime:${key}`));
       },
       async put(request, response) {
+        if (name === "st-student-samples-v1" && sampleCacheWriteFails) {
+          throw new Error("QuotaExceededError");
+        }
         entries.set(requestKey(request), response);
       },
       async match(request) {
@@ -64,6 +69,9 @@ test("installed stale v20/v21/v22/v23/v24/v25 shells migrate atomically to v26 a
       },
       async delete(request) {
         return entries.delete(requestKey(request));
+      },
+      async keys() {
+        return [...entries.keys()].map((url) => ({ url }));
       },
     };
   }
@@ -108,9 +116,72 @@ test("installed stale v20/v21/v22/v23/v24/v25 shells migrate atomically to v26 a
     "https://student.example/index.html",
     makeResponse("account-invite-shell-without-presence-usage"),
   );
+  entriesFor("st-student-shell-v26").set(
+    "https://student.example/index.html",
+    makeResponse("presence-usage-shell-without-score-audio"),
+  );
+  entriesFor("st-student-shell-v27").set(
+    "https://student.example/index.html",
+    makeResponse("score-audio-shell-before-playback-fixes"),
+  );
+  entriesFor("st-student-shell-v28").set(
+    "https://student.example/src/practice/scoreFollowIndex.js",
+    makeResponse("score-follow-before-generated-tab-highlights"),
+  );
+  entriesFor("st-student-shell-v29").set(
+    "https://student.example/vendor/st-score-runtime/modules/adapter-osmd.js",
+    makeResponse("renderer-before-vf-tabnote-group-fix"),
+  );
+
+  entriesFor("st-student-shell-v30").set(
+    "https://student.example/src/practice/scoreFollowIndex.js",
+    makeResponse("score-follow-before-embedded-tab-highlights"),
+  );
+
+  for (const module of ["scoreFollowCoordinator.js", "notationAdapter.js"]) {
+    entriesFor("st-student-shell-v31").set(
+      `https://student.example/src/practice/${module}`,
+      makeResponse("before-follow-startup-recovery"),
+    );
+  }
+
+  const staleShellFixtures = [
+    [32, "src/ui/main.js", "bootstrap-before-background-audio-initialization"],
+    [33, "src/ui/renderStudentApp.js", "before-fusion-home"],
+    [34, "src/ui/renderStudentApp.js", "before-work-fusion"],
+    [35, "src/ui/renderStudentApp.js", "before-pool-fusion"],
+    [36, "src/ui/renderPieceWorkspace.js", "before-piece-workspace-fusion"],
+    [37, "src/ui/piece-workspace-fusion.css", "before-mobile-piece-reading"],
+    [38, "vendor/st-score-runtime/modules/adapter-osmd.js", "before-tab-resize-follow"],
+    [39, "src/ui/pieceWorkspacePresentation.js", "before-green-cursor-projection"],
+    [40, "src/ui/main.js", "before-account-lifecycle-rejection-handlers"],
+    [41, "src/ui/main.js", "bootstrap-with-unhandled-render-promises"],
+    [42, "src/ui/mountStudentApp.js", "mount-with-unhandled-render-promises"],
+    [42, "src/practice/notationRuntimeLoader.js", "loader-with-unmarked-installation"],
+    [43, "src/ui/piece-workspace-fusion.css", "before-violin-board-below-score"],
+    [43, "src/ui/violinFingerboard.js", "before-finger-number-markers"],
+    [44, "src/ui/piece-workspace-fusion.css", "before-compact-violin-dock"],
+    [45, "src/playback/studentPlaybackPort.js", "global-violin-route-before-multipart-audio-repair"],
+    [46, "src/playback/playbackPartRouting.js", "before-explicit-instrument-assignment"],
+    [47, "src/playback/scoreAudioVoiceAdapter.js", "before-forte-bank-and-dynamics"],
+    [48, "src/offline/secureDeliveryOfflineReadService.js", "before-offline-revocation-reconciliation"],
+    [48, "src/offline/indexedDbOfflineRepository.js", "before-durable-access-tombstones"],
+  ];
+  for (const [version, asset, body] of staleShellFixtures) {
+    entriesFor(`st-student-shell-v${version}`).set(
+      new URL(asset, SCOPE).href,
+      makeResponse(body),
+    );
+  }
+
+  const oldViolinUrl = 'https://raw.githubusercontent.com/sgossner/VSCO-2-CE/1.1.0/Strings/Solo%20Violin/Arco%20Vib/LLVln_ArcoVib_C4_p.wav';
+  entriesFor('st-student-samples-v1').set(oldViolinUrl, makeResponse('cached-v47-p-violin'));
 
   const cachesObject = {
     async open(name) {
+      if (name === "st-student-samples-v1" && sampleCacheOpenFails) {
+        throw new Error("CacheStorage unavailable");
+      }
       return cacheFor(name);
     },
     async keys() {
@@ -122,8 +193,23 @@ test("installed stale v20/v21/v22/v23/v24/v25 shells migrate atomically to v26 a
     },
   };
 
-  const fetchFunction = async () =>
-    makeResponse("firebase-runtime", { ok: false });
+  let sampleNetworkOnline = true;
+  let sampleNetworkCalls = 0;
+  const fetchFunction = async (request) => {
+    const key = requestKey(request);
+    if (
+      key.startsWith(
+        "https://raw.githubusercontent.com/Tonejs/audio/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/",
+      )
+    ) {
+      sampleNetworkCalls += 1;
+      if (!sampleNetworkOnline) {
+        throw new Error("offline");
+      }
+      return makeResponse(`sample:${key}`);
+    }
+    return makeResponse("firebase-runtime", { ok: false });
+  };
 
   const selfObject = {
     registration: {
@@ -162,6 +248,42 @@ test("installed stale v20/v21/v22/v23/v24/v25 shells migrate atomically to v26 a
   await installPromise;
 
   assert.equal(skipWaitingCalls, 1);
+  for (const [version, asset, body] of staleShellFixtures.filter(([version]) => version === 42)) {
+    const url = new URL(asset, SCOPE).href;
+    assert.equal(entriesFor(`st-student-shell-v${version}`).get(url)?.body,
+      body, "install preserves the active v42 modules");
+    assert.equal(entriesFor("st-student-shell-v49").get(url)?.body,
+      `current:${url}`, "new shell contains the promise-handling fixes");
+  }
+  for (const [version, asset, body] of staleShellFixtures.filter(([version]) => version === 43)) {
+    const url = new URL(asset, SCOPE).href;
+    assert.equal(entriesFor(`st-student-shell-v${version}`).get(url)?.body,
+      body, "installation preserves active v43 bytes");
+    assert.equal(entriesFor("st-student-shell-v49").get(url)?.body,
+      `current:${url}`, "new shell contains the violin board update");
+  }
+  assert.equal(entriesFor("st-student-shell-v41").get("https://student.example/src/ui/main.js")?.body,
+    "bootstrap-with-unhandled-render-promises", "install preserves active v41 bootstrap bytes");
+  assert.equal(entriesFor("st-student-shell-v32").get("https://student.example/src/ui/main.js")?.body,
+    "bootstrap-before-background-audio-initialization", "install preserves active bootstrap bytes");
+  assert.equal(entriesFor("st-student-shell-v49").get("https://student.example/src/ui/main.js")?.body,
+    "current:https://student.example/src/ui/main.js", "new shell contains the nonblocking bootstrap");
+  for (const module of ["scoreFollowCoordinator.js", "notationAdapter.js"]) {
+    const url = `https://student.example/src/practice/${module}`;
+    assert.equal(entriesFor("st-student-shell-v31").get(url)?.body,
+      "before-follow-startup-recovery", "installation preserves the active v31 modules");
+    assert.equal(entriesFor("st-student-shell-v49").get(url)?.body,
+      `current:${url}`, "new shell contains recovery modules");
+  }
+  assert.equal(
+    entriesFor("st-student-shell-v30").get("https://student.example/src/practice/scoreFollowIndex.js").body,
+    "score-follow-before-embedded-tab-highlights",
+    "install must not overwrite bytes still used by the previous worker",
+  );
+  assert.equal(
+    entriesFor("st-student-shell-v49").get("https://student.example/src/practice/scoreFollowIndex.js").body,
+    "current:https://student.example/src/practice/scoreFollowIndex.js",
+  );
   assert.equal(
     entriesFor("st-student-shell-v25")
       .get("https://student.example/index.html")
@@ -169,7 +291,7 @@ test("installed stale v20/v21/v22/v23/v24/v25 shells migrate atomically to v26 a
     "account-invite-shell-without-presence-usage",
   );
   assert.equal(
-    entriesFor("st-student-shell-v26")
+    entriesFor("st-student-shell-v49")
       .get("https://student.example/index.html")
       .body,
     "account-presence-usage-shell",
@@ -184,6 +306,8 @@ test("installed stale v20/v21/v22/v23/v24/v25 shells migrate atomically to v26 a
     "src/assets/st-student-icon-512.png",
     "src/assets/st-student-apple-touch-icon.png",
     "src/config/accountServiceConfig.js",
+    "src/ui/student-work-fusion.css",
+    "src/assets/work-fusion-music.svg",
     "src/auth/inviteFragment.js",
     "src/auth/inviteActivationFlow.js",
     "src/providers/accountService/accountServiceApiClient.js",
@@ -194,7 +318,7 @@ test("installed stale v20/v21/v22/v23/v24/v25 shells migrate atomically to v26 a
     "src/account/accountLifecycleCoordinator.js",
   ]) {
     assert.equal(
-      entriesFor("st-student-shell-v26").has(
+      entriesFor("st-student-shell-v49").has(
         `https://student.example/${asset}`,
       ),
       true,
@@ -209,6 +333,15 @@ test("installed stale v20/v21/v22/v23/v24/v25 shells migrate atomically to v26 a
     },
   });
   await activatePromise;
+  assert.equal(entriesFor('st-student-samples-v1').get(oldViolinUrl)?.body, 'cached-v47-p-violin');
+  for (const name of ['audioCalibration.js', 'musicXmlDynamics.js']) {
+    const key = new URL('src/playback/' + name, SCOPE).href;
+    assert.equal(entriesFor('st-student-shell-v49').get(key)?.body, 'current:' + key);
+  }
+  let oldViolinResponse;
+  listeners.get('fetch')({request:{url:oldViolinUrl,method:'GET'}, respondWith(p){oldViolinResponse=p;}});
+  assert.equal((await oldViolinResponse).body, 'cached-v47-p-violin');
+
 
   assert.deepEqual(deletedCacheNames, [
     "st-student-shell-v17",
@@ -218,7 +351,43 @@ test("installed stale v20/v21/v22/v23/v24/v25 shells migrate atomically to v26 a
     "st-student-shell-v23",
     "st-student-shell-v24",
     "st-student-shell-v25",
+    "st-student-shell-v26",
+    "st-student-shell-v27",
+    "st-student-shell-v28",
+    "st-student-shell-v29",
+    "st-student-shell-v30",
+    "st-student-shell-v31",
+    "st-student-shell-v32",
+    "st-student-shell-v33",
+    "st-student-shell-v34",
+    "st-student-shell-v35",
+    "st-student-shell-v36",
+    "st-student-shell-v37",
+    "st-student-shell-v38",
+    "st-student-shell-v39",
+    "st-student-shell-v40",
+    "st-student-shell-v41",
+    "st-student-shell-v42",
+    "st-student-shell-v43",
+    "st-student-shell-v44",
+    "st-student-shell-v45",
+    "st-student-shell-v46",
+    "st-student-shell-v47",
+    "st-student-shell-v48",
   ]);
+  assert.equal(cacheEntries.has("st-student-shell-v43"), false);
+  assert.equal(cacheEntries.has("st-student-shell-v44"), false);
+  assert.equal(cacheEntries.has("st-student-shell-v45"), false);
+  assert.ok(entriesFor("st-student-shell-v49").has("https://student.example/src/ui/violinDockPresentation.js"));
+  assert.ok(entriesFor("st-student-shell-v49").has("https://student.example/src/playback/playbackPartRouting.js"));
+  assert.ok(entriesFor("st-student-shell-v49").has("https://student.example/src/playback/declaredPartInstruments.js"));
+  assert.equal(cacheEntries.has("st-student-shell-v42"), false);
+  assert.equal(cacheEntries.has("st-student-shell-v41"), false);
+  assert.equal(cacheEntries.has("st-student-shell-v40"), false);
+  assert.equal(cacheEntries.has("st-student-shell-v39"), false);
+  assert.ok(entriesFor("st-student-shell-v49").has("https://student.example/src/practice/notationCursorProjection.js"));
+  assert.equal(cacheEntries.has("st-student-shell-v35"), false);
+  assert.ok(entriesFor("st-student-shell-v49").has("https://student.example/src/assets/pool-fusion-music.svg"));
   assert.equal(claimCalls, 1);
   assert.equal(cacheEntries.has("st-student-shell-v20"), false);
   assert.equal(cacheEntries.has("st-student-shell-v21"), false);
@@ -226,6 +395,13 @@ test("installed stale v20/v21/v22/v23/v24/v25 shells migrate atomically to v26 a
   assert.equal(cacheEntries.has("st-student-shell-v23"), false);
   assert.equal(cacheEntries.has("st-student-shell-v24"), false);
   assert.equal(cacheEntries.has("st-student-shell-v25"), false);
+  assert.equal(cacheEntries.has("st-student-shell-v26"), false);
+  assert.equal(cacheEntries.has("st-student-shell-v27"), false);
+  assert.equal(cacheEntries.has("st-student-shell-v28"), false);
+  assert.equal(cacheEntries.has("st-student-shell-v29"), false);
+  assert.equal(cacheEntries.has("st-student-shell-v30"), false);
+  assert.equal(cacheEntries.has("st-student-shell-v31"), false);
+  assert.equal(cacheEntries.has("st-student-shell-v32"), false);
   assert.equal(
     entriesFor("st-student-shell-v18").has(
       "https://student.example/index.html",
@@ -253,4 +429,85 @@ test("installed stale v20/v21/v22/v23/v24/v25 shells migrate atomically to v26 a
 
   const response = await responsePromise;
   assert.equal(response.body, "account-presence-usage-shell");
+
+  listeners.get("fetch")({
+    request: { method: "GET", url: "https://student.example/src/practice/scoreFollowIndex.js" },
+    respondWith(promise) { responsePromise = promise; },
+  });
+  assert.equal((await responsePromise).body, "current:https://student.example/src/practice/scoreFollowIndex.js");
+
+  const pianoSampleRequest = {
+    method: "GET",
+    url: "https://raw.githubusercontent.com/Tonejs/audio/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/C4.mp3",
+  };
+  listeners.get("fetch")({
+    request: pianoSampleRequest,
+    respondWith(promise) {
+      responsePromise = promise;
+    },
+  });
+
+  const onlineSampleResponse = await responsePromise;
+  assert.equal(onlineSampleResponse.body, `sample:${pianoSampleRequest.url}`);
+  assert.equal(sampleNetworkCalls, 1);
+  assert.equal(
+    entriesFor("st-student-samples-v1").has(pianoSampleRequest.url),
+    true,
+  );
+
+  sampleNetworkOnline = false;
+  listeners.get("fetch")({
+    request: pianoSampleRequest,
+    respondWith(promise) {
+      responsePromise = promise;
+    },
+  });
+
+  const offlineSampleResponse = await responsePromise;
+  assert.equal(offlineSampleResponse.body, `sample:${pianoSampleRequest.url}`);
+  assert.equal(sampleNetworkCalls, 1);
+
+  sampleNetworkOnline = true;
+  sampleCacheWriteFails = true;
+  const uncachedPianoSampleRequest = {
+    method: "GET",
+    url: "https://raw.githubusercontent.com/Tonejs/audio/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/Ds4.mp3",
+  };
+  listeners.get("fetch")({
+    request: uncachedPianoSampleRequest,
+    respondWith(promise) {
+      responsePromise = promise;
+    },
+  });
+
+  const quotaLimitedResponse = await responsePromise;
+  assert.equal(
+    quotaLimitedResponse.body,
+    `sample:${uncachedPianoSampleRequest.url}`,
+  );
+  assert.equal(sampleNetworkCalls, 2);
+  assert.equal(
+    entriesFor("st-student-samples-v1").has(uncachedPianoSampleRequest.url),
+    false,
+  );
+
+  sampleCacheWriteFails = false;
+  sampleCacheOpenFails = true;
+  const unavailableCacheRequest = {
+    method: "GET",
+    url: "https://raw.githubusercontent.com/Tonejs/audio/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander/Fs4.mp3",
+  };
+  listeners.get("fetch")({
+    request: unavailableCacheRequest,
+    respondWith(promise) {
+      responsePromise = promise;
+    },
+  });
+
+  const cacheUnavailableResponse = await responsePromise;
+  assert.equal(
+    cacheUnavailableResponse.body,
+    `sample:${unavailableCacheRequest.url}`,
+  );
+  assert.equal(sampleNetworkCalls, 3);
 });

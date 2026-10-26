@@ -197,13 +197,14 @@ export function createScoreFollowCoordinator({
         "\u001f" +
         String(cursorTarget.measureIndex);
       if (cursorKey !== lastCursorKey) {
-        lastCursorKey = cursorKey;
+        let moved = false;
         try {
-          await notationAdapter?.moveCursor?.(cursorTarget);
+          moved = (await notationAdapter?.moveCursor?.(cursorTarget)) === true;
         } catch {
           // Cursor failure cannot affect audio or authority.
         }
         if (!current(expectedGeneration)) return;
+        if (moved) lastCursorKey = cursorKey;
       }
     }
 
@@ -267,9 +268,16 @@ export function createScoreFollowCoordinator({
       invalidate();
 
       const packageId = packageIdOf(pkg);
+      const expectedTabSourceId =
+        packageId === null
+          ? null
+          : `${packageId}:guitar-tab`;
       if (
         packageId === null ||
-        sourceId !== packageId ||
+        (
+          sourceId !== packageId &&
+          sourceId !== expectedTabSourceId
+        ) ||
         !validIdentity(sourceId) ||
         typeof musicXml !== "string" ||
         musicXml.length === 0 ||

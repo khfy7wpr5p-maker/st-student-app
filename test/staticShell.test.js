@@ -126,6 +126,7 @@ test("default bootstrap wires lazy local playback runtime", async () => {
     "createPianoSampleBank",
     "createWebAudioPianoEngine",
     "createStudentPlaybackPort",
+    "createScoreAudioVoiceAdapter",
   ]) {
     assert.match(source, new RegExp(symbol));
   }
@@ -134,7 +135,9 @@ test("default bootstrap wires lazy local playback runtime", async () => {
     source,
     /manifestUrl:\s*["']\.\/vendor\/st-piano\/runtime-manifest\.json["']/,
   );
-  assert.match(source, /await\s+sampleBank\.initialize\(\)/);
+  assert.match(source, /const\s+sampleBankReadiness\s*=\s*sampleBank\.initialize\(\)/);
+  assert.doesNotMatch(source, /await\s+sampleBank\.initialize\(\)/);
+  assert.match(source, /globalThis\.STScoreAudioEngine/);
   assert.match(source, /const\s+audioContextFactory\s*=\s*\(\)\s*=>/);
   assert.match(
     source,
@@ -150,6 +153,16 @@ test("default bootstrap wires lazy local playback runtime", async () => {
   );
 });
 
+test("static shell pins the local Score Audio runtime before the Student module", async () => {
+  const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
+  const runtimeIndex = html.indexOf(
+    "./vendor/st-score-audio/st-score-audio-engine.js",
+  );
+  const mainIndex = html.indexOf("./src/ui/main.js");
+  assert.ok(runtimeIndex >= 0);
+  assert.ok(runtimeIndex < mainIndex);
+});
+
 
 test("browser bootstrap passes Web Audio constructor availability without instantiating context", async () => {
   const source = await readFile(
@@ -160,6 +173,11 @@ test("browser bootstrap passes Web Audio constructor availability without instan
   assert.match(
     source,
     /const\s+audioContextSupported\s*=\s*typeof\s*\(globalThis\.AudioContext\s*\?\?\s*globalThis\.webkitAudioContext\)\s*===\s*["']function["']/,
+  );
+  assert.match(source, /let\s+sharedAudioContext\s*=\s*null/);
+  assert.match(
+    source,
+    /sharedAudioContext\s*=\s*new\s+AudioContextCtor\(\)/,
   );
   assert.match(
     source,

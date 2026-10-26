@@ -1,5 +1,38 @@
 # ST Student App v1 Mimari Sözleşmesi
 
+## Güncel mimari ve kayıt eşitleme — 26 Ekim 2026
+
+Bu bölüm aşağıdaki tarihsel sürüm ve açık iş anlatımlarından önceliklidir. İnceleme kaynak-main ve görev kayıtları üzerinden yapıldı; bu çalışma yeni üretim dağıtımı veya fiziksel cihaz testi değildir.
+
+- Teacher kaynak baseline: `6c6ae9d652e02d295a65af586a6f91121f1685d7` (PR #376). Kalıcı öğretmen araçları/güvenli MusicXML navigasyonu #375; dosyasız Nota Düzenle ve bağımsız XML oturum izolasyonu #376 ile main'de.
+- Student kaynak baseline: `60a17cd9213aa9ae085165ecad77c9987e852dd5` (PR #105). Kaynak Service Worker shell `st-student-shell-v49`; bu değer kurulu cihazın yükseldiğinin kanıtı değildir.
+- Çok partili aktarım: Teacher #374 ve Student #103 açık part-enstrüman eşlemesini taşır. Student #102 ayrı keman/piyano seslerini mevcut tek transport üzerinden yönlendirir. Fingerboard yalnız açık hedef keman partisini izler; piyano eşliği parmaklama otoritesi değildir. Legacy tek enstrüman paketleri korunur.
+- Student #104 ses kalibrasyonu ve MusicXML dinamik aktarımını içerir. Vendored ses runtime 0.3.0, public contract 0.2.0; manifest sourceRevision `34637d92b8c8a7c56f0e6850449e747e7e4ef711`. pp/p/mp/mf/f/ff ve sayısal dinamik desteği uygulama kapsamındadır; ayrı p/f dinleme kabulü iddia edilmez.
+- Student #105 çevrimdışı çalışmanın geri çekilmesini uzlaştırır; müzikal playback davranışı değişikliği değildir. Private paketler IndexedDB, statik shell/runtime Service Worker sınırında kalır.
+- SES-248/249/250/251 Done; 250 ve 251 için 26 Ekim kullanıcı PASS/kapatma kaydı vardır. SES-247 ana görevindeki eski “T2/T3/T4 henüz yapılmadı” ifadeleri güncel değildir.
+- SES-256 ses dengesi kullanıcı kabulü 25 Ekim PASS. Bu kabul tüm platform/VoiceOver/offline matrisine genişletilmez.
+- SES-243/245/246 Done; eski pending GET/404, npm-audit ve Sonar C ifadeleri tarihsel bulgulardır. Yeni bir audit/Sonar çalıştırıldığı iddia edilmez.
+- SES-242 genel PWA/cihaz ve ertelenmiş Nota/TAB tel–perde VoiceOver kabulü açık. Eser İste round-trip ve temel VoiceOver gezinmesi önceki kullanıcı PASS kayıtlarıdır.
+- Havuz içerik yayınlama tasarımı yeni uygulama tamamlandı diye kaydedilmez. GitHub #187/#191 ve eski açık PR'lar güncel kodla ayrı karşılaştırılmadan kapatılmaz; açık kayıt sayısı güncel hata sayısı değildir.
+- Kalıcı uçlar: https://st-student-app.onrender.com ve https://st-student-api.onrender.com/api/secure-delivery/v1. Öğretmen/backend atama ve lifecycle otoritesini; Student salt okunur paket tüketimini; StudentPlaybackPort tek müzikal zaman kaynağını korur.
+
+Takip: [Mimari rapor](https://app.notion.com/p/4002be2e566481b48afbf46d3a9647a2), [SES-37](https://linear.app/seslitab/issue/SES-37), [SES-242](https://linear.app/seslitab/issue/SES-242).
+
+## Önceki tarihli mimari kayıtlar
+
+## Güncel uygulama sınırı — 21 Ekim 2026
+
+Güncel ve tarihli kaynak: [Student/Teacher arayüz kapanışı ve uyumluluk incelemesi](student-teacher-ui-compatibility-2026-10-21.md). Aşağıdaki numaralı geliştirme aşamaları tarihsel kararları da içerir; eski commit/cache değerleri güncel sürümün yerine kullanılmaz.
+
+- Uygulama referansı `a958dc077c822b3b6c31b51f283fad5d5b13439d`; renderer `a015f9049149037c48ac764ab30ed2bcbbe200d3`, contract `0.2.0`, OSMD `2.1.2`; shell `st-student-shell-v40`.
+- Giriş sonrası ana ekran, Havuz, Çalışmalarım, Eser İste ve Piece çalışma ekranı ayrı sunum yüzeyleridir. Çalışmalarım ACTIVE / COMPLETED / REPERTOIRE ayrımını ve kimlikli eser bağlantılarını korur.
+- Piece Nota/TAB/Akorlar görünümlerinde mevcut içerik ve öğretmen notu korunur. Odak, ayrı %60–150 nota boyutu ve telefonda erişilebilir transport sunum durumudur; öğretmen lifecycle veya müzik kaynağı üzerinde write authority değildir.
+- SCORE ve TAB exact source/render kanıtıyla ölçü imleci ve turuncu event takibi kullanabilir. CHORDS, SCORE event authority'sini devralmaz. `StudentPlaybackPort` tek müzikal zaman kaynağıdır.
+- OSMD autoResize sonrası turuncu ownership/highlight tekrar kurulur. Yeşil HTML imleç `notationCursorProjection.js` ile SVG ekran matrisine projekte edilir; native OSMD koordinatları, MusicXML ve ses saati değiştirilmez. Observer/animation-frame yalnız görsel yerleşim içindir ve teardown'da temizlenir.
+- Kalıcı endpoint'ler Student `https://st-student-app.onrender.com` ve API `https://st-student-api.onrender.com/api/secure-delivery/v1` olarak kalır. Private paketler IndexedDB'de; yalnız statik asset graph Service Worker cache'indedir.
+- Bilinen entegrasyon hatası: Bekleyen Eser İstekleri için Student'ın çağırdığı authenticated GET route'u mevcut backend'de eksiktir; canlı 404 [SES-243](https://linear.app/seslitab/issue/SES-243). Domain metodunun mevcut olması HTTP entegrasyonunun tamamlandığını kanıtlamaz.
+- Fiziksel iPhone/PWA/VoiceOver ve gerçek teacher/student istek round-trip kabulü [SES-242](https://linear.app/seslitab/issue/SES-242) altında ayrı kalır. Otomatik tarayıcı PASS cihaz kabulü sayılmaz.
+
 ## 1. Amaç
 
 ST Student App, öğretmenin SesliTab içinde düzenleyip onayladığı çalışmayı öğrencinin hesabında açar. Öğrenci OMR, MusicXML düzenleme veya öğretmen editörüyle uğraşmaz.
@@ -273,7 +306,7 @@ Mount katmanı notation lifecycle'ını serialize eder. Aynı immutable package 
 
 STUDENT-04 aşamasında renderer runtime asset graph'ı henüz Student App'e bağlanmamıştı. STUDENT-07A ile bu eksik production entegrasyonu same-origin ve pinned biçimde tamamlanır:
 
-- Rendering Layer source revision: `375cb5f134a91606eeac59df9cbe33dedbe57e47`
+- Rendering Layer source revision: `3766fedf493e99d59ab43fa06c40c103b34ed2b7`
 - renderer contract: `0.2.0`
 - OSMD vendor pin: `2.1.2`
 - asset root: `vendor/st-score-runtime/`
@@ -629,9 +662,9 @@ Interactive score follow yalnız aktif SCORE presentation için oluşturulur. Co
 - aktif package mevcutsa;
 - render source `musicxml` ise;
 - render source `sourceId` exact package identity ile eşleşiyorsa;
-- Piece Workspace görünümü SCORE ise
+- Piece Workspace görünümü SCORE veya TAB ise
 
-kaynak döndürür. TAB ve CHORDS bu kaynağı alamaz.
+kaynak döndürür. TAB için aktif görünümün exact render kaynağı kullanılır; CHORDS bu kaynağı alamaz. Farklı XML'lerin event kimliği/timing eşleşmiyorsa turuncu takip fail-closed kalır.
 
 Renderer interaction authority iki kanıtla sınırlandırılır:
 
@@ -665,17 +698,17 @@ Bu ayrım playback kalitesinin (`FULL` / `APPROXIMATE`) tek başına highlight a
 
 ### Renderer ve offline invariantları
 
-Accepted Rendering Layer revision:
+Güncel accepted Rendering Layer revision (21 Ekim 2026):
 
-`13aa0843158257a207afe062879743d58048cc6d`
+`a015f9049149037c48ac764ab30ed2bcbbe200d3`
 
 Renderer public contract `0.2.0` değiştirilmez.
 
-Service Worker shell cache:
+Güncel Service Worker shell cache:
 
-`st-student-shell-v18`
+`st-student-shell-v40`
 
-v18 static shell şu follow graph'ını taşır:
+İlk v18 follow graph'ı güncel shell'de korunur; v40 ayrıca Piece sunumu ve cursor projection modülünü taşır:
 
 - `src/practice/scoreFollowIndex.js`
 - `src/practice/scoreFollowCoordinator.js`

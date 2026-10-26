@@ -1,0 +1,71 @@
+/* Scoped to MY_WORK, WORK_REQUEST and PUBLIC_POOL; practice and login keep their shell. */
+body:has(.student-work-shell) { background: #faf7f0; }
+#app:has(.student-work-shell) { width: min(100%, 52rem); padding: 0 max(1.2rem, env(safe-area-inset-right, 0px)) 0 max(1.2rem, env(safe-area-inset-left, 0px)); }
+.student-work-shell { color: #153f53; font-family: "ST Outfit", system-ui, sans-serif; min-height: 100svh; display: flex; flex-direction: column; }
+.student-work-shell button { color: inherit; }
+.student-work-shell button:focus-visible, .student-work-shell summary:focus-visible, .student-work-shell input:focus-visible { outline: 3px solid #157d8d; outline-offset: 3px; }
+.student-work-shell .work-header { display: flex; align-items: center; gap: .6rem; padding-block: max(1rem, env(safe-area-inset-top, 0px)) .8rem; border-bottom: 1px solid #e4e1d6; }
+.student-work-shell .work-back { padding: .6rem 0; border: 0; background: transparent; font-size: .9rem; min-height: 44px; }
+.student-work-shell .app-status { flex: 1; margin: 0; padding: 0; color: #526f73; font-size: .75rem; text-align: right; overflow-wrap: anywhere; }
+.student-work-shell .work-menu { position: relative; flex-shrink: 0; }
+.student-work-shell .work-menu summary { cursor: pointer; min-width: 44px; min-height: 44px; display: grid; place-items: center; font-size: 1.6rem; list-style: none; }
+.student-work-shell .work-menu summary::-webkit-details-marker { display: none; }
+.student-work-shell .work-menu nav { position: absolute; right: 0; z-index: 20; min-width: 9rem; display: grid; padding: .5rem; background: #fffdf8; border: 1px solid #d8ddd5; border-radius: 1rem; box-shadow: 0 6px 20px #153f5314; }
+.student-work-shell .work-menu button { background: transparent; border: 0; text-align: left; min-height: 44px; }
+.student-work-shell .work-content { flex: 1; padding-block: 1.8rem 2rem; min-width: 0; }
+.student-work-shell h1 { font-family: "ST Outfit", system-ui, sans-serif; font-size: clamp(1.9rem, 7.5vw, 2.5rem); line-height: 1.15; letter-spacing: -.05em; margin: .5rem 0 1.3rem; }
+.student-work-shell h1 > span { color: #e5a08a; }
+.student-work-shell .work-eyebrow { font-size: .65rem; letter-spacing: .14em; color: #5b787f; margin: 0; }
+.student-work-shell .work-invitation { display: flex; align-items: center; justify-content: space-between; position: relative; overflow: hidden; background: #c4e8e2; border-radius: 1.8rem .8rem 1.8rem .8rem; padding: 1.2rem; margin-bottom: 1.4rem; }
+.student-work-shell .work-invitation > div { position: relative; z-index: 1; max-width: 65%; }
+.student-work-shell .work-invitation-title { font: italic 700 1.4rem Georgia, serif; margin: 0; }
+.student-work-shell .work-invitation p:not(.work-invitation-title) { font-size: .8rem; line-height: 1.5; margin: .5rem 0 .8rem; }
+.student-work-shell .work-invitation img { width: 10rem; height: auto; position: absolute; right: -.7rem; top: .5rem; transform: rotate(-7deg); pointer-events: none; }
+.student-work-shell .work-invitation button { display: flex; align-items: center; gap: 1.5rem; background: #153f53; color: #faf7f0; border: 0; border-radius: 2rem; padding: .6rem 1rem; font-size: .85rem; min-height: 44px; }
+.student-work-shell .work-folders { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .2rem; padding: .25rem; border-radius: 1rem; background: #ebe9df; margin: 0 0 1.1rem; }
+.student-work-shell .work-folders button { min-width: 0; min-height: 48px; background: transparent; border: 0; border-radius: .75rem; font-size: .8rem; padding: .5rem .3rem; overflow-wrap: normal; text-align: center; }
+.student-work-shell .work-folders button[aria-pressed="true"] { background: #153f53; color: #faf7f0; }
+.student-work-shell .assignment-list { display: grid; gap: .45rem; list-style: none; margin: 0; padding: 0; }
+.student-work-shell .assignment-list > li { min-width: 0; border: 1px solid #e3e0d5; border-radius: .9rem; background: #fffdf8; overflow: hidden; }
+.student-work-shell .work-title-link { display: flex; align-items: center; gap: .7rem; width: 100%; min-height: 56px; padding: .75rem .85rem; color: #153f53; background: transparent; border: 0; border-radius: 0; text-align: left; text-decoration: none; white-space: normal; overflow-wrap: anywhere; font-size: .95rem; font-weight: 600; }
+.student-work-shell .work-title-link::before { content: "♪"; flex-shrink: 0; display: grid; place-items: center; width: 1.9rem; height: 2.2rem; background: #c4e8e2; color: #17475b; border-radius: .6rem .3rem .6rem .3rem; font-size: 1.4rem; }
+.student-work-shell .assignment-list > li:nth-child(3n + 2) .work-title-link::before { background: #edc1a9; }
+.student-work-shell .assignment-list > li:nth-child(3n) .work-title-link::before { background: #e2dfc2; }
+.student-work-shell .chord-assignment-group { padding: .7rem; }
+.student-work-shell .chord-assignment-group summary { min-height: 44px; align-content: center; }
+.student-work-shell .work-footer { display: flex; justify-content: space-between; border-top: 1px solid #e4e1d6; padding-block: 1rem max(1rem, env(safe-area-inset-bottom, 0px)); color: #5b787f; }
+.student-work-shell .work-footer small { font-size: .65rem; }
+@media (min-width: 650px) { .student-work-shell .work-invitation img { right: 1.5rem; width: 11rem; } }
+
+.student-work-shell .work-invitation button::after { content: "↗"; }
+
+.student-work-shell .work-request-description { max-width: 34rem; color: #526f73; line-height: 1.65; font-size: .95rem; margin-bottom: 1.5rem; }
+.student-work-shell form { display: grid; gap: .65rem; }
+.student-work-shell form label { margin: 0; font-size: .9rem; font-weight: 600; }
+.student-work-shell input[data-work-request-title] { width: 100%; min-height: 54px; border: 1px solid #cad8d1; border-radius: .9rem; padding: 1rem; background: #fffdf8; color: #153f53; font: 400 16px system-ui, sans-serif; }
+.student-work-shell button[data-action="submit-work-request"] { min-height: 52px; background: #153f53; color: #faf7f0; border: 0; border-radius: .9rem; padding: .8rem 1rem; text-align: left; }
+.student-work-shell button[data-action="submit-work-request"]::after { content: "↗"; float: right; }
+.student-work-shell button:disabled { cursor: wait; opacity: .7; }
+.student-work-shell .work-request-status { color: #246653; }
+.student-work-shell .work-request-error { color: #973f2e; }
+.student-work-shell .work-request-pending { margin-top: 2rem; padding: 1.2rem; border: 1px solid #e1dac8; border-radius: 1.5rem .6rem 1.5rem .6rem; background: #f1eddf; }
+.student-work-shell .work-request-pending h2 { margin: 0; font-size: 1.5rem; line-height: 1.25; letter-spacing: -.03em; }
+.student-work-shell .work-request-pending p { font-size: .85rem; line-height: 1.6; color: #526f73; }
+.student-work-shell .shared-request-list { list-style: none; padding: 0; margin: 1rem 0 0; }
+.student-work-shell .shared-request-list li { display: grid; gap: .3rem; padding: 1rem 0; border-bottom: 1px solid #ddd8c9; overflow-wrap: anywhere; }
+.student-work-shell .shared-request-list li:last-child { border-bottom: 0; }
+.student-work-shell .shared-request-list strong { font-size: .95rem; }
+.student-work-shell .shared-request-list span { color: #526f73; font-size: .8rem; }
+.student-work-shell button[data-action="refresh-work-request-pool"] { min-height: 44px; border: 1px solid #a7bfb7; border-radius: .8rem; background: #fffdf8; font-size: .9rem; }
+
+.student-work-shell .pool-empty { margin-block: 2rem; padding: 2rem 1rem; text-align: center; background: #f4f0e6; border: 1px solid #e4e1d6; border-radius: 1.8rem .8rem 1.8rem .8rem; }
+.student-work-shell .pool-empty img { display: block; width: min(100%, 16rem); height: auto; margin: 0 auto 1.5rem; }
+.student-work-shell .pool-empty p { margin: 0; color: #526f73; line-height: 1.7; overflow-wrap: anywhere; }
+.student-work-shell .pool-list { gap: 1rem; }
+.student-work-shell .pool-list > li, .student-work-shell .pool-card { min-width: 0; }
+.student-work-shell .pool-card { color: #153f53; background: #fffdf8; border-color: #cad8d1; border-radius: 1.2rem .6rem 1.2rem .6rem; }
+.student-work-shell .pool-card-title { color: #153f53; overflow-wrap: anywhere; }
+.student-work-shell .pool-card-description, .student-work-shell .pool-published-at, .student-work-shell .pool-detail-published-at { color: #526f73; }
+.student-work-shell .pool-detail { min-width: 0; margin-top: 1.5rem; padding: 1.2rem; background: #f1eddf; border: 1px solid #e1dac8; border-radius: 1.5rem .6rem 1.5rem .6rem; }
+.student-work-shell .pool-detail h2 { color: #153f53; overflow-wrap: anywhere; }
+.student-work-shell .pool-detail p { color: #526f73; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }

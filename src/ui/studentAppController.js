@@ -48,6 +48,12 @@ function freezeState({
   poolDetail,
   assignmentState,
   workRequestStatus,
+  workRequestItems,
+  workRequestPoolStatus,
+  workRequestDraft,
+  workRequestSubmitting,
+  workRequestReturnState,
+  workRequestFormId,
 }) {
   const value = {
     screen,
@@ -86,6 +92,13 @@ function freezeState({
     value.workRequestStatus = workRequestStatus;
   }
 
+  if (workRequestItems !== undefined) value.workRequestItems = Object.freeze([...workRequestItems]);
+  if (workRequestPoolStatus !== undefined) value.workRequestPoolStatus = workRequestPoolStatus;
+  if (workRequestDraft !== undefined) value.workRequestDraft = workRequestDraft;
+  if (workRequestSubmitting !== undefined) value.workRequestSubmitting = workRequestSubmitting;
+  if (workRequestReturnState !== undefined) value.workRequestReturnState = workRequestReturnState;
+
+  if (workRequestFormId !== undefined) value.workRequestFormId = workRequestFormId;
   return Object.freeze(value);
 }
 
@@ -241,6 +254,9 @@ export function createStudentAppController({
   let activePracticeTabRenderSource = null;
   let activePracticePackage = null;
   let sessionGeneration = 0;
+  let workRequestGeneration = 0;
+  let workRequestReadGeneration = 0;
+  let pendingWorkRequest = null;
 
   function clearActivePractice() {
     const previous = activePracticePackage;
@@ -271,6 +287,12 @@ export function createStudentAppController({
       poolDetail: state.poolDetail,
       assignmentState: state.assignmentState,
       workRequestStatus: state.workRequestStatus,
+      workRequestItems: state.workRequestItems,
+      workRequestPoolStatus: state.workRequestPoolStatus,
+      workRequestDraft: state.workRequestDraft,
+      workRequestSubmitting: state.workRequestSubmitting,
+      workRequestReturnState: state.workRequestReturnState,
+      workRequestFormId: state.workRequestFormId,
       ...overrides,
     };
   }
@@ -540,11 +562,17 @@ export function createStudentAppController({
       } else if (
         state.screen ===
           STUDENT_APP_SCREENS.PIECE_WORKSPACE &&
-        state.pieceWorkspace?.selectedView ===
-          PIECE_WORKSPACE_VIEWS.SCORE
+        (
+          state.pieceWorkspace?.selectedView ===
+            PIECE_WORKSPACE_VIEWS.SCORE ||
+          state.pieceWorkspace?.selectedView ===
+            PIECE_WORKSPACE_VIEWS.TAB
+        )
       ) {
-        renderSource =
-          activePracticeRenderSource;
+        renderSource = state.pieceWorkspace.selectedView ===
+          PIECE_WORKSPACE_VIEWS.TAB
+          ? activePracticeTabRenderSource
+          : activePracticeRenderSource;
       }
 
       if (
@@ -552,8 +580,12 @@ export function createStudentAppController({
         renderSource === null ||
         renderSource?.kind !== "musicxml" ||
         typeof renderSource.musicXml !== "string" ||
-        renderSource.sourceId !==
-          activePracticePackage.packageId
+        (
+          renderSource.sourceId !==
+            activePracticePackage.packageId &&
+          renderSource.sourceId !==
+            `${activePracticePackage.packageId}:guitar-tab`
+        )
       ) {
         return null;
       }
@@ -601,64 +633,84 @@ export function createStudentAppController({
       return state;
     },
 
-    showWorkRequestForm() {
-      if (
-        !student08Enabled ||
-        typeof student08ReadService?.requestWork !==
-          "function"
-      ) {
+    showWorkRequestForm(returnState = state.assignmentState ?? ASSIGNMENT_STATES.ACTIVE) {
+      if (!student08Enabled || typeof student08ReadService?.requestWork !== "function") {
         throw new Error("work request unavailable");
       }
-
       const session = requireCurrentSession();
+      workRequestGeneration += 1;
       clearActivePractice();
       state = freezeState({
-        screen: STUDENT_APP_SCREENS.WORK_REQUEST,
-        session,
-        items: [],
-        workRequestStatus: null,
-        syncState: currentSyncState,
-        student08: true,
+        screen: STUDENT_APP_SCREENS.WORK_REQUEST, session, items: [],
+        workRequestStatus: null, workRequestDraft: "", workRequestItems: [],
+        workRequestPoolStatus: "idle", workRequestSubmitting: pendingWorkRequest?.generation === sessionGeneration,
+        workRequestReturnState: returnState, workRequestFormId: workRequestGeneration,
+        syncState: currentSyncState, student08: true,
       });
       return state;
     },
 
+    setWorkRequestDraft(title) {
+      if (state.screen !== STUDENT_APP_SCREENS.WORK_REQUEST) return state;
+      state = freezeState(stateArgs({ workRequestDraft: String(title ?? "").slice(0, 200) }));
+      return state;
+    },
+
+    async loadWorkRequestPool() {
+      if (state.screen !== STUDENT_APP_SCREENS.WORK_REQUEST) return state;
+      const session = requireCurrentSession();
+      const generation = sessionGeneration;
+      const formGeneration = workRequestGeneration;
+      const readGeneration = ++workRequestReadGeneration;
+      const isCurrent = () => sessionRequestIsCurrent(session, generation) &&
+        state.screen === STUDENT_APP_SCREENS.WORK_REQUEST &&
+        formGeneration === workRequestGeneration && readGeneration === workRequestReadGeneration;
+      state = freezeState(stateArgs({ workRequestPoolStatus: "loading" }));
+      try {
+        const rows = await student08ReadService.listSharedWorkRequests({ session });
+        if (!isCurrent()) return state;
+        if (!Array.isArray(rows)) throw new TypeError("shared work request list must be an array");
+        state = freezeState(stateArgs({
+          workRequestItems: rows.map(toSharedRequestSummary), workRequestPoolStatus: "ready",
+        }));
+      } catch {
+        if (isCurrent()) state = freezeState(stateArgs({ workRequestPoolStatus: "error" }));
+      }
+      return state;
+    },
+
     submitWorkRequest(title) {
-      if (
-        !student08Enabled ||
-        typeof student08ReadService?.requestWork !==
-          "function"
-      ) {
+      if (!student08Enabled || typeof student08ReadService?.requestWork !== "function") {
         throw new Error("work request unavailable");
       }
-
       const session = requireCurrentSession();
-      const requestGeneration = sessionGeneration;
-      const normalizedTitle = requiredText(
-        title,
-        "title",
-      );
-      const result = student08ReadService.requestWork({
-        session,
-        title: normalizedTitle,
-      });
-
-      return resolveMaybe(result, () => {
-        if (!sessionRequestIsCurrent(session, requestGeneration)) {
+      if (pendingWorkRequest?.generation === sessionGeneration) return pendingWorkRequest.promise;
+      if (state.screen !== STUDENT_APP_SCREENS.WORK_REQUEST) throw new Error("work request form is not active");
+      const normalizedTitle = requiredText(title, "title");
+      if (normalizedTitle.length > 200) throw new TypeError("title must not exceed 200 characters");
+      const generation = sessionGeneration;
+      const formGeneration = workRequestGeneration;
+      const isCurrent = () => sessionRequestIsCurrent(session, generation) &&
+        state.screen === STUDENT_APP_SCREENS.WORK_REQUEST && formGeneration === workRequestGeneration;
+      state = freezeState(stateArgs({ workRequestSubmitting: true, workRequestStatus: null, workRequestDraft: title }));
+      const operation = { generation, promise: null };
+      operation.promise = Promise.resolve()
+        .then(() => student08ReadService.requestWork({ session, title: normalizedTitle }))
+        .then(() => {
+          if (isCurrent()) state = freezeState(stateArgs({ workRequestSubmitting: false, workRequestStatus: "success", workRequestDraft: "" }));
           return state;
-        }
-
-        clearActivePractice();
-        state = freezeState({
-          screen: STUDENT_APP_SCREENS.WORK_REQUEST,
-          session,
-          items: [],
-          workRequestStatus: "success",
-          syncState: currentSyncState,
-          student08: true,
+        }, () => {
+          if (isCurrent()) state = freezeState(stateArgs({ workRequestSubmitting: false, workRequestStatus: "error" }));
+          return state;
+        })
+        .finally(() => {
+          if (pendingWorkRequest === operation) pendingWorkRequest = null;
+          if (sessionRequestIsCurrent(session, generation) && state.screen === STUDENT_APP_SCREENS.WORK_REQUEST && state.workRequestSubmitting) {
+            state = freezeState(stateArgs({ workRequestSubmitting: false }));
+          }
         });
-        return state;
-      });
+      pendingWorkRequest = operation;
+      return operation.promise;
     },
 
     showSharedRequestPool() {
@@ -1326,6 +1378,7 @@ export function createStudentAppController({
       }
 
       const session = requireCurrentSession();
+      const generation = sessionGeneration;
       setSyncState(SYNC_STATES.SYNCING);
 
       let result;
@@ -1337,6 +1390,7 @@ export function createStudentAppController({
       }
 
       const applyResult = (outcome) => {
+        if (!sessionRequestIsCurrent(session, generation)) return state;
         const allowed = [
           SYNC_STATES.SYNCED,
           SYNC_STATES.SYNC_ERROR,
@@ -1351,7 +1405,8 @@ export function createStudentAppController({
       if (result !== null && typeof result?.then === "function") {
         return Promise.resolve(result)
           .then(applyResult)
-          .catch(() => setSyncState(SYNC_STATES.SYNC_ERROR));
+          .catch(() => sessionRequestIsCurrent(session, generation)
+            ? setSyncState(SYNC_STATES.SYNC_ERROR) : state);
       }
 
       return applyResult(result);

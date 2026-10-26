@@ -179,7 +179,7 @@ test(
 
       await page
         .getByRole("heading", {
-          name: "Çalışmalar",
+          name: "Bugün ne çalıyoruz?",
           exact: true,
         })
         .waitFor();

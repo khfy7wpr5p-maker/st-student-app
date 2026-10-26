@@ -151,12 +151,11 @@ export function createStNotationAdapter({
     const evidence = activeEvidence;
 
     try {
-      if (payload === undefined) {
-        await runtime[methodName]();
-      } else {
-        await runtime[methodName](payload);
-      }
-      return activeEvidence === evidence;
+      const result = payload === undefined
+        ? await runtime[methodName]()
+        : await runtime[methodName](payload);
+      // Renderer contract methods return void on success; preserve that contract.
+      return result !== false && activeEvidence === evidence;
     } catch {
       return false;
     }
