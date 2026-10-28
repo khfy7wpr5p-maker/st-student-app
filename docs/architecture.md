@@ -1,28 +1,31 @@
 # ST Student App v1 Mimari Sözleşmesi
 
-## Güncel mimari ve kayıt eşitleme — 26 Ekim 2026
+## Güncel mimari ve kayıt eşitleme — 28 Ekim 2026
 
 Bu bölüm aşağıdaki tarihsel sürüm ve açık iş anlatımlarından önceliklidir. İnceleme kaynak-main ve görev kayıtları üzerinden yapıldı; bu çalışma yeni üretim dağıtımı veya fiziksel cihaz testi değildir.
 
-- Teacher kaynak baseline: `6c6ae9d652e02d295a65af586a6f91121f1685d7` (PR #376). Kalıcı öğretmen araçları/güvenli MusicXML navigasyonu #375; dosyasız Nota Düzenle ve bağımsız XML oturum izolasyonu #376 ile main'de.
-- Student kaynak baseline: `60a17cd9213aa9ae085165ecad77c9987e852dd5` (PR #105). Kaynak Service Worker shell `st-student-shell-v49`; bu değer kurulu cihazın yükseldiğinin kanıtı değildir.
+- Teacher 26 Ekim eşitlemesindeki tarihsel kaynak baseline: `6c6ae9d652e02d295a65af586a6f91121f1685d7` (PR #376). Kalıcı öğretmen araçları/güvenli MusicXML navigasyonu #375; dosyasız Nota Düzenle ve bağımsız XML oturum izolasyonu #376 ile main'de.
+- Student doğrulanan kaynak baseline: `1bb7692a3153a37425b04352739bd87f1a031a04` (26 Ekim'de birleşmiş PR #76). Son runtime değişikliği referansı PR #105 / `60a17cd9213aa9ae085165ecad77c9987e852dd5`; aradaki #106 belge eşitlemesidir. Kaynak Service Worker shell `st-student-shell-v49`; bu değer kurulu cihazın yükseldiğinin kanıtı değildir.
+- Student #76, iki ölçü boyunca açık tel, tek/çift haneli perde ve akor örneklerinin exact TAB tel/perde SVG çizimini sınayan testleri ve [SES-228 doğrulama kaydını](qualification/ses228-tab-render.md) ekledi. Uygulama/renderer runtime dosyalarını değiştirmedi; [SES-228](https://linear.app/seslitab/issue/SES-228) Done. Bu belge turunda yeni tarayıcı veya cihaz testi çalıştırılmadı.
+- Renderer source `a015f9049149037c48ac764ab30ed2bcbbe200d3`, renderer contract `0.2.0`, OSMD `2.1.2`; otorite `vendor/st-score-runtime/runtime-manifest.json` ve [runtime belgesidir](renderer-runtime.md).
 - Çok partili aktarım: Teacher #374 ve Student #103 açık part-enstrüman eşlemesini taşır. Student #102 ayrı keman/piyano seslerini mevcut tek transport üzerinden yönlendirir. Fingerboard yalnız açık hedef keman partisini izler; piyano eşliği parmaklama otoritesi değildir. Legacy tek enstrüman paketleri korunur.
 - Student #104 ses kalibrasyonu ve MusicXML dinamik aktarımını içerir. Vendored ses runtime 0.3.0, public contract 0.2.0; manifest sourceRevision `34637d92b8c8a7c56f0e6850449e747e7e4ef711`. pp/p/mp/mf/f/ff ve sayısal dinamik desteği uygulama kapsamındadır; ayrı p/f dinleme kabulü iddia edilmez.
 - Student #105 çevrimdışı çalışmanın geri çekilmesini uzlaştırır; müzikal playback davranışı değişikliği değildir. Private paketler IndexedDB, statik shell/runtime Service Worker sınırında kalır.
 - SES-248/249/250/251 Done; 250 ve 251 için 26 Ekim kullanıcı PASS/kapatma kaydı vardır. SES-247 ana görevindeki eski “T2/T3/T4 henüz yapılmadı” ifadeleri güncel değildir.
 - SES-256 ses dengesi kullanıcı kabulü 25 Ekim PASS. Bu kabul tüm platform/VoiceOver/offline matrisine genişletilmez.
 - SES-243/245/246 Done; eski pending GET/404, npm-audit ve Sonar C ifadeleri tarihsel bulgulardır. Yeni bir audit/Sonar çalıştırıldığı iddia edilmez.
-- SES-242 genel PWA/cihaz ve ertelenmiş Nota/TAB tel–perde VoiceOver kabulü açık. Eser İste round-trip ve temel VoiceOver gezinmesi önceki kullanıcı PASS kayıtlarıdır.
+- [SES-242](https://linear.app/seslitab/issue/SES-242) iPhone/PWA cihaz kapsamı, 26 Ekim kullanıcı PASS/kapatma kararıyla Done. Kayıt dokuz öğrencinin uygulamada çalışabildiği kullanıcı bildirimini taşır; her öğrencide tüm test matrisinin ayrı ayrı çalıştırıldığı anlamına gelmez. Eser İste round-trip ve temel VoiceOver gezinmesinin önceki PASS kayıtları korunur.
+- Ertelenmiş Nota/TAB tel–perde VoiceOver geliştirmesi ayrı [SES-259](https://linear.app/seslitab/issue/SES-259) Backlog kaydındadır; özellik tamamlandı/PASS değildir ve bu belge düzeltmesi geliştirmeyi başlatmaz. SES-28 platform matrisi, SES-29 performans bütçeleri ve ayrı p/f dinleme teyidi SES-242 kapanışıyla topluca kapanmaz.
 - Havuz içerik yayınlama tasarımı yeni uygulama tamamlandı diye kaydedilmez. GitHub #187/#191 ve eski açık PR'lar güncel kodla ayrı karşılaştırılmadan kapatılmaz; açık kayıt sayısı güncel hata sayısı değildir.
 - Kalıcı uçlar: https://st-student-app.onrender.com ve https://st-student-api.onrender.com/api/secure-delivery/v1. Öğretmen/backend atama ve lifecycle otoritesini; Student salt okunur paket tüketimini; StudentPlaybackPort tek müzikal zaman kaynağını korur.
 
-Takip: [Mimari rapor](https://app.notion.com/p/4002be2e566481b48afbf46d3a9647a2), [SES-37](https://linear.app/seslitab/issue/SES-37), [SES-242](https://linear.app/seslitab/issue/SES-242).
+Takip: [Mimari rapor](https://app.notion.com/p/4002be2e566481b48afbf46d3a9647a2), [SES-37](https://linear.app/seslitab/issue/SES-37), [SES-242](https://linear.app/seslitab/issue/SES-242), [SES-259](https://linear.app/seslitab/issue/SES-259).
 
 ## Önceki tarihli mimari kayıtlar
 
-## Güncel uygulama sınırı — 21 Ekim 2026
+## 21 Ekim 2026 uygulama sınırı — tarihsel kayıt
 
-Güncel ve tarihli kaynak: [Student/Teacher arayüz kapanışı ve uyumluluk incelemesi](student-teacher-ui-compatibility-2026-10-21.md). Aşağıdaki numaralı geliştirme aşamaları tarihsel kararları da içerir; eski commit/cache değerleri güncel sürümün yerine kullanılmaz.
+Güncel durum için [Student/Teacher arayüz kapanışı ve uyumluluk incelemesinin 28 Ekim eşitlemesi](student-teacher-ui-compatibility-2026-10-21.md) önceliklidir. Aşağıdaki 21 Ekim anlık görüntüsü tarihsel kayıttır. Aşağıdaki numaralı geliştirme aşamaları tarihsel kararları da içerir; eski commit/cache değerleri güncel sürümün yerine kullanılmaz.
 
 - Uygulama referansı `a958dc077c822b3b6c31b51f283fad5d5b13439d`; renderer `a015f9049149037c48ac764ab30ed2bcbbe200d3`, contract `0.2.0`, OSMD `2.1.2`; shell `st-student-shell-v40`.
 - Giriş sonrası ana ekran, Havuz, Çalışmalarım, Eser İste ve Piece çalışma ekranı ayrı sunum yüzeyleridir. Çalışmalarım ACTIVE / COMPLETED / REPERTOIRE ayrımını ve kimlikli eser bağlantılarını korur.

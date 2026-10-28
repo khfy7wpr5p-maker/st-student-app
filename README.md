@@ -1,6 +1,10 @@
 # ST Student App
 
-> **21 Ekim 2026 güncel mimari ve arayüz kapanışı:** [Teacher/Student uyumluluk matrisi, canlı yayın ve açık hata/kabul kayıtları](docs/student-teacher-ui-compatibility-2026-10-21.md). Güncel uygulama referansı `a958dc0`, renderer source `a015f904`, contract `0.2.0`, OSMD `2.1.2`, shell `v40`. Aşağıdaki önceki aşama pin/test anlatımları tarihsel kanıttır. [19 Ekim durum kaydı](docs/project-status-2026-10-19.md) korunmuştur.
+> **28 Ekim 2026 — güncel kaynak ve mimari:** [Mimari sözleşmesi](docs/architecture.md) · [Teacher/Student uyumluluk ve kabul durumu](docs/student-teacher-ui-compatibility-2026-10-21.md). Doğrulanan Student kaynak baseline `1bb7692a3153a37425b04352739bd87f1a031a04` (birleşmiş PR #76); shell `st-student-shell-v49`, renderer source `a015f9049149037c48ac764ab30ed2bcbbe200d3`, renderer contract `0.2.0`, OSMD `2.1.2`; ses runtime `0.3.0`, public contract `0.2.0`. Bunlar repository kaynak değerleridir; bu belge eşitlemesi canlı Render sürümü veya kurulu cihaz yükseltmesi doğrulaması değildir.
+
+[SES-243](https://linear.app/seslitab/issue/SES-243) Eser İste teknik düzeltmesi ve kullanıcı round-trip kabulü **Done/PASS**. [SES-242](https://linear.app/seslitab/issue/SES-242) iPhone/PWA cihaz kabulü, 26 Ekim kullanıcı onayıyla **Done/PASS**; Nota/TAB tel–perde VoiceOver geliştirmesi ayrı [SES-259](https://linear.app/seslitab/issue/SES-259) **Backlog/ertelenmiş** kaydıdır. PR #76, iki ölçüde exact TAB tel/perde çizimini doğrulayan test ve belge kapsamıdır; yeni runtime davranışı eklemez.
+
+Aşağıdaki STUDENT/VIOLIN aşama anlatımları ve [19 Ekim durum kaydı](docs/project-status-2026-10-19.md) tarihsel geliştirme kanıtıdır. Eski pin/cache değerleri, yalnız SCORE follow veya keman sesinin henüz bağlanmadığı yönündeki aşama sınırları güncel ürün durumu yerine kullanılmaz. Güncel sınırlar ve ayrı kalan kabul kapsamları yukarıdaki iki belgede tutulur.
 
 ST Student App, SesliTab öğretmen uygulamasında hazırlanıp **öğretmen tarafından onaylanan** çalışmaların öğrenci tarafından erişilebilir ve salt-okunur biçimde kullanılacağı uygulamadır.
 
@@ -34,6 +38,10 @@ Node.js kurulu bir ortamda:
 ```bash
 npm test
 ```
+
+## Önceki geliştirme aşamaları — tarihsel kayıt
+
+Bu bölümdeki tamamlanma, test ve kabul ifadeleri ilgili aşamanın kayıt anını anlatır; 28 Ekim kaynak ve kabul durumu için girişteki güncel belgeler önceliklidir.
 
 STUDENT-02, provider-neutral öğrenci session ve Sharing Layer sözleşmelerini tanımlar. STUDENT-05 ile production provider kararı Firebase Authentication + Cloud Firestore olarak alınmış, STUDENT-06 ile browser production bağlantısı ve gerçek iPhone/Safari/VoiceOver kabul akışı doğrulanmıştır. Repository yalnız browser istemcisinin gerekli Firebase project config değerlerini taşır; admin credential, servis hesabı veya secret authority taşımaz.
 
