@@ -38,7 +38,8 @@ test('open E has an explicit zero badge and detail receives the same snapshot an
   const root = { querySelector: s => s === '[data-violin-fingerboard]' ? compact : s === '[data-violin-detail-state]' ? detail : null };
   const view = createViolinFingerboardPresentation({ root });
   view.show({ state: 'AVAILABLE', playing: true, pitch: { step: 'E', octave: 5 }, primary: { stringId: 'E', finger: 0, placement: 'OPEN', normalizedPosition: 0 } });
-  assert.match(compact.innerHTML, /Mi · Açık Mi teli · 0/);
+  const doc = new DOMParser().parseFromString(compact.innerHTML, 'text/html');
+  assert.match(doc.documentElement.textContent, /Mi · Açık Mi teli · 0/);
   assert.match(detail.innerHTML, /data-active-string="E"/);
   assert.doesNotMatch(compact.innerHTML, /class="violin-stop-marker"/);
   view.clear();

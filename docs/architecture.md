@@ -1,5 +1,13 @@
 # ST Student App v1 Mimari Sözleşmesi
 
+## Gerçekçi keman paneli — 1 Kasım 2026 sürüm adayı
+
+- Kullanıcının onayladığı MagicPath kaynağı: proje `465886118261428224`, bileşen `465886123739189248`, revizyon `467386809148641280`.
+- Ortak `violinFingerboard.js` sunumu bombeli abanoz, ince ahşap kenar, metal teller ve kehribar parmak işaretini inline SVG ile çizer. Yeni kütüphane, ağdan görsel veya animasyon saati yoktur.
+- Aynı `320 × 112` koordinat sistemi, `normalizedPosition`, açık tel 0, hedef keman partisi ve Türkçe erişilebilir açıklamalar korunur. Kompakt ve detay yüzeylerinin malzeme kimlikleri birbirinden bağımsızdır. Uygun eski/yeni keman ödevleri ortak sunumu kullanır; paket göçü veya yeniden gönderim gerekmez.
+- Bu dalda statik shell `st-student-shell-v50` olur. Kurulu v49 kabuğu aktivasyona kadar korunur; mevcut atomik kurulum/aktivasyon davranışı, v18 uyumluluk cache'i, özel paketler ve ses örnekleri değişmez.
+- Bu kayıt uygulama değişikliğinin kapsamıdır; main'e birleştirme, canlı dağıtım veya fiziksel iPhone/VoiceOver kabulü iddiası değildir. Tasarım ve doğrulama adımları [uygulama planında](superpowers/plans/2026-11-01-realistic-violin-fingerboard.md) bulunur. Aşağıdaki 28 Ekim anlık görüntüsü kendi tarihindeki baseline'ı belgeler.
+
 ## Güncel mimari ve kayıt eşitleme — 28 Ekim 2026
 
 Bu bölüm aşağıdaki tarihsel sürüm ve açık iş anlatımlarından önceliklidir. İnceleme kaynak-main ve görev kayıtları üzerinden yapıldı; bu çalışma yeni üretim dağıtımı veya fiziksel cihaz testi değildir.

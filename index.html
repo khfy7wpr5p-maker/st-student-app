@@ -474,6 +474,8 @@
       .practice-violin {
         display: grid;
         gap: var(--st-space-2);
+        background-color: #fff;
+        background-image: radial-gradient(ellipse at 30% 0%, #fffef9 0%, transparent 78%), linear-gradient(145deg, #faf9f2, #f1f1e7);
       }
 
       .violin-fingerboard-host {
@@ -488,37 +490,29 @@
         overflow: visible;
       }
 
-      .violin-string,
-      .violin-nut-line {
-        stroke: var(--st-text-muted);
-        vector-effect: non-scaling-stroke;
-      }
-
-      .violin-string.active-string {
-        stroke: var(--st-text);
-        stroke-width: 3;
-      }
-
-      .violin-nut-line {
-        stroke-width: 4;
+      .violin-string {
+        stroke-linecap: round;
       }
 
       .violin-string-label {
-        fill: var(--st-text);
-        font-size: 14px;
+        fill: #65766d;
+        font-size: 15px;
         font-weight: 700;
       }
 
+      .violin-string-label.active-string-label {
+        fill: #956326;
+        font-weight: 800;
+      }
+
       .violin-stop-marker {
-        fill: var(--st-text);
-        stroke: var(--st-surface-raised);
-        stroke-width: 2;
-        vector-effect: non-scaling-stroke;
+        stroke: #8c612a;
+        stroke-width: .8;
       }
 
       .violin-stop-number {
-        fill: var(--st-surface-raised);
-        font-size: 12px;
+        fill: #292e24;
+        font-size: 14px;
         font-weight: 800;
         text-anchor: middle;
         pointer-events: none;
@@ -527,9 +521,26 @@
       .violin-fingering-text {
         margin: var(--st-space-2) 0 0;
         font-weight: 700;
+        color: #52685e;
       }
 
       .violin-compact-label { display: none; }
+      .violin-compact-label strong { color: #203f40; font-weight: inherit; }
+      .violin-finger-badge {
+        position: relative;
+        z-index: 0;
+        color: #35412d;
+      }
+      .violin-finger-badge::before {
+        content: "";
+        position: absolute;
+        inset: -.05em -.3em;
+        z-index: -1;
+        border-radius: .3em;
+        background: linear-gradient(#f8e5b9, #e9c783);
+        box-shadow: inset 0 0 0 1px #c6a96f;
+      }
+      .violin-placement { color: #596650; }
 
       .violin-fingerboard-empty .violin-fingering-text {
         color: var(--st-text-muted);

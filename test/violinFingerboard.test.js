@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { DOMParser } from "@xmldom/xmldom";
 
 import {
   createViolinFingerboardPresentation,
@@ -109,4 +110,49 @@ test("fingerboard implementation is static presentation and uses responsive viol
   assert.match(html, /\.violin-fingerboard-svg\s*\{[^}]*width:\s*100%/s);
   assert.match(html, /\.violin-stop-marker\s*\{/);
   assert.match(html, /\.violin-fingering-text\s*\{/);
+});
+
+test("material paints stay local to compact, hidden detail and separate presenters", () => {
+  const allIds = [];
+  for (let instance = 0; instance < 2; instance += 1) {
+    const compact = { innerHTML: "" };
+    const detail = { innerHTML: "" };
+    const presentation = createViolinFingerboardPresentation({
+      root: {
+        querySelector(selector) {
+          if (selector === "[data-violin-fingerboard]") return compact;
+          if (selector === "[data-violin-detail-state]") return detail;
+          return null;
+        },
+      },
+    });
+    presentation.show(available());
+    let description;
+    for (const panel of [compact, detail]) {
+      const doc = new DOMParser().parseFromString(panel.innerHTML, "application/xml");
+      const svg = doc.getElementsByTagName("svg")[0];
+      const nodes = Array.from(svg.getElementsByTagName("*"));
+      const ids = nodes.filter((node) => node.hasAttribute("id"))
+        .map((node) => node.getAttribute("id"));
+      const references = nodes.flatMap((node) => ["fill", "stroke", "clip-path"]
+        .map((attribute) => node.getAttribute(attribute) ?? "")
+        .filter((value) => value.startsWith("url(")));
+      assert.ok(references.length > 0, "realistic materials reference local SVG paints");
+      for (const reference of references) {
+        const match = /^url\(#([A-Za-z0-9_-]+)\)$/.exec(reference);
+        assert.ok(match, "material reference is a safe document fragment");
+        assert.ok(ids.includes(match[1]), "each paint resolves inside its own SVG");
+      }
+      allIds.push(...ids);
+      assert.equal(svg.getAttribute("viewBox"), "0 0 320 112");
+      const marker = nodes.find((node) => node.getAttribute("class") === "violin-stop-marker");
+      assert.ok(Math.abs(Number(marker.getAttribute("cx")) - 93.63774) < 1e-9);
+      assert.equal(Number(marker.getAttribute("cy")), 44);
+      description ??= svg.getAttribute("aria-label");
+      assert.equal(svg.getAttribute("aria-label"), description);
+    }
+    presentation.clear();
+    assert.doesNotMatch(compact.innerHTML + detail.innerHTML, /<svg/);
+  }
+  assert.equal(new Set(allIds).size, allIds.length, "no IDs are shared with hidden or other panels");
 });
