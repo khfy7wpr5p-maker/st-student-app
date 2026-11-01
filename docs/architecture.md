@@ -1,5 +1,15 @@
 # ST Student App v1 Mimari Sözleşmesi
 
+## Gerçekçi gitar akor çizimi — 1 Kasım 2026 sürüm adayı
+
+- Kullanıcının onayladığı Guitar Chord Board **0.22.0** görünümü, kaynak commit `7fb86d231c35e6d3ce7bc07c5b0cfbd845da4b30`, Student'ın ortak `chordDiagramSvg.js` sunumuna uyarlanır. Bu değer Student uygulama/paket sürümü değildir.
+- Bağımsız CHORD_BOARD ve Piece **Akorlar** ekranı aynı koyu ahşap, metal perde, sarımlı bas telleri ve fildişi parmak/bare işaretlerini kullanır. Tel 6–1 ve gerçek perde numaraları görünür; her SVG kendi malzeme kimliklerine sahiptir.
+- Aynı immutable akor snapshot'ı, kendi ekranındaki SVG kimliğini yeniden çizimlerde korur; bağımsız ve Piece ekranları ayrı örneklere sahiptir. Böylece değişmeyen HTML için mevcut DOM koruması ve geçici kontrol durumu devam eder. Doğrudan SVG çizim çağrıları benzersiz kimlik üretir.
+- Yetkili snapshot, perde/parmak/bare değerleri, erişilebilir tel/bare açıklamaları ve öğretmen notları korunur. Katalog/provenance, SesliTab, ses, Nota/TAB, keman ve private offline veri kodu değiştirilmez. Yeni bağımlılık, ağdan görsel veya animasyon eklenmez; CSS yalnız akor bileşeni altında geçerlidir.
+- Statik shell `st-student-shell-v51` olur. Kurulu v50 akor/index dosyaları aktivasyona kadar korunur; v18 uyumluluk cache'i ve ses örnekleri aynı kalır. Aşağıdaki keman v50 kaydı önceki sürümü belgeler.
+- Bu dal PR hazırlığıdır; canlı dağıtım veya fiziksel iPhone/VoiceOver kabulü değildir. Kapsam ve doğrulama adımları [uygulama planında](superpowers/plans/2026-11-01-realistic-chord-board.md) bulunur.
+- Güncel test sonuçları ve Chromium baseline sınırı [doğrulama kaydındadır](qualification/chord-board-022.md).
+
 ## Gerçekçi keman paneli — 1 Kasım 2026 sürüm adayı
 
 - Kullanıcının onayladığı MagicPath kaynağı: proje `465886118261428224`, bileşen `465886123739189248`, revizyon `467386809148641280`.

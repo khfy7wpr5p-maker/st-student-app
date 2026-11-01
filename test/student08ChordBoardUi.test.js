@@ -94,7 +94,7 @@ test("CHORD_BOARD screen renders exact student-safe chord identity and six strin
   );
   assert.match(
     html,
-    /<svg class="chord-diagram"[^>]*viewBox="0 0 360 340"[^>]*>/,
+    /<svg class="chord-diagram"[^>]*viewBox="0 0 360 480"[^>]*>/,
   );
   assert.match(
     html,

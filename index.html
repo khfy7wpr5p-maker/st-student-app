@@ -441,6 +441,83 @@
         text-anchor: middle;
       }
 
+      /* Guitar Chord Board 0.22.0 materials, isolated to Student chord views. */
+      .chord-board-workspace .chord-diagram-card {
+        border-color: #d8d0c2;
+        border-radius: 26px;
+        background: linear-gradient(145deg, #eeece7, #e8e5de);
+        padding: 12px 4px 4px;
+      }
+
+      .chord-board-workspace .chord-diagram {
+        width: min(100%, 360px);
+        padding: 0;
+      }
+
+      .chord-board-workspace .chord-diagram .string-line,
+      .chord-board-workspace .chord-diagram .fret-line,
+      .chord-board-workspace .chord-diagram .open-mark,
+      .chord-board-workspace .chord-diagram .finger-mark {
+        vector-effect: none;
+      }
+
+      .chord-board-workspace .string-shadow {
+        stroke: #080c08;
+        stroke-opacity: .55;
+      }
+
+      .chord-board-workspace .string-winding {
+        stroke: #503d26;
+        stroke-opacity: .55;
+        stroke-dasharray: .65 2.2;
+      }
+
+      .chord-board-workspace .fret-shadow {
+        stroke: #080c08;
+        stroke-width: 6;
+        stroke-opacity: .4;
+        stroke-linecap: round;
+      }
+
+      .chord-board-workspace .open-mark {
+        fill: none;
+        stroke: #484b44;
+        stroke-width: 2.4;
+      }
+
+      .chord-board-workspace .mute-mark {
+        fill: #111;
+      }
+
+      .chord-board-workspace .finger-mark,
+      .chord-board-workspace .barre-mark {
+        stroke: #bba67f;
+        stroke-width: 1;
+      }
+
+      .chord-board-workspace .finger-number {
+        fill: #181b17;
+        font-size: 22px;
+      }
+
+      .chord-board-workspace .base-fret,
+      .chord-board-workspace .fret-number,
+      .chord-board-workspace .string-number {
+        fill: #494c45;
+        font-size: 24px;
+        font-weight: 550;
+        text-anchor: middle;
+      }
+
+      @media (max-width: 360px) {
+        .chord-board-workspace .finger-number,
+        .chord-board-workspace .base-fret,
+        .chord-board-workspace .fret-number,
+        .chord-board-workspace .string-number {
+          font-size: 28px;
+        }
+      }
+
       .chord-teacher-note {
         border: 1px solid var(--st-border);
         border-radius: var(--st-radius-md);
