@@ -22,7 +22,7 @@ function requestKey(request) {
   return request.url;
 }
 
-test("installed stale v20–v49 shells migrate atomically to v50 and reopen offline", async () => {
+test("installed stale v20–v50 shells migrate atomically to v51 and reopen offline", async () => {
   const source = await readFile(
     new URL("../service-worker.js", import.meta.url),
     "utf8",
@@ -168,6 +168,8 @@ test("installed stale v20–v49 shells migrate atomically to v50 and reopen offl
     [48, "src/offline/indexedDbOfflineRepository.js", "before-durable-access-tombstones"],
     [49, "src/ui/violinFingerboard.js", "before-realistic-violin-materials"],
     [49, "src/ui/piece-workspace-fusion.css", "before-realistic-violin-surface"],
+    [50, "index.html", "before-realistic-chord-styles"],
+    [50, "src/ui/chordDiagramSvg.js", "before-realistic-chord-materials"],
   ];
   for (const [version, asset, body] of staleShellFixtures) {
     entriesFor(`st-student-shell-v${version}`).set(
@@ -250,38 +252,47 @@ test("installed stale v20–v49 shells migrate atomically to v50 and reopen offl
   await installPromise;
 
   assert.equal(skipWaitingCalls, 1);
+  for (const [version, asset, body] of staleShellFixtures.filter(([version]) => version === 50)) {
+    const url = new URL(asset, SCOPE).href;
+    assert.equal(entriesFor(`st-student-shell-v${version}`).get(url)?.body,
+      body, "install preserves active v50 chord/index bytes until activation");
+    assert.equal(entriesFor("st-student-shell-v51").get(url)?.body,
+      asset === "index.html" ? "account-presence-usage-shell" : `current:${url}`,
+      "new shell contains the realistic chord presentation");
+  }
+
   for (const [version, asset, body] of staleShellFixtures.filter(([version]) => version === 49)) {
     const url = new URL(asset, SCOPE).href;
     assert.equal(entriesFor(`st-student-shell-v${version}`).get(url)?.body,
       body, "install preserves the active v49 violin view until activation");
-    assert.equal(entriesFor("st-student-shell-v50").get(url)?.body,
+    assert.equal(entriesFor("st-student-shell-v51").get(url)?.body,
       `current:${url}`, "new shell contains the realistic violin view");
   }
   for (const [version, asset, body] of staleShellFixtures.filter(([version]) => version === 42)) {
     const url = new URL(asset, SCOPE).href;
     assert.equal(entriesFor(`st-student-shell-v${version}`).get(url)?.body,
       body, "install preserves the active v42 modules");
-    assert.equal(entriesFor("st-student-shell-v50").get(url)?.body,
+    assert.equal(entriesFor("st-student-shell-v51").get(url)?.body,
       `current:${url}`, "new shell contains the promise-handling fixes");
   }
   for (const [version, asset, body] of staleShellFixtures.filter(([version]) => version === 43)) {
     const url = new URL(asset, SCOPE).href;
     assert.equal(entriesFor(`st-student-shell-v${version}`).get(url)?.body,
       body, "installation preserves active v43 bytes");
-    assert.equal(entriesFor("st-student-shell-v50").get(url)?.body,
+    assert.equal(entriesFor("st-student-shell-v51").get(url)?.body,
       `current:${url}`, "new shell contains the violin board update");
   }
   assert.equal(entriesFor("st-student-shell-v41").get("https://student.example/src/ui/main.js")?.body,
     "bootstrap-with-unhandled-render-promises", "install preserves active v41 bootstrap bytes");
   assert.equal(entriesFor("st-student-shell-v32").get("https://student.example/src/ui/main.js")?.body,
     "bootstrap-before-background-audio-initialization", "install preserves active bootstrap bytes");
-  assert.equal(entriesFor("st-student-shell-v50").get("https://student.example/src/ui/main.js")?.body,
+  assert.equal(entriesFor("st-student-shell-v51").get("https://student.example/src/ui/main.js")?.body,
     "current:https://student.example/src/ui/main.js", "new shell contains the nonblocking bootstrap");
   for (const module of ["scoreFollowCoordinator.js", "notationAdapter.js"]) {
     const url = `https://student.example/src/practice/${module}`;
     assert.equal(entriesFor("st-student-shell-v31").get(url)?.body,
       "before-follow-startup-recovery", "installation preserves the active v31 modules");
-    assert.equal(entriesFor("st-student-shell-v50").get(url)?.body,
+    assert.equal(entriesFor("st-student-shell-v51").get(url)?.body,
       `current:${url}`, "new shell contains recovery modules");
   }
   assert.equal(
@@ -290,7 +301,7 @@ test("installed stale v20–v49 shells migrate atomically to v50 and reopen offl
     "install must not overwrite bytes still used by the previous worker",
   );
   assert.equal(
-    entriesFor("st-student-shell-v50").get("https://student.example/src/practice/scoreFollowIndex.js").body,
+    entriesFor("st-student-shell-v51").get("https://student.example/src/practice/scoreFollowIndex.js").body,
     "current:https://student.example/src/practice/scoreFollowIndex.js",
   );
   assert.equal(
@@ -300,7 +311,7 @@ test("installed stale v20–v49 shells migrate atomically to v50 and reopen offl
     "account-invite-shell-without-presence-usage",
   );
   assert.equal(
-    entriesFor("st-student-shell-v50")
+    entriesFor("st-student-shell-v51")
       .get("https://student.example/index.html")
       .body,
     "account-presence-usage-shell",
@@ -327,7 +338,7 @@ test("installed stale v20–v49 shells migrate atomically to v50 and reopen offl
     "src/account/accountLifecycleCoordinator.js",
   ]) {
     assert.equal(
-      entriesFor("st-student-shell-v50").has(
+      entriesFor("st-student-shell-v51").has(
         `https://student.example/${asset}`,
       ),
       true,
@@ -345,7 +356,7 @@ test("installed stale v20–v49 shells migrate atomically to v50 and reopen offl
   assert.equal(entriesFor('st-student-samples-v1').get(oldViolinUrl)?.body, 'cached-v47-p-violin');
   for (const name of ['audioCalibration.js', 'musicXmlDynamics.js']) {
     const key = new URL('src/playback/' + name, SCOPE).href;
-    assert.equal(entriesFor('st-student-shell-v50').get(key)?.body, 'current:' + key);
+    assert.equal(entriesFor('st-student-shell-v51').get(key)?.body, 'current:' + key);
   }
   let oldViolinResponse;
   listeners.get('fetch')({request:{url:oldViolinUrl,method:'GET'}, respondWith(p){oldViolinResponse=p;}});
@@ -384,20 +395,22 @@ test("installed stale v20–v49 shells migrate atomically to v50 and reopen offl
     "st-student-shell-v47",
     "st-student-shell-v48",
     "st-student-shell-v49",
+    "st-student-shell-v50",
   ]);
+  assert.equal(cacheEntries.has("st-student-shell-v50"), false);
   assert.equal(cacheEntries.has("st-student-shell-v43"), false);
   assert.equal(cacheEntries.has("st-student-shell-v44"), false);
   assert.equal(cacheEntries.has("st-student-shell-v45"), false);
-  assert.ok(entriesFor("st-student-shell-v50").has("https://student.example/src/ui/violinDockPresentation.js"));
-  assert.ok(entriesFor("st-student-shell-v50").has("https://student.example/src/playback/playbackPartRouting.js"));
-  assert.ok(entriesFor("st-student-shell-v50").has("https://student.example/src/playback/declaredPartInstruments.js"));
+  assert.ok(entriesFor("st-student-shell-v51").has("https://student.example/src/ui/violinDockPresentation.js"));
+  assert.ok(entriesFor("st-student-shell-v51").has("https://student.example/src/playback/playbackPartRouting.js"));
+  assert.ok(entriesFor("st-student-shell-v51").has("https://student.example/src/playback/declaredPartInstruments.js"));
   assert.equal(cacheEntries.has("st-student-shell-v42"), false);
   assert.equal(cacheEntries.has("st-student-shell-v41"), false);
   assert.equal(cacheEntries.has("st-student-shell-v40"), false);
   assert.equal(cacheEntries.has("st-student-shell-v39"), false);
-  assert.ok(entriesFor("st-student-shell-v50").has("https://student.example/src/practice/notationCursorProjection.js"));
+  assert.ok(entriesFor("st-student-shell-v51").has("https://student.example/src/practice/notationCursorProjection.js"));
   assert.equal(cacheEntries.has("st-student-shell-v35"), false);
-  assert.ok(entriesFor("st-student-shell-v50").has("https://student.example/src/assets/pool-fusion-music.svg"));
+  assert.ok(entriesFor("st-student-shell-v51").has("https://student.example/src/assets/pool-fusion-music.svg"));
   assert.equal(claimCalls, 1);
   assert.equal(cacheEntries.has("st-student-shell-v20"), false);
   assert.equal(cacheEntries.has("st-student-shell-v21"), false);

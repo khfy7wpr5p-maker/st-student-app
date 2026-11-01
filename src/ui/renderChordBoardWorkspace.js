@@ -3,6 +3,28 @@ import {
   renderChordDiagramSvg,
 } from "./chordDiagramSvg.js";
 
+const workspaceDiagrams = new WeakMap();
+
+function renderWorkspaceDiagram(viewModel, showTeacherNote) {
+  // renderStudentApp owns one workspace per route. Retain that SVG instance
+  // across no-op paints: changing resource IDs would replace unchanged DOM
+  // in mountStudentApp and discard transient control state. The two routes
+  // own separate instances even when they consume the same frozen snapshot.
+  if (!Object.isFrozen(viewModel)) {
+    return renderChordDiagramSvg(viewModel);
+  }
+  let diagrams = workspaceDiagrams.get(viewModel);
+  if (diagrams === undefined) {
+    diagrams = new Map();
+    workspaceDiagrams.set(viewModel, diagrams);
+  }
+  const route = showTeacherNote ? "standalone" : "piece";
+  if (!diagrams.has(route)) {
+    diagrams.set(route, renderChordDiagramSvg(viewModel));
+  }
+  return diagrams.get(route);
+}
+
 function stringDescription(item) {
   if (item.state === "MUTED") {
     return `${item.stringNumber}. tel: kapalı.`;
@@ -116,7 +138,7 @@ export function renderChordBoardWorkspace(
       </header>
 
       <div class="chord-diagram-card">
-        ${renderChordDiagramSvg(viewModel)}
+        ${renderWorkspaceDiagram(viewModel, showTeacherNote)}
       </div>
 
       ${renderAccessibilityDescription(
