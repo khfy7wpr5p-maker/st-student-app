@@ -5,6 +5,26 @@ import { chromium, webkit } from 'playwright';
 import { startRepositoryStaticServer } from './support/static-server.mjs';
 import { renderPracticeWorkspace } from '../src/ui/renderPracticeWorkspace.js';
 
+async function materialFixtureServer() {
+  const index=await readFile(new URL('../index.html',import.meta.url),'utf8');
+  const css=await readFile(new URL('../src/ui/piece-workspace-fusion.css',import.meta.url),'utf8');
+  const markup=renderPracticeWorkspace({capabilities:{notation:'AVAILABLE',violin:'AVAILABLE',playback:'AVAILABLE'},practice:{tempoBpm:60}},{compactViolin:true});
+  return startRepositoryStaticServer({htmlRoutes:{
+    '/violin-material-fixture':`<!doctype html><html lang="tr"><head><style>${index.match(/<style>([\s\S]*?)<\/style>/)[1]}\n${css}</style></head><body><div id="app"><main class="student-app"><section class="piece-workspace">${markup}</section></main></div></body></html>`,
+  }});
+}
+
+async function showResolvedNote(page,pitch) {
+  await page.evaluate(async pitch=>{
+    const {createViolinFingerboardPresentation}=await import('/src/ui/violinFingerboard.js');
+    const {resolveFirstPositionNote}=await import('/vendor/st-violin-learning/src/firstPosition.js');
+    const resolved=resolveFirstPositionNote({noteId:'material-example',pitch});
+    if(!resolved.supported) throw new Error('unsupported material example');
+    globalThis.__VIOLIN_MATERIAL_VIEW__ ??= createViolinFingerboardPresentation({root:document});
+    globalThis.__VIOLIN_MATERIAL_VIEW__.show({state:'AVAILABLE',playing:false,pitch:resolved.pitch,primary:resolved.primary});
+  },pitch);
+}
+
 test('long violin score keeps measures 21 and 24 beside the compact dock across phone orientations', { timeout: 120000 }, async () => {
   const server = await startRepositoryStaticServer();
   const engine = process.env.ST_BROWSER ?? 'chromium';
@@ -61,6 +81,10 @@ test('long violin score keeps measures 21 and 24 beside the compact dock across 
         const board=await page.locator('.practice-violin-compact').boundingBox();
         assert.ok(board.height <= 145, `compact board height at ${width}x${height}: ${board.height}`);
         assert.match(await page.locator('[data-violin-fingerboard]').textContent(), /Mi · Açık Mi teli · 0/);
+        assert.equal(await page.locator('[data-violin-dock]').evaluate(dock => {
+          const ids=Array.from(dock.querySelectorAll('.violin-fingerboard-svg [id]'),node=>node.id);
+          return ids.length>0 && new Set(ids).size===ids.length;
+        }),true,'compact and hidden detail own separate material resources');
         assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
         for (const selector of ['[data-action="play-practice"]','[data-action="pause-practice"]','[data-action="restart-practice"]','[data-practice-tempo]','[data-action="set-practice-tempo"]','[data-action="set-measure-repeat"]']) {
           const control=await page.locator(selector).boundingBox();
@@ -111,4 +135,57 @@ test('desktop violin cards retain their opaque background and border', async () 
       assert.deepEqual(style,{background:'rgb(255, 255, 255)',border:'solid',width:'1px'},selector+' retains existing desktop card');
     }
   } finally {await browser.close();}
+});
+
+test('altered stopped-note readouts retain the legacy compact line budget',async()=>{
+  const server=await materialFixtureServer();
+  let browser;
+  try {
+    browser=await ({chromium,webkit}[process.env.ST_BROWSER ?? 'chromium']).launch({headless:true});
+    const page=await browser.newPage();
+    await page.goto(server.baseUrl+'/violin-material-fixture');
+    for(const [width,height,pitch,text] of [
+      [320,568,{step:'F',alter:2,octave:5},'Fa çift diyez · Mi teli · 2 (Alçak)'],
+      [320,568,{step:'A',alter:-2,octave:5},'La çift bemol · Mi teli · 2 (Alçak)'],
+      [568,320,{step:'A',alter:1,octave:4},'La diyez · La teli · 1 (Alçak)'],
+      [568,320,{step:'B',alter:1,octave:4},'Si diyez · La teli · 2 (Alçak)'],
+    ]) {
+      await page.setViewportSize({width,height});
+      await showResolvedNote(page,pitch);
+      const label=page.locator('[data-violin-fingerboard] .violin-compact-label');
+      assert.equal(await label.textContent(),text);
+      const decorated=await page.locator('.practice-violin').boundingBox();
+      const decoratedDock=await page.locator('[data-violin-dock]').boundingBox();
+      // The original readout was plain text. Measure that independent layout
+      // reference with the same font, viewport, score and transport containers.
+      await label.evaluate((el,text)=>{el.textContent=text;},text);
+      const plain=await page.locator('.practice-violin').boundingBox();
+      const plainDock=await page.locator('[data-violin-dock]').boundingBox();
+      assert.ok(Math.abs(decorated.height-plain.height)<.5,`${text} at ${width}x${height}: ${decorated.height} vs legacy ${plain.height}`);
+      assert.ok(Math.abs(decoratedDock.height-plainDock.height)<.5,'decoration does not take extra score space');
+    }
+  } finally {await browser?.close();await server.close();}
+});
+
+test('small placement text meets minimum contrast on the approved ivory surface',async()=>{
+  const server=await materialFixtureServer();
+  let browser;
+  try {
+    browser=await ({chromium,webkit}[process.env.ST_BROWSER ?? 'chromium']).launch({headless:true});
+    const page=await browser.newPage({viewport:{width:390,height:680}});
+    await page.goto(server.baseUrl+'/violin-material-fixture');
+    await showResolvedNote(page,{step:'F',alter:1,octave:4});
+    const color=await page.locator('[data-violin-fingerboard] .violin-placement').evaluate(el=>getComputedStyle(el).color);
+    const foreground=color.match(/[\d.]+/g).map(Number);
+    assert.equal(foreground.length,3,'fingering placement text is opaque');
+    // WCAG 2.2 SC 1.4.3; test the darkest approved gradient stop and white fallback.
+    const luminance=rgb=>rgb.map(channel=>{
+      const value=channel/255;
+      return value<=.04045 ? value/12.92 : ((value+.055)/1.055)**2.4;
+    }).reduce((sum,value,index)=>sum+value*[.2126,.7152,.0722][index],0);
+    for(const background of [[241,241,231],[255,255,255]]) {
+      const ratio=(luminance(background)+.05)/(luminance(foreground)+.05);
+      assert.ok(ratio>=4.5,`${color} contrast ${ratio} is below 4.5:1`);
+    }
+  } finally {await browser?.close();await server.close();}
 });

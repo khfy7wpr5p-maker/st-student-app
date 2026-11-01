@@ -77,7 +77,7 @@ test("service worker caches explicit app-shell and playback assets plus pinned F
   );
 
   assert.match(source, /st-student-shell-v18/);
-  assert.match(source, /st-student-shell-v49/);
+  assert.match(source, /st-student-shell-v50/);
   assert.match(source, /self\.skipWaiting\(\)/);
   assert.match(source, /self\.clients\.claim\(\)/);
   assert.match(source, /index\.html/);
@@ -123,7 +123,7 @@ test("Student shell is installed atomically into v49 and stale prior shell cache
 
   assert.match(
     source,
-    /const SHELL_CACHE_NAME = "st-student-shell-v49"/,
+    /const SHELL_CACHE_NAME = "st-student-shell-v50"/,
   );
   assert.match(
     source,
